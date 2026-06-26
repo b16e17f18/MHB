@@ -1,0 +1,7 @@
+hit_type_id,name,description
+normal,通常,通常位置の相手に当たる
+anti_air,対空,上空状態の相手にも当たる
+ground_wave,地中命中,地中状態の相手にも当たる
+water_wave,水中命中,水中状態の相手にも当たる
+sure_hit,必中,上空・地中・水中を無視して当たる
+guard_break,防御貫通,まもる系を一部無視する

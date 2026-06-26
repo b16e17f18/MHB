@@ -1,0 +1,10 @@
+battle_effect_id,name,battle_effect_group,damage_type,damage_value,turn,can_move,guard_type,weak_hit_type,damage_cut
+protect,防御態勢,guard,none,50,1,TRUE,all_damage,guard_break,50
+endure,こらえる,trigger,none,1,1,TRUE,hp,none,0
+revenge,反撃準備,trigger,received_damage_rate,50,1,TRUE,none,none,0
+fly,上空,position,none,0,1,FALSE,ground_attack,anti_air,0
+underground,地中,position,none,0,1,FALSE,surface_attack,ground_wave,0
+underwater,水中,position,none,0,1,FALSE,surface_attack,water_wave,0
+ghost_phase,消失,position,none,0,1,FALSE,all_damage,sure_hit,0
+charge_attack,溜め攻撃,charge,none,0,1,FALSE,none,none,0
+future_attack,予約攻撃,delayed_attack,skill_power_rate,100,2,TRUE,none,none,0

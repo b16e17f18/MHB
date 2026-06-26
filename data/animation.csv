@@ -1,0 +1,5 @@
+battle_effect_id,position_class,animation_name,animation_duration_ms,surface_color
+fly,position-fly,mhbFlyAway,520,
+underground,position-underground,mhbDiveGround,520,#caa45e
+underwater,position-underwater,mhbDiveWater,520,#2aa7ff
+ghost_phase,position-ghost_phase,mhbGhostFade,520,
