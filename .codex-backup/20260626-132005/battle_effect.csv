@@ -1,10 +1,10 @@
 battle_effect_id,name,battle_effect_group,damage_type,damage_value,turn,can_move,guard_type,weak_hit_type,damage_cut,animation,animation_duration_ms
-protect,–hŒä‘Ô¨,guard,none,50,1,TRUE,all_damage,guard_break,50,[Magic]Enhance02_panop_alpha.png,500
-endure,‚±‚ç‚¦‚é,trigger,none,1,1,TRUE,hp,none,0,[Magic]Enhance03_panop_alpha.png,500
+protect,–hŒä‘Ô¨,guard,none,50,1,TRUE,all_damage,guard_break,50,[Magic]Enhance02_panop.png,500
+endure,‚±‚ç‚¦‚é,trigger,none,1,1,TRUE,hp,none,0,[Magic]Enhance03_panop.png,500
 revenge,”½Œ‚€”õ,trigger,received_damage_rate,100,1,TRUE,none,none,0,,
 fly,ã‹ó,position,none,0,1,FALSE,ground_attack,anti_air,0,,
 underground,’n’†,position,none,0,1,FALSE,surface_attack,ground_wave,0,,
 underwater,…’†,position,none,0,1,FALSE,surface_attack,water_wave,0,,
 ghost_phase,Á¸,position,none,0,1,FALSE,all_damage,sure_hit,0,,
 charge_attack,—­‚ßUŒ‚,charge,none,0,1,FALSE,none,none,0,,
-future_blast,•²o”š”j,delayed_attack,fixed_power,110,2,TRUE,none,none,0,,
+future_attack,—\–ñUŒ‚,delayed_attack,skill_power_rate,100,2,TRUE,none,none,0,,
