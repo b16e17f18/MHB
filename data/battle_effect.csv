@@ -1,10 +1,10 @@
 battle_effect_id,name,battle_effect_group,damage_type,damage_value,turn,can_move,guard_type,weak_hit_type,damage_cut,turn
-protect,–hŒä‘Ô¨,guard,none,50,1,TRUE,all_damage,guard_break,50,1
-endure,‚±‚ç‚¦‚é,trigger,none,1,1,TRUE,hp,none,0,1
-revenge,”½Œ‚€”õ,trigger,received_damage_rate,100,1,TRUE,none,none,0,1
-fly,ã‹ó,position,none,0,1,FALSE,ground_attack,anti_air,0,1
-underground,’n’†,position,none,0,1,FALSE,surface_attack,ground_wave,0,1
-underwater,…’†,position,none,0,1,FALSE,surface_attack,water_wave,0,1
-ghost_phase,Á¸,position,none,0,1,FALSE,all_damage,sure_hit,0,1
-charge_attack,—­‚ßUŒ‚,charge,none,0,1,FALSE,none,none,0,1
-future_blast,•²o”š”j,delayed_attack,fixed_power,110,1,TRUE,none,none,0,1
+protect,é˜²å¾¡æ…‹å‹¢,guard,none,50,1,TRUE,all_damage,guard_break,50,1
+endure,ã“ã‚‰ãˆã‚‹,trigger,none,1,1,TRUE,hp,none,0,1
+revenge,åæ’ƒæº–å‚™,trigger,received_damage_rate,100,1,TRUE,none,none,0,1
+fly,ä¸Šç©º,position,none,0,1,FALSE,ground_attack,anti_air,0,1
+underground,åœ°ä¸­,position,none,0,1,FALSE,surface_attack,ground_wave,0,1
+underwater,æ°´ä¸­,position,none,0,1,FALSE,surface_attack,water_wave,0,1
+ghost_phase,æ¶ˆå¤±,position,none,0,1,FALSE,all_damage,sure_hit,0,1
+charge_attack,æºœã‚æ”»æ’ƒ,charge,none,0,1,FALSE,none,none,0,1
+future_blast,ç²‰å¡µçˆ†ç ´,delayed_attack,fixed_power,110,1,TRUE,none,none,0,1
