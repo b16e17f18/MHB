@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ＭiyasakoＨiroyukiＢreeder</title>
+    <link rel="stylesheet" href="./styles.css?v=20260627-skill-csv-garbled-fix" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <section id="setupView" class="view setup-view" aria-label="チーム選択">
+        <div class="brand-line">
+          <span class="brand-mark">MHB</span>
+          <span class="brand-sub">ＭiyasakoＨiroyukiＢreeder</span>
+        </div>
+
+        <div class="setup-layout">
+          <aside class="team-panel">
+            <div class="panel-title">自分チーム</div>
+            <div id="selectedSlots" class="selected-slots"></div>
+            <div class="setup-actions">
+              <button id="randomTeamButton" class="small-button" type="button">おまかせ</button>
+              <button id="clearTeamButton" class="small-button" type="button">クリア</button>
+            </div>
+            <button id="startButton" class="primary-button" type="button">戦闘開始</button>
+          </aside>
+
+          <section class="roster-panel">
+            <div class="panel-title">Breeder</div>
+            <div id="rosterGrid" class="roster-grid"></div>
+          </section>
+        </div>
+
+        <div id="detailOverlay" class="detail-overlay is-hidden" aria-label="Breeder詳細">
+          <section id="detailPanel" class="detail-panel"></section>
+        </div>
+      </section>
+
+      <section id="battleView" class="view battle-view is-hidden" aria-label="バトル">
+        <div class="battle-card">
+          <div class="battle-field">
+            <div class="sky-band"></div>
+            <div class="ground-band"></div>
+
+            <div id="enemyHud" class="hud enemy-hud"></div>
+            <div id="enemySprite" class="fighter-sprite enemy-sprite"></div>
+
+            <div id="playerHud" class="hud player-hud"></div>
+            <div id="playerSprite" class="fighter-sprite player-sprite"></div>
+          </div>
+
+          <div class="battle-console">
+            <div id="battleLog" class="battle-log"></div>
+            <div class="command-panel">
+              <div class="battle-command-layout">
+                <div class="battle-action-area">
+                  <div id="moveGrid" class="move-grid"></div>
+                  <div id="switchGrid" class="switch-grid is-hidden"></div>
+                  <div id="exchangePanel" class="exchange-panel is-hidden"></div>
+                </div>
+                <div id="commandLights" class="command-lights"></div>
+                <div class="command-side">
+                  <div id="battleStatusPanel" class="battle-status-panel"></div>
+                  <div class="command-tabs">
+                    <button id="switchTab" class="tab-button" type="button">入替</button>
+                    <button id="dexButton" class="tab-button" type="button">図鑑</button>
+                    <button id="glossaryButton" class="tab-button" type="button">用語</button>
+                    <button id="fightTab" class="tab-button is-hidden" type="button">技</button>
+                    <button id="restartButton" class="tab-button is-hidden" type="button">再選択</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <div id="dexOverlay" class="detail-overlay is-hidden" aria-label="図鑑">
+        <section id="dexPanel" class="detail-panel dex-panel"></section>
+      </div>
+    </main>
+
+    <script src="./data-inline.js?v=20260627-character-csv-update"></script>
+    <script src="./app.js?v=20260627-switch-stat-reset"></script>
+  </body>
+</html>

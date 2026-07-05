@@ -206,6 +206,10 @@ button:disabled {
   font-size: 1.05rem;
 }
 
+.random-battle-button {
+  margin-top: 10px;
+}
+
 .roster-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(172px, 1fr));
@@ -216,10 +220,6 @@ button:disabled {
   min-height: 108px;
   padding: 10px;
   text-align: left;
-  transition:
-    transform 140ms ease,
-    box-shadow 140ms ease,
-    background 140ms ease;
 }
 
 .character-card:hover {
@@ -314,6 +314,41 @@ button:disabled {
   background: #92d8f1;
 }
 
+.battle-animation-layer {
+  position: absolute;
+  z-index: 8;
+  inset: 0;
+  pointer-events: none;
+}
+
+.battle-animation {
+  position: absolute;
+  width: var(--battle-animation-frame-width, 250px);
+  height: var(--battle-animation-frame-height, 43px);
+  overflow: hidden;
+  background-repeat: no-repeat;
+  background-position: var(--battle-animation-frame-x, 0) var(--battle-animation-frame-y, 0);
+  background-size: auto;
+  image-rendering: auto;
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(var(--battle-animation-scale, 1.52));
+  filter: drop-shadow(0 8px 0 rgba(0, 0, 0, 0.22));
+}
+
+.battle-animation.is-enemy-target {
+  top: 42%;
+  right: 18%;
+  --battle-animation-x: 24%;
+  --battle-animation-y: -48%;
+}
+
+.battle-animation.is-player-target {
+  top: 58%;
+  left: 18%;
+  --battle-animation-x: -24%;
+  --battle-animation-y: -48%;
+}
+
 .sky-band {
   position: absolute;
   inset: 0 0 46%;
@@ -400,7 +435,6 @@ button:disabled {
 .meter-fill {
   height: 100%;
   border-radius: 999px;
-  transition: width 240ms ease;
 }
 
 .hp-fill {
@@ -661,25 +695,47 @@ button:disabled {
   min-height: 44px;
 }
 
-.screen-flash {
-  animation: hit-flash 180ms ease;
+.battle-inspect-panel {
+  display: grid;
+  align-content: start;
+  gap: 10px;
+  min-height: 100%;
+  padding: 12px;
+  border: 4px solid #111111;
+  outline: 2px solid #d8d8d8;
+  outline-offset: -7px;
+  background: #ffffff;
+  color: #111111;
 }
 
-@keyframes hit-flash {
-  0% {
-    filter: brightness(1.18);
-    transform: translateX(0);
-  }
-  35% {
-    transform: translateX(-5px);
-  }
-  70% {
-    transform: translateX(5px);
-  }
-  100% {
-    filter: brightness(1);
-    transform: translateX(0);
-  }
+.battle-inspect-header {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 10px;
+  border-bottom: 4px solid #111111;
+}
+
+.battle-inspect-body {
+  display: grid;
+  gap: 8px;
+}
+
+.battle-inspect-row {
+  align-items: center;
+}
+
+.battle-inspect-row strong {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+  min-width: 0;
+}
+
+.battle-inspect-back {
+  min-width: 84px;
 }
 
 @media (max-width: 820px) {
@@ -1349,10 +1405,79 @@ button {
 
 .detail-skill-top {
   display: flex;
+  align-items: center;
   justify-content: space-between;
   gap: 12px;
   padding-bottom: 7px;
   border-bottom: 3px solid #111111;
+}
+
+.detail-skill-name {
+  min-width: 0;
+  font-size: 1rem;
+  line-height: 1.2;
+}
+
+.detail-skill-meta {
+  display: flex;
+  flex: 1;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 5px;
+  min-width: 0;
+}
+
+.detail-skill-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 26px;
+  min-width: 42px;
+  padding: 3px 7px;
+  border: 2px solid #ffffff;
+  color: #ffffff;
+  font-size: 0.82rem;
+  font-weight: 900;
+  line-height: 1;
+  text-align: center;
+  text-shadow: none;
+  white-space: nowrap;
+}
+
+.detail-skill-power {
+  background: #f1c40f;
+  color: #111111;
+}
+
+.detail-skill-cost {
+  display: inline-flex;
+  align-items: center;
+}
+
+.detail-skill-cost .energy-chip {
+  min-height: 26px;
+  min-width: 46px;
+  padding: 3px 6px;
+  font-size: 0.82rem;
+}
+
+.detail-skill-cost .energy-orb {
+  width: 9px;
+  height: 9px;
+  border-width: 2px;
+}
+
+.detail-skill-kind-physical {
+  background: #6f6f6f;
+}
+
+.detail-skill-kind-special {
+  background: #ff5aa5;
+}
+
+.detail-skill-kind-status {
+  background: #48c7ff;
 }
 
 .detail-skill-text {
@@ -1681,6 +1806,7 @@ button {
 }
 
 .fighter-sprite.is-position-hidden .sprite-image-wrap {
+  opacity: 0;
   animation-name: var(--position-animation-name, none);
   animation-duration: var(--position-animation-duration, 520ms);
   animation-fill-mode: forwards;
@@ -1698,7 +1824,11 @@ button {
   border-radius: 50%;
   background: var(--position-surface-color);
   transform: translateX(-50%);
-  animation: mhbSurfacePulse 680ms ease-out infinite alternate;
+}
+
+.fighter-sprite.position-underground::after,
+.fighter-sprite.position-underwater::after {
+  display: none;
 }
 
 @keyframes mhbGhostFade {
@@ -1709,50 +1839,6 @@ button {
   to {
     opacity: 0;
     filter: blur(2px);
-  }
-}
-
-@keyframes mhbDiveWater {
-  from {
-    opacity: 1;
-    transform: translateY(0);
-  }
-  to {
-    opacity: 0;
-    transform: translateY(180px);
-  }
-}
-
-@keyframes mhbDiveGround {
-  from {
-    opacity: 1;
-    transform: translateY(0);
-  }
-  to {
-    opacity: 0;
-    transform: translateY(180px);
-  }
-}
-
-@keyframes mhbFlyAway {
-  from {
-    opacity: 1;
-    transform: translateY(0);
-  }
-  to {
-    opacity: 0;
-    transform: translateY(-210px);
-  }
-}
-
-@keyframes mhbSurfacePulse {
-  from {
-    transform: translateX(-50%) scaleX(0.86);
-    opacity: 0.85;
-  }
-  to {
-    transform: translateX(-50%) scaleX(1.08);
-    opacity: 1;
   }
 }
 
@@ -2033,8 +2119,12 @@ button {
 }
 
 .battle-view .battle-field {
-  min-height: clamp(390px, 64vh, 560px);
+  min-height: 410px;
   background: #d8bf83;
+}
+
+.battle-view .battle-field:has(.sprite-character_036) {
+  min-height: 410px;
 }
 
 .battle-view .sky-band,
@@ -2046,8 +2136,8 @@ button {
 .battle-view .hud {
   top: 0;
   width: 50%;
-  min-height: 184px;
-  padding: 38px 16px 10px;
+  min-height: 136px;
+  padding: 34px 12px 8px;
   border: 4px solid #111111;
   border-top: 0;
   border-radius: 0;
@@ -2069,9 +2159,9 @@ button {
 
 .battle-view .hud-row {
   position: absolute;
-  top: 6px;
-  left: 14px;
-  right: 14px;
+  top: 5px;
+  left: 12px;
+  right: 12px;
   margin: 0;
 }
 
@@ -2088,17 +2178,21 @@ button {
 .battle-view .hp-line,
 .battle-view .energy-line {
   display: grid;
-  grid-template-columns: 46px minmax(0, 1fr) 92px;
+  grid-template-columns: 38px minmax(0, 1fr);
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   margin: 0;
   color: #111111;
   font-size: clamp(0.8rem, 1.2vw, 1rem);
   font-weight: 900;
 }
 
+.battle-view .hp-line {
+  position: relative;
+}
+
 .battle-view .hp-line + .energy-line {
-  margin-top: 8px;
+  margin-top: 5px;
 }
 
 .battle-view .hp-line::after,
@@ -2108,19 +2202,22 @@ button {
 
 .battle-view .meter {
   grid-column: 2;
-  height: 34px;
+  height: 24px;
   border: 4px solid #111111;
   background: #ffffff;
 }
 
 .battle-view .hud-value {
-  grid-column: 3;
+  grid-column: 2;
+  z-index: 1;
+  justify-self: end;
   min-width: 0;
+  padding-right: 10px;
   text-align: right;
 }
 
 .battle-view .enemy-hud .hp-value {
-  visibility: hidden;
+  display: none;
 }
 
 .battle-view .hp-fill {
@@ -2157,22 +2254,51 @@ button {
 }
 
 .battle-view .fighter-sprite {
-  top: 58%;
+  top: auto;
+  bottom: 4px;
   min-height: 190px;
-  transform: translateY(-36%);
 }
 
 .battle-view .player-sprite {
-  left: 16%;
+  left: 25%;
+  right: auto;
+  transform: translateX(-50%);
 }
 
 .battle-view .enemy-sprite {
-  right: 16%;
+  right: 25%;
+  left: auto;
+  transform: translateX(50%);
+}
+
+.battle-view .fighter-sprite:has(.sprite-character_036) {
+  --sprite036-edge-gap: 4px;
+  --sprite036-image-width: min(80vw, 500px);
+  --sprite036-wrap-width: clamp(168px, 23vw, 280px);
+}
+
+.battle-view .player-sprite:has(.sprite-character_036) {
+  left: calc(var(--sprite036-edge-gap) + (var(--sprite036-image-width) / 2) - (var(--sprite036-wrap-width) / 2));
+  right: auto;
+  transform: none;
+}
+
+.battle-view .enemy-sprite:has(.sprite-character_036) {
+  left: calc(100% - var(--sprite036-edge-gap) - (var(--sprite036-image-width) / 2) - (var(--sprite036-wrap-width) / 2));
+  right: auto;
+  transform: none;
 }
 
 .battle-view .sprite-image {
-  height: clamp(118px, 17vw, 190px);
+  width: auto;
+  max-width: none;
+  height: auto;
+  transform: translateY(var(--sprite-render-offset-y, 0px));
   filter: none;
+}
+
+.battle-view .sprite-image.is-enemy {
+  transform: translateY(var(--sprite-render-offset-y, 0px)) scaleX(-1);
 }
 
 .sprite-image-wrap {
@@ -2186,25 +2312,40 @@ button {
 
 .battle-view .sprite-image-wrap.sprite-slot-4 .sprite-image,
 .battle-view .sprite-image-wrap.sprite-team-slot-4 .sprite-image {
-  height: clamp(236px, 34vw, 380px);
+  height: auto;
+}
+
+.battle-view .sprite-image-wrap.sprite-character_036 {
+  min-height: 0;
+}
+
+.battle-view .sprite-image-wrap.sprite-character_036 .sprite-image {
+  width: min(80vw, 500px);
+  max-width: none;
+  height: auto;
+  transform: none;
+}
+
+.battle-view .sprite-image-wrap.sprite-character_036 .sprite-image.is-enemy {
+  transform: scaleX(-1);
 }
 
 .battle-view .battle-console {
-  min-height: 168px;
-  padding: 10px;
+  min-height: 136px;
+  padding: 6px;
   border-top: 4px solid #111111;
   background: #000000;
 }
 
 .battle-view .command-panel {
-  min-height: 152px;
+  min-height: 124px;
   background: #000000;
 }
 
 .battle-view .battle-command-layout {
-  grid-template-columns: minmax(0, 1fr) 58px 140px;
-  gap: 12px;
-  min-height: 152px;
+  grid-template-columns: minmax(0, 1fr) 52px 128px;
+  gap: 6px;
+  min-height: 124px;
 }
 
 .battle-view .battle-action-area {
@@ -2214,15 +2355,31 @@ button {
 .battle-view .move-grid,
 .battle-view .switch-grid {
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
+  gap: 8px;
+}
+
+.battle-view .battle-inspect-panel {
+  min-height: 132px;
+}
+
+.battle-view .battle-inspect-header {
+  padding-bottom: 8px;
+}
+
+.battle-view .battle-inspect-body {
+  gap: 8px;
+}
+
+.battle-view .battle-inspect-row {
+  min-height: 42px;
 }
 
 .battle-view .move-button {
-  min-height: 118px;
-  padding: 7px 12px 8px;
+  min-height: 102px;
+  padding: 5px 10px 6px;
   grid-template-columns: auto minmax(0, 1fr) auto;
   grid-template-rows: auto auto auto auto;
-  gap: 5px 10px;
+  gap: 3px 10px;
   align-content: center;
   justify-items: stretch;
   border: 4px solid #111111;
@@ -2330,10 +2487,10 @@ button {
 }
 
 .battle-view .battle-log.is-visible {
-  top: 10px;
+  top: 8px;
   right: 232px;
-  bottom: 10px;
-  left: 10px;
+  bottom: 8px;
+  left: 8px;
   min-height: 0;
   box-shadow: none;
 }
@@ -2375,8 +2532,8 @@ button {
 
 .battle-view .battle-status-panel {
   align-self: start;
-  min-height: 68px;
-  padding: 6px 4px;
+  min-height: 54px;
+  padding: 4px 3px;
   color: #ffffff;
   font-size: clamp(0.76rem, 1.1vw, 0.95rem);
   font-weight: 900;
@@ -2385,17 +2542,18 @@ button {
 
 .battle-info-stack {
   display: grid;
-  gap: 5px;
-  margin-top: 8px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 5px 8px;
+  margin-top: 6px;
 }
 
 .battle-info-line {
   display: grid;
-  grid-template-columns: 46px minmax(0, 1fr);
+  grid-template-columns: 34px minmax(0, 1fr);
   align-items: start;
   gap: 8px;
   min-width: 0;
-  font-size: 0.78rem;
+  font-size: 0.72rem;
   font-weight: 900;
 }
 
@@ -2408,9 +2566,9 @@ button {
 
 .battle-info-chips .effect-chip,
 .battle-info-chips .weakness-badge {
-  min-height: 20px;
-  padding: 2px 5px;
-  font-size: 0.7rem;
+  min-height: 18px;
+  padding: 1px 4px;
+  font-size: 0.64rem;
 }
 
 .battle-view .battle-status-empty {
@@ -2424,12 +2582,12 @@ button {
 .battle-view .command-tabs {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 12px;
+  gap: 8px;
   margin: 0;
 }
 
 .battle-view .tab-button {
-  min-height: 36px;
+  min-height: 32px;
   border: 0;
   border-radius: 0;
   background: #ffe600;
@@ -2453,7 +2611,7 @@ button {
 
 @media (max-width: 820px) {
   .battle-view .battle-field {
-    min-height: 500px;
+    min-height: 410px;
   }
 
   .battle-view .hud {
@@ -2471,7 +2629,7 @@ button {
   }
 
   .battle-view .battle-command-layout {
-    grid-template-columns: minmax(0, 1fr) 52px 128px;
+    grid-template-columns: minmax(0, 1fr) 46px 118px;
   }
 
   .battle-view .battle-log.is-visible {
@@ -2483,7 +2641,7 @@ button {
   .battle-view .hud {
     position: relative;
     width: 100%;
-    min-height: 112px;
+    min-height: 116px;
   }
 
   .battle-view .enemy-hud {

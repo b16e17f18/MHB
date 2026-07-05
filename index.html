@@ -3,15 +3,15 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>ＭiyasakoＨiroyukiＢreeder</title>
-    <link rel="stylesheet" href="./styles.css?v=20260626-desktop-csv-sync" />
+    <title>MonsterHunterBreeder</title>
+    <link rel="stylesheet" href="./styles.css?v=20260704-sprite-bottom-align" />
   </head>
   <body>
     <main class="app-shell">
       <section id="setupView" class="view setup-view" aria-label="チーム選択">
         <div class="brand-line">
           <span class="brand-mark">MHB</span>
-          <span class="brand-sub">ＭiyasakoＨiroyukiＢreeder</span>
+          <span class="brand-sub">MonsterHunterBreeder</span>
         </div>
 
         <div class="setup-layout">
@@ -23,6 +23,7 @@
               <button id="clearTeamButton" class="small-button" type="button">クリア</button>
             </div>
             <button id="startButton" class="primary-button" type="button">戦闘開始</button>
+            <button id="randomBattleButton" class="primary-button random-battle-button" type="button">ランダム開始</button>
           </aside>
 
           <section class="roster-panel">
@@ -41,6 +42,7 @@
           <div class="battle-field">
             <div class="sky-band"></div>
             <div class="ground-band"></div>
+            <div id="battleAnimationLayer" class="battle-animation-layer" aria-hidden="true"></div>
 
             <div id="enemyHud" class="hud enemy-hud"></div>
             <div id="enemySprite" class="fighter-sprite enemy-sprite"></div>
@@ -56,6 +58,7 @@
                 <div class="battle-action-area">
                   <div id="moveGrid" class="move-grid"></div>
                   <div id="switchGrid" class="switch-grid is-hidden"></div>
+                  <div id="enemyInfoPanel" class="battle-inspect-panel is-hidden"></div>
                   <div id="exchangePanel" class="exchange-panel is-hidden"></div>
                 </div>
                 <div id="commandLights" class="command-lights"></div>
@@ -80,7 +83,7 @@
       </div>
     </main>
 
-    <script src="./data-inline.js?v=20260626-desktop-csv-sync"></script>
-    <script src="./app.js?v=20260626-desktop-csv-sync"></script>
+    <script src="./data-inline.js?v=20260702-render-offset-natural"></script>
+    <script src="./app.js?v=20260703-no-surface-circle"></script>
   </body>
 </html>

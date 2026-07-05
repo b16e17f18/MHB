@@ -17,24 +17,25 @@ const ELEMENT_LABELS = {
 };
 
 const ELEMENT_TYPES = ["fire", "water", "thunder", "ice", "dragon"];
+const DISAPPEAR_POSITION_EFFECT_ID = "ghost_phase";
 const DEFAULT_POSITION_ANIMATIONS = {
   fly: {
     position_class: "position-fly",
-    animation_name: "mhbFlyAway",
-    animation_duration_ms: 520,
+    animation_name: "",
+    animation_duration_ms: 0,
     surface_color: "",
   },
   underground: {
     position_class: "position-underground",
-    animation_name: "mhbDiveGround",
-    animation_duration_ms: 520,
-    surface_color: "#caa45e",
+    animation_name: "",
+    animation_duration_ms: 0,
+    surface_color: "",
   },
   underwater: {
     position_class: "position-underwater",
-    animation_name: "mhbDiveWater",
-    animation_duration_ms: 520,
-    surface_color: "#2aa7ff",
+    animation_name: "",
+    animation_duration_ms: 0,
+    surface_color: "",
   },
   ghost_phase: {
     position_class: "position-ghost_phase",
@@ -53,6 +54,10 @@ let TWO_TURN_BATTLE_EFFECT_IDS = new Set([
   "charge_attack",
 ]);
 const BATTLE_MESSAGE_DURATION = 1400;
+const BATTLE_TEXT_SPEED_SCALE = 2;
+const ANIMATION_FRAME_WIDTH = 250;
+const ANIMATION_FRAME_HEIGHT = 43;
+const BATTLE_ANIMATION_SCALE = 1.52;
 const TEAM_SLOT_LIMIT = 5;
 const START_ENERGY = 1;
 const STAT_GRAPH_MAX = {
@@ -74,6 +79,8 @@ const STAT_LABELS = {
   speed: "敏捷",
   regen_value: "回復力",
 };
+
+const STAT_MOD_KEYS = ["phy_atk", "phy_def", "sp_atk", "sp_def", "speed"];
 
 const GENERATED_SKILLS = {
   basic_strike: {
@@ -125,6 +132,7 @@ const state = {
   battleEffects: new Map(),
   hitTypes: new Map(),
   animations: new Map(),
+  animationDefinitions: new Map(),
   selectedIds: [],
   playerTeam: [],
   enemyTeam: [],
@@ -136,16 +144,13 @@ const state = {
     text: "",
     visible: false,
   },
+  battleAnimation: null,
   turn: 1,
   busy: false,
   gameOver: false,
   pendingSwitchSide: null,
   battleWinner: null,
-  exchange: {
-    playerIndex: null,
-    enemyIndex: null,
-    completed: false,
-  },
+  exchange: createExchangeState(),
   detailCharacterId: null,
   dex: {
     open: false,
@@ -155,6 +160,16 @@ const state = {
 
 const els = {};
 let battleMessageTimer = null;
+const animationSheetMetaCache = new Map();
+const transparentAnimationCache = new Map();
+
+function createExchangeState() {
+  return {
+    playerIndices: [],
+    enemyIndex: null,
+    completed: false,
+  };
+}
 
 document.addEventListener("DOMContentLoaded", () => {
   Object.assign(els, {
@@ -163,12 +178,14 @@ document.addEventListener("DOMContentLoaded", () => {
     selectedSlots: document.querySelector("#selectedSlots"),
     rosterGrid: document.querySelector("#rosterGrid"),
     randomTeamButton: document.querySelector("#randomTeamButton"),
+    randomBattleButton: document.querySelector("#randomBattleButton"),
     clearTeamButton: document.querySelector("#clearTeamButton"),
     startButton: document.querySelector("#startButton"),
     enemyHud: document.querySelector("#enemyHud"),
     playerHud: document.querySelector("#playerHud"),
     enemySprite: document.querySelector("#enemySprite"),
     playerSprite: document.querySelector("#playerSprite"),
+    battleAnimationLayer: document.querySelector("#battleAnimationLayer"),
     battleLog: document.querySelector("#battleLog"),
     fightTab: document.querySelector("#fightTab"),
     switchTab: document.querySelector("#switchTab"),
@@ -179,6 +196,7 @@ document.addEventListener("DOMContentLoaded", () => {
     battleStatusPanel: document.querySelector("#battleStatusPanel"),
     moveGrid: document.querySelector("#moveGrid"),
     switchGrid: document.querySelector("#switchGrid"),
+    enemyInfoPanel: document.querySelector("#enemyInfoPanel"),
     exchangePanel: document.querySelector("#exchangePanel"),
     detailOverlay: document.querySelector("#detailOverlay"),
     detailPanel: document.querySelector("#detailPanel"),
@@ -195,6 +213,8 @@ function bindEvents() {
     state.selectedIds = buildSlotTeam(state.characters, TEAM_SLOT_LIMIT, true).map((character) => character.character_id);
     renderSetup();
   });
+
+  els.randomBattleButton.addEventListener("click", startRandomBattle);
 
   els.clearTeamButton.addEventListener("click", () => {
     state.selectedIds = [];
@@ -236,11 +256,8 @@ function returnToSetup() {
   state.gameOver = false;
   state.pendingSwitchSide = null;
   state.battleWinner = null;
-  state.exchange = {
-    playerIndex: null,
-    enemyIndex: null,
-    completed: false,
-  };
+  state.battleAnimation = null;
+  state.exchange = createExchangeState();
   state.detailCharacterId = null;
   hideBattleMessage();
   state.dex = {
@@ -298,8 +315,22 @@ async function loadGameData() {
     }
 
     state.animations.clear();
+    state.animationDefinitions.clear();
     for (const animation of rowsFromCsv(animationText).map(normalizeAnimation)) {
-      if (animation.battle_effect_id && animation.position_class && animation.animation_name) {
+      if (animation.animation_id) {
+        state.animationDefinitions.set(animation.animation_id, animation);
+      }
+
+      const battleEffect = state.battleEffects.get(animation.battle_effect_id);
+      const isPositionAnimation =
+        battleEffect?.battle_effect_group === "position" ||
+        Boolean(DEFAULT_POSITION_ANIMATIONS[animation.battle_effect_id]);
+      if (
+        isPositionAnimation &&
+        animation.battle_effect_id &&
+        animation.position_class &&
+        animation.animation_name
+      ) {
         state.animations.set(animation.battle_effect_id, animation);
       }
     }
@@ -422,6 +453,7 @@ function normalizeCharacter(row) {
     imageSrc: characterImagePath(characterId, row.image),
     transparentColor: safeText(row.transparent_color),
     transparencyTolerance: number(row.tolerance),
+    renderOffsetY: number(row.render_offset_y),
     skillIds: [row.skill_1, row.skill_2, row.skill_3, row.skill_4, row.skill_5]
       .map((skillId) => safeText(skillId))
       .filter(Boolean),
@@ -449,6 +481,10 @@ function normalizeSkill(row) {
     priority: number(row.priority),
     cost: number(row.cost),
     text: csvText(row.text),
+    animation_id: safeText(row.animation_id),
+    animation: animationAssetName(row.animation),
+    animation_duration_ms: Math.max(0, number(row.animation_duration_ms)),
+    repeat_count: Math.max(0, Math.floor(number(row.repeat_count, 1))),
   };
 }
 
@@ -477,6 +513,8 @@ function normalizeBattleEffect(row) {
     guard_type: safeText(row.guard_type, "none"),
     weak_hit_type: safeText(row.weak_hit_type, "none"),
     damage_cut: number(row.damage_cut),
+    animation: animationAssetName(row.animation),
+    animation_duration_ms: Math.max(0, number(row.animation_duration_ms)),
   };
 }
 
@@ -489,20 +527,41 @@ function normalizeHitType(row) {
 }
 
 function normalizeAnimation(row) {
+  const animationId = safeText(row.animation_id);
   const battleEffectId = safeText(row.battle_effect_id);
   const fallback = DEFAULT_POSITION_ANIMATIONS[battleEffectId] ?? {};
+  const animationName =
+    battleEffectId === DISAPPEAR_POSITION_EFFECT_ID
+      ? cssToken(row.animation_name, fallback.animation_name ?? "")
+      : "";
+  const frameCount = Math.max(1, Math.floor(number(row.frame_count, 1)));
+  const columns = Math.max(1, Math.floor(number(row.columns, 1)));
+  const rows = Math.max(1, Math.floor(number(row.rows, Math.ceil(frameCount / columns))));
   return {
+    animation_id: animationId,
+    name: safeText(row.name, animationId),
+    image_path: safeText(row.image_path),
+    frame_width: Math.max(1, number(row.frame_width, ANIMATION_FRAME_WIDTH)),
+    frame_height: Math.max(1, number(row.frame_height, ANIMATION_FRAME_HEIGHT)),
+    columns,
+    rows,
+    frame_count: frameCount,
+    frame_order: parseFrameOrder(row.frame_order, frameCount),
+    fps: Math.max(1, number(row.fps, 30)),
+    loop: parseBoolean(row.loop),
+    repeat_count: Math.max(1, Math.floor(number(row.repeat_count, 1))),
     battle_effect_id: battleEffectId,
     position_class: cssToken(row.position_class, fallback.position_class ?? `position-${battleEffectId}`),
-    animation_name: cssToken(row.animation_name, fallback.animation_name ?? ""),
-    animation_duration_ms: Math.max(1, number(row.animation_duration_ms, fallback.animation_duration_ms ?? 520)),
+    animation_name: animationName,
+    animation_duration_ms: animationName
+      ? Math.max(1, number(row.animation_duration_ms, fallback.animation_duration_ms ?? 520))
+      : 0,
     surface_color: safeText(row.surface_color, fallback.surface_color ?? ""),
   };
 }
 
 function applyAnimationConfig() {
-  const ids = [...state.animations.keys()];
-  POSITION_EFFECT_IDS = ids.length ? ids : Object.keys(DEFAULT_POSITION_ANIMATIONS);
+  POSITION_EFFECT_IDS = [...new Set([...Object.keys(DEFAULT_POSITION_ANIMATIONS), ...state.animations.keys()])];
   TWO_TURN_BATTLE_EFFECT_IDS = new Set([...POSITION_EFFECT_IDS, "charge_attack"]);
 }
 
@@ -518,6 +577,23 @@ function safeText(value, fallback = "") {
 
 function csvText(value) {
   return `${value ?? ""}`;
+}
+
+function animationAssetName(value) {
+  const text = safeText(value);
+  return text && text !== "none" ? text : "";
+}
+
+function parseFrameOrder(value, frameCount) {
+  const fallback = Array.from({ length: Math.max(1, frameCount) }, (_, index) => index);
+  const text = safeText(value);
+  if (!text) return fallback;
+
+  const order = text
+    .split(/[-\s|>]+/)
+    .map((cellIndex) => Math.floor(number(cellIndex, -1)))
+    .filter((cellIndex) => cellIndex >= 0 && cellIndex < frameCount);
+  return order.length ? order : fallback;
 }
 
 function cssToken(value, fallback = "") {
@@ -538,7 +614,8 @@ function renderSetup() {
   renderSelectedSlots();
   renderRoster();
   renderDetailPanel();
-  els.startButton.disabled = selectedSlotTotal() !== TEAM_SLOT_LIMIT;
+  els.startButton.disabled = selectedSlotTotal() <= 0 || selectedSlotTotal() > TEAM_SLOT_LIMIT;
+  els.randomBattleButton.disabled = state.characters.length <= 0;
 }
 
 function renderSelectedSlots() {
@@ -679,14 +756,36 @@ function detailStatBarPercent(statKey, value) {
 }
 
 function renderSkillDetail(move) {
+  const powerText = move.category === "attack" ? move.power : "-";
+  const kindText = skillKindLabel(move);
+  const elementText = elementName(move.element);
   return `
     <article class="detail-skill-card">
       <div class="detail-skill-top">
-        <strong>${escapeHtml(move.name)}</strong>
+        <strong class="detail-skill-name">${escapeHtml(move.name)}</strong>
+        <div class="detail-skill-meta" aria-label="${escapeHtml(move.name)}の技情報">
+          <span class="detail-skill-chip detail-skill-power">威力 ${escapeHtml(powerText)}</span>
+          <span class="detail-skill-cost">${energyBadge(move.cost)}</span>
+          <span class="detail-skill-chip detail-skill-kind detail-skill-kind-${escapeHtml(skillKindClass(move))}">${escapeHtml(kindText)}</span>
+          <span class="detail-skill-chip detail-skill-element element-${escapeHtml(elementClass(move.element))}">${escapeHtml(elementText)}</span>
+        </div>
       </div>
       ${move.text ? `<div class="detail-skill-text">${escapeHtml(move.text)}</div>` : ""}
     </article>
   `;
+}
+
+function skillKindClass(move) {
+  if (move.category !== "attack") return "status";
+  if (move.attack_type === "special") return "special";
+  if (move.attack_type === "physical") return "physical";
+  return "status";
+}
+
+function skillKindLabel(move) {
+  if (move.category === "attack" && move.attack_type === "physical") return "物理";
+  if (move.category === "attack" && move.attack_type === "special") return "特殊";
+  return "変化";
 }
 
 function openDex() {
@@ -858,6 +957,16 @@ function weaknessSummaryText(character) {
   return entries.length ? entries.map((entry) => elementName(entry.element)).join("、") : "なし";
 }
 
+function resistanceSummaryText(character) {
+  if (!character) return "";
+  return ELEMENT_TYPES
+    .map((element) => {
+      const percent = Math.round((character.weaknesses[element] ?? 1) * 100);
+      return `${elementName(element)}${percent}%`;
+    })
+    .join(" / ");
+}
+
 function statModifierLabel(stat, value) {
   const steps = Math.min(4, Math.max(1, Math.round(Math.abs(value) / 25)));
   const marker = value > 0 ? "△" : "▼";
@@ -950,8 +1059,16 @@ function toggleCharacter(characterId) {
   renderSetup();
 }
 
+function startRandomBattle() {
+  const randomTeam = buildSlotTeam(state.characters, TEAM_SLOT_LIMIT, true);
+  if (!randomTeam.length) return;
+  state.selectedIds = randomTeam.map((character) => character.character_id);
+  renderSetup();
+  startBattle();
+}
+
 function startBattle() {
-  if (selectedSlotTotal() !== TEAM_SLOT_LIMIT) return;
+  if (selectedSlotTotal() <= 0 || selectedSlotTotal() > TEAM_SLOT_LIMIT) return;
   const enemyPool = state.characters.filter(
     (character) => !state.selectedIds.includes(character.character_id),
   );
@@ -970,11 +1087,8 @@ function startBattle() {
   state.gameOver = false;
   state.pendingSwitchSide = null;
   state.battleWinner = null;
-  state.exchange = {
-    playerIndex: null,
-    enemyIndex: null,
-    completed: false,
-  };
+  state.battleAnimation = null;
+  state.exchange = createExchangeState();
   state.dex = {
     open: false,
     characterId: null,
@@ -1004,24 +1118,47 @@ function createFighter(character) {
     maxEnergy: 7,
     energy: START_ENERGY,
     fainted: false,
-    statMods: {
-      phy_atk: 0,
-      phy_def: 0,
-      sp_atk: 0,
-      sp_def: 0,
-      speed: 0,
-    },
+    statMods: createEmptyStatMods(),
     statuses: [],
     battleEffects: [],
     pendingMove: null,
+    pendingSkill: null,
   };
+}
+
+function pendingSkillFor(fighter) {
+  return fighter?.pendingSkill ?? fighter?.pendingMove ?? null;
+}
+
+function pendingSkillId(fighter) {
+  const pendingSkill = pendingSkillFor(fighter);
+  return pendingSkill?.skillId ?? pendingSkill?.moveId ?? "";
+}
+
+function setPendingSkill(fighter, pendingSkill) {
+  if (!fighter) return;
+  fighter.pendingSkill = pendingSkill;
+  fighter.pendingMove = pendingSkill;
+}
+
+function clearPendingSkill(fighter) {
+  if (!fighter) return;
+  fighter.pendingSkill = null;
+  fighter.pendingMove = null;
+}
+
+function createEmptyStatMods() {
+  return STAT_MOD_KEYS.reduce((mods, stat) => {
+    mods[stat] = 0;
+    return mods;
+  }, {});
 }
 
 function renderBattle() {
   const player = activePlayer();
   const enemy = activeEnemy();
   const exchangeVisible = state.gameOver && state.battleWinner === "player";
-  const playerPendingMove = Boolean(player?.pendingMove);
+  const playerPendingMove = Boolean(pendingSkillFor(player));
 
   els.enemyHud.innerHTML = renderHud(enemy, state.enemyTeam, state.enemyActiveIndex, "相手", "enemy");
   els.playerHud.innerHTML = renderHud(player, state.playerTeam, state.playerActiveIndex, "自分", "player");
@@ -1031,6 +1168,7 @@ function renderBattle() {
   applyPositionEffectClass(els.playerSprite, player);
   bindSpriteStatusClicks();
   renderBattleMessage();
+  renderBattleAnimationLayer();
 
   els.fightTab.classList.toggle("is-active", state.commandMode === "fight");
   els.switchTab.classList.toggle("is-active", state.commandMode === "switch");
@@ -1044,19 +1182,23 @@ function renderBattle() {
     "is-hidden",
     state.commandMode !== "switch" || exchangeVisible,
   );
+  els.enemyInfoPanel.classList.toggle(
+    "is-hidden",
+    state.commandMode !== "enemyInfo" || exchangeVisible,
+  );
   els.exchangePanel.classList.toggle("is-hidden", !exchangeVisible);
   els.commandLights.innerHTML = renderCommandLights();
   els.battleStatusPanel.innerHTML = renderBattleStatusPanel(player, enemy);
 
   renderMoveGrid(player);
   renderSwitchGrid();
+  renderEnemyInfoPanel(enemy);
   renderExchangePanel();
 }
 
 function renderHud(fighter, team, activeIndex, label, side) {
   const hpRate = fighter ? clamp(fighter.hp / fighter.maxHp, 0, 1) : 0;
   const hpText = fighter && side === "player" ? `${Math.max(0, fighter.hp)}/${fighter.maxHp}` : "";
-  const energyText = fighter ? `${fighter.energy}/${fighter.maxEnergy}` : "";
 
   return `
     <div class="hud-row">
@@ -1071,7 +1213,6 @@ function renderHud(fighter, team, activeIndex, label, side) {
     <div class="energy-line">
       <span>EN</span>
       <div class="meter energy-meter">${renderEnergySegments(fighter)}</div>
-      <span class="hud-value energy-value">${escapeHtml(energyText)}</span>
     </div>
     <div class="battle-info-stack">
       <div class="battle-info-line">
@@ -1133,9 +1274,14 @@ function renderSprite(fighter, side, activeIndex = 0) {
   if (!fighter) return "";
   const slotClass = `sprite-slot-${Math.max(1, Math.floor(number(fighter.base.slot, 1)))}`;
   const teamSlotClass = `sprite-team-slot-${Math.max(1, activeIndex + 1)}`;
+  const characterClass = `sprite-${cssToken(fighter.id, "character")}`;
+  const renderOffsetY = number(fighter.base.renderOffsetY);
+  const imageStyle = renderOffsetY
+    ? ` style="--sprite-render-offset-y: ${escapeHtml(renderOffsetY)}px;"`
+    : "";
   return `
-    <div class="sprite-image-wrap ${slotClass} ${teamSlotClass}" data-fighter-side="${escapeHtml(side)}" role="button" tabindex="0" aria-label="${escapeHtml(fighter.name)}の状態">
-      <img class="sprite-image ${side === "enemy" ? "is-enemy" : ""}" src="${escapeHtml(fighter.base.imageSrc)}" alt="${escapeHtml(fighter.name)}" />
+    <div class="sprite-image-wrap ${slotClass} ${teamSlotClass} ${characterClass}" data-fighter-side="${escapeHtml(side)}" role="button" tabindex="0" aria-label="${escapeHtml(fighter.name)}の状態">
+      <img class="sprite-image ${side === "enemy" ? "is-enemy" : ""}" src="${escapeHtml(fighter.base.imageSrc)}" alt="${escapeHtml(fighter.name)}"${imageStyle} />
     </div>
     <div class="sprite-name">${escapeHtml(fighter.name)}</div>
     <div class="sprite-element">${elementPill(fighter.base.element)}</div>
@@ -1160,9 +1306,49 @@ function showFighterStatus(side) {
   const fighter = activeBySide(side);
   if (!fighter) return;
   const owner = side === "player" ? "自分" : "相手";
+  if (side === "enemy") {
+    if (state.busy || state.gameOver || state.pendingSwitchSide) return;
+    state.commandMode = "enemyInfo";
+    renderBattle();
+    return;
+  }
+
   pushLog(
-    `${owner}:${fighter.name} 体力 ${Math.max(0, fighter.hp)}/${fighter.maxHp} / EN ${fighter.energy} / 弱点 ${weaknessSummaryText(fighter.base)} / 状態 ${fighterStatusSummary(fighter)}`,
+    `${owner}:${fighter.name} / EN ${fighter.energy} / 耐性 ${resistanceSummaryText(fighter.base)} / 状態 ${fighterStatusSummary(fighter)}`,
   );
+}
+
+function renderEnemyInfoPanel(enemy) {
+  if (!els.enemyInfoPanel) return;
+  if (!enemy) {
+    els.enemyInfoPanel.innerHTML = "";
+    return;
+  }
+
+  els.enemyInfoPanel.innerHTML = `
+    <div class="battle-inspect-header">
+      <div>
+        <div class="detail-title">相手情報</div>
+        <div class="detail-subtitle">${escapeHtml(enemy.name)}</div>
+      </div>
+      <button class="small-button battle-inspect-back" type="button">戻る</button>
+    </div>
+    <div class="battle-inspect-body">
+      <div class="dex-data-row battle-inspect-row">
+        <span>弱点</span>
+        <strong>${renderWeaknessBadges(enemy.base)}</strong>
+      </div>
+      <div class="dex-data-row battle-inspect-row">
+        <span>状態</span>
+        <strong>${renderFighterStatusChips(enemy)}</strong>
+      </div>
+    </div>
+  `;
+
+  els.enemyInfoPanel.querySelector(".battle-inspect-back").addEventListener("click", () => {
+    state.commandMode = "fight";
+    renderBattle();
+  });
 }
 
 function renderBattleMessage() {
@@ -1171,6 +1357,44 @@ function renderBattleMessage() {
   els.battleLog.innerHTML = messageVisible
     ? `<div class="log-line">${escapeHtml(state.battleMessage.text)}</div>`
     : "";
+}
+
+function renderBattleAnimationLayer() {
+  if (!els.battleAnimationLayer) return;
+  const animation = state.battleAnimation;
+  if (!animation?.src) {
+    els.battleAnimationLayer.innerHTML = "";
+    return;
+  }
+
+  const sideClass = animation.side === "player" ? "is-player-target" : "is-enemy-target";
+  const framePosition = animationFramePosition(
+    animation.cellIndex ?? animation.frameIndex,
+    animation.columns,
+    animation.frameWidth,
+    animation.frameHeight,
+  );
+  const left = Number.isFinite(animation.x) ? `${animation.x}px` : "50%";
+  const top = Number.isFinite(animation.y) ? `${animation.y}px` : "50%";
+  const scale = Number.isFinite(animation.scale) ? animation.scale : BATTLE_ANIMATION_SCALE;
+  els.battleAnimationLayer.innerHTML = `
+    <div
+      class="battle-animation ${sideClass}"
+      style="
+        left: ${escapeHtml(left)};
+        top: ${escapeHtml(top)};
+        right: auto;
+        --battle-animation-duration: ${escapeHtml(animation.duration)}ms;
+        --battle-animation-frame-width: ${escapeHtml(animation.frameWidth)}px;
+        --battle-animation-frame-height: ${escapeHtml(animation.frameHeight)}px;
+        --battle-animation-frame-x: ${escapeHtml(framePosition.x)}px;
+        --battle-animation-frame-y: ${escapeHtml(framePosition.y)}px;
+        --battle-animation-scale: ${escapeHtml(scale)};
+        background-image: url('${escapeHtml(animation.src)}');
+      "
+      data-animation-sequence="${escapeHtml(animation.sequence)}"
+    ></div>
+  `;
 }
 
 function showBattleMessage(message, duration = BATTLE_MESSAGE_DURATION) {
@@ -1183,7 +1407,7 @@ function showBattleMessage(message, duration = BATTLE_MESSAGE_DURATION) {
   battleMessageTimer = window.setTimeout(() => {
     state.battleMessage.visible = false;
     renderBattle();
-  }, duration);
+  }, scaledBattleTextDelay(duration));
   renderBattle();
 }
 
@@ -1207,7 +1431,7 @@ function renderMoveGrid(fighter) {
     return;
   }
 
-  const pendingMoveId = fighter.pendingMove?.moveId ?? "";
+  const pendingMoveId = pendingSkillId(fighter);
   els.moveGrid.innerHTML = movesForCharacter(fighter.base)
     .map((move) => {
       const disabled =
@@ -1239,7 +1463,7 @@ function renderMoveGrid(fighter) {
 
 function renderSwitchGrid() {
   const forced = state.pendingSwitchSide === "player";
-  const activePendingMove = Boolean(activePlayer()?.pendingMove);
+  const activePendingMove = Boolean(pendingSkillFor(activePlayer()));
   els.switchGrid.innerHTML = state.playerTeam
     .map((member, index) => {
       const active = index === state.playerActiveIndex;
@@ -1271,6 +1495,12 @@ function renderExchangePanel() {
     return;
   }
 
+  const selectedPlayerIndices = exchangePlayerIndices();
+  const playerSlotTotal = exchangePlayerSlotTotal();
+  const enemySlotNeed = exchangeEnemySlotNeed();
+  const nextPlayerSlotTotal = exchangeNextPlayerSlotTotal();
+  const hasPlayerOffer = selectedPlayerIndices.length > 0;
+  const hasEnemyTarget = state.exchange.enemyIndex !== null;
   const playerButtons = state.playerTeam
     .map((member, index) => exchangeChoiceButton("player", member, index))
     .join("");
@@ -1278,15 +1508,16 @@ function renderExchangePanel() {
     .map((member, index) => exchangeChoiceButton("enemy", member, index))
     .join("");
   const canExchange =
-    state.exchange.playerIndex !== null &&
-    state.exchange.enemyIndex !== null &&
+    hasPlayerOffer &&
+    hasEnemyTarget &&
     !state.exchange.completed &&
     isValidVictoryExchange();
   const invalidExchange =
-    state.exchange.playerIndex !== null &&
-    state.exchange.enemyIndex !== null &&
+    hasPlayerOffer &&
+    hasEnemyTarget &&
     !state.exchange.completed &&
     !isValidVictoryExchange();
+  const slotNote = exchangeSlotNote(playerSlotTotal, enemySlotNeed, nextPlayerSlotTotal, hasEnemyTarget);
 
   els.exchangePanel.innerHTML = `
     <div class="exchange-title">${state.exchange.completed ? "交換完了" : "勝利交換"}</div>
@@ -1304,7 +1535,7 @@ function renderExchangePanel() {
       <button class="primary-button exchange-action" type="button" data-result-action="exchange" ${canExchange ? "" : "disabled"}>交換する</button>
       <button class="small-button exchange-action" type="button" data-result-action="rematch">このチームで再戦</button>
     </div>
-    ${invalidExchange ? `<div class="command-note">スロット上限を超えるため交換できません。</div>` : ""}
+    ${invalidExchange ? `<div class="command-note">${escapeHtml(slotNote)}</div>` : slotNote ? `<div class="command-note">${escapeHtml(slotNote)}</div>` : ""}
   `;
 
   for (const button of els.exchangePanel.querySelectorAll("[data-exchange-side]")) {
@@ -1313,7 +1544,7 @@ function renderExchangePanel() {
       const side = button.dataset.exchangeSide;
       const index = Number(button.dataset.exchangeIndex);
       if (side === "player") {
-        state.exchange.playerIndex = index;
+        toggleExchangePlayerIndex(index);
       } else {
         state.exchange.enemyIndex = index;
       }
@@ -1335,12 +1566,13 @@ function renderExchangePanel() {
 function exchangeChoiceButton(side, member, index) {
   const selected =
     side === "player"
-      ? state.exchange.playerIndex === index
+      ? exchangePlayerIndices().includes(index)
       : state.exchange.enemyIndex === index;
+  const slotText = slotMarks(member.base.slot);
   return `
     <button class="exchange-choice ${selected ? "is-selected" : ""}" type="button" data-exchange-side="${side}" data-exchange-index="${index}" ${state.exchange.completed ? "disabled" : ""}>
       <span class="switch-name">${escapeHtml(member.name)}</span>
-      <span class="switch-meta">体力 ${Math.max(0, member.hp)}/${member.maxHp}</span>
+      <span class="switch-meta">スロット ${escapeHtml(slotText)} / 体力 ${Math.max(0, member.hp)}/${member.maxHp}</span>
     </button>
   `;
 }
@@ -1371,7 +1603,7 @@ function skillNamesFor(character) {
 function playerChooseMove(moveId) {
   if (state.busy || state.gameOver || state.pendingSwitchSide) return;
   const fighter = activePlayer();
-  const pendingMoveId = fighter?.pendingMove?.moveId;
+  const pendingMoveId = pendingSkillId(fighter);
   const selectedMoveId = pendingMoveId || moveId;
   if (pendingMoveId && moveId !== pendingMoveId) return;
 
@@ -1395,48 +1627,122 @@ function completeForcedSwitch(index) {
   const target = state.playerTeam[index];
   if (!target || target.fainted) return;
 
-  switchActive("player", index);
+  switchActive("player", index, { resetEnergy: true });
   state.pendingSwitchSide = null;
   state.commandMode = "fight";
   pushLog(`${target.name}、出番だ！`);
   renderBattle();
 }
 
+function exchangePlayerIndices() {
+  if (!Array.isArray(state.exchange.playerIndices)) {
+    return Number.isInteger(state.exchange.playerIndex) ? [state.exchange.playerIndex] : [];
+  }
+
+  return [...new Set(state.exchange.playerIndices)]
+    .filter((index) => Number.isInteger(index) && state.playerTeam[index])
+    .sort((a, b) => a - b);
+}
+
+function toggleExchangePlayerIndex(index) {
+  const selected = new Set(exchangePlayerIndices());
+  if (selected.has(index)) {
+    selected.delete(index);
+  } else {
+    selected.add(index);
+  }
+  state.exchange.playerIndices = [...selected].sort((a, b) => a - b);
+}
+
+function exchangePlayerMembers() {
+  return exchangePlayerIndices()
+    .map((index) => state.playerTeam[index])
+    .filter(Boolean);
+}
+
+function exchangePlayerSlotTotal() {
+  return slotTotal(exchangePlayerMembers().map((member) => member.base));
+}
+
+function exchangeEnemySlotNeed() {
+  const enemyMember = state.enemyTeam[state.exchange.enemyIndex];
+  return enemyMember ? Math.max(1, enemyMember.base.slot || 1) : 0;
+}
+
+function exchangeCurrentPlayerSlotTotal() {
+  return slotTotal(state.playerTeam.map((member) => member.base));
+}
+
+function exchangeNextPlayerSlotTotal() {
+  if (!exchangePlayerIndices().length || state.exchange.enemyIndex === null) {
+    return exchangeCurrentPlayerSlotTotal();
+  }
+  return exchangeCurrentPlayerSlotTotal() - exchangePlayerSlotTotal() + exchangeEnemySlotNeed();
+}
+
+function exchangeSlotNote(playerSlotTotal, enemySlotNeed, nextPlayerSlotTotal, hasEnemyTarget) {
+  if (state.exchange.completed || !hasEnemyTarget) return "";
+  if (playerSlotTotal === 0) {
+    return `相手のスロット ${slotMarks(enemySlotNeed)} に合わせて、自分のモンスターを選んでください。`;
+  }
+  if (nextPlayerSlotTotal > TEAM_SLOT_LIMIT) {
+    return `交換後のスロットが上限を超えます。${nextPlayerSlotTotal}/${TEAM_SLOT_LIMIT}`;
+  }
+  return `交換後スロット ${nextPlayerSlotTotal}/${TEAM_SLOT_LIMIT}`;
+}
+
 function completeVictoryExchange() {
   if (
     state.exchange.completed ||
-    state.exchange.playerIndex === null ||
+    !exchangePlayerIndices().length ||
     state.exchange.enemyIndex === null ||
     !isValidVictoryExchange()
   ) {
     return;
   }
 
-  const playerMember = state.playerTeam[state.exchange.playerIndex];
+  const playerMembers = exchangePlayerMembers();
   const enemyMember = state.enemyTeam[state.exchange.enemyIndex];
-  if (!playerMember || !enemyMember) return;
+  if (!playerMembers.length || !enemyMember) return;
 
-  state.playerTeam[state.exchange.playerIndex] = createFighter(enemyMember.base);
-  state.enemyTeam[state.exchange.enemyIndex] = createFighter(playerMember.base);
+  const offeredIndexSet = new Set(exchangePlayerIndices());
+  state.playerTeam = [
+    ...state.playerTeam.filter((_, index) => !offeredIndexSet.has(index)),
+    createFighter(enemyMember.base),
+  ];
+  state.enemyTeam = [
+    ...state.enemyTeam.filter((_, index) => index !== state.exchange.enemyIndex),
+    ...playerMembers.map((member) => createFighter(member.base)),
+  ];
+  state.playerActiveIndex = Math.min(state.playerActiveIndex, Math.max(0, state.playerTeam.length - 1));
+  state.enemyActiveIndex = Math.min(state.enemyActiveIndex, Math.max(0, state.enemyTeam.length - 1));
   state.selectedIds = state.playerTeam.map((member) => member.id);
-  state.exchange.completed = true;
-  pushLog(`${playerMember.name} と ${enemyMember.name} を交換した！`);
+  state.exchange = {
+    ...createExchangeState(),
+    completed: true,
+  };
+  pushLog(`${playerMembers.map((member) => member.name).join("、")} と ${enemyMember.name} を交換した！`);
   renderBattle();
 }
 
 function isValidVictoryExchange() {
-  const playerMember = state.playerTeam[state.exchange.playerIndex];
   const enemyMember = state.enemyTeam[state.exchange.enemyIndex];
-  if (!playerMember || !enemyMember) return false;
+  const playerMembers = exchangePlayerMembers();
+  if (!playerMembers.length || !enemyMember) return false;
 
-  const currentSlots = slotTotal(state.playerTeam.map((member) => member.base));
-  const nextSlots = currentSlots - playerMember.base.slot + enemyMember.base.slot;
-  return nextSlots <= TEAM_SLOT_LIMIT;
+  return exchangeNextPlayerSlotTotal() <= TEAM_SLOT_LIMIT;
 }
 
 async function resolveTurn(playerAction) {
   state.busy = true;
   renderBattle();
+
+  await resolveDelayedBattleEffects();
+  if (state.gameOver || state.pendingSwitchSide) {
+    state.busy = false;
+    renderBattle();
+    return;
+  }
 
   const enemyAction = chooseEnemyAction();
   const actions = [decorateAction(playerAction), decorateAction(enemyAction)].sort(compareActions);
@@ -1499,14 +1805,14 @@ async function executeAction(action) {
     return;
   }
 
-  const pendingMove = actor.pendingMove;
-  const selectedMoveId = pendingMove?.moveId || action.moveId;
+  const pendingSkill = pendingSkillFor(actor);
+  const selectedMoveId = pendingSkill?.skillId || pendingSkill?.moveId || action.moveId;
   const move = moveForFighter(actor, selectedMoveId);
-  const completingTwoTurnMove = Boolean(pendingMove && pendingMove.moveId === move?.skill_id);
+  const completingTwoTurnMove = Boolean(pendingSkill && selectedMoveId === move?.skill_id);
   if (!move || (!completingTwoTurnMove && actor.energy < move.cost)) return;
   const positionBeforeAction = positionEffectId(actor);
 
-  const targetSide = action.side === "player" ? "enemy" : "player";
+  const targetSide = pendingSkill?.targetSide ?? (action.side === "player" ? "enemy" : "player");
   const target = move.target === "self" ? actor : activeBySide(targetSide);
   if (!target || target.fainted) return;
 
@@ -1525,14 +1831,23 @@ async function executeAction(action) {
 
   if (!completingTwoTurnMove && move.category === "attack") {
     const twoTurnEffectId = twoTurnBattleEffectId(move);
-    if (twoTurnEffectId && startTwoTurnMove(actor, move, twoTurnEffectId)) {
+    const pendingTargetSide = move.target === "self" ? action.side : targetSide;
+    const startedBattleEffect = twoTurnEffectId
+      ? startTwoTurnMove(actor, move, twoTurnEffectId, pendingTargetSide)
+      : null;
+    if (startedBattleEffect) {
       renderBattle();
+      await playBattleEffectAnimation(startedBattleEffect, action.side);
       await pause(500);
       return;
     }
   }
 
-  if (move.category === "attack") {
+  const animationSide = move.target === "self" ? action.side : targetSide;
+  await playSkillAnimation(move, animationSide);
+
+  const delayedAttackSetup = hasDelayedAttackBattleEffect(move);
+  if (move.category === "attack" && !delayedAttackSetup) {
     const result = dealDamage(actor, target, move);
     if (result.damage > 0) {
       flashSprite(targetSide);
@@ -1568,15 +1883,17 @@ async function executeAction(action) {
   }
 
   if (!completingTwoTurnMove) {
-    applyBattleEffects(move, actor, returnedPosition ? new Set([returnedPosition]) : null);
+    const appliedBattleEffects = applyBattleEffects(move, actor, target, returnedPosition ? new Set([returnedPosition]) : null);
+    await playBattleEffectAnimations(appliedBattleEffects, action.side);
   }
   await pause(280);
 }
 
 function chooseEnemyAction() {
   const enemy = activeEnemy();
-  if (enemy?.pendingMove) {
-    return { side: "enemy", type: "move", moveId: enemy.pendingMove.moveId };
+  const pendingMoveId = pendingSkillId(enemy);
+  if (pendingMoveId) {
+    return { side: "enemy", type: "move", moveId: pendingMoveId };
   }
 
   const enemyIndex = state.enemyActiveIndex;
@@ -1734,29 +2051,32 @@ function twoTurnBattleEffectId(move) {
   ))?.[0] ?? "";
 }
 
-function startTwoTurnMove(actor, move, effectId) {
+function startTwoTurnMove(actor, move, effectId, targetSide) {
   const battleEffect = state.battleEffects.get(effectId);
-  if (!battleEffect) return false;
+  if (!battleEffect) return null;
 
-  actor.pendingMove = {
+  setPendingSkill(actor, {
+    skillId: move.skill_id,
     moveId: move.skill_id,
     effectId,
+    target: move.target,
+    targetSide,
     startedTurn: state.turn,
-  };
+  });
   addBattleEffect(actor, battleEffect);
-  pushLog(`${actor.name}は${battleEffect.name}の構え！`);
-  return true;
+  pushLog(battleEffectStartText(actor, battleEffect));
+  return battleEffect;
 }
 
 function finishTwoTurnMove(actor) {
-  const pendingMove = actor.pendingMove;
-  if (!pendingMove) return "";
+  const pendingSkill = pendingSkillFor(actor);
+  if (!pendingSkill) return "";
 
-  actor.pendingMove = null;
-  if (pendingMove.effectId) {
-    removeBattleEffect(actor, pendingMove.effectId);
+  clearPendingSkill(actor);
+  if (pendingSkill.effectId) {
+    removeBattleEffect(actor, pendingSkill.effectId);
   }
-  return pendingMove.effectId || "";
+  return pendingSkill.effectId || "";
 }
 
 function clearPositionAfterAction(actor, move, positionBeforeAction) {
@@ -1772,7 +2092,8 @@ function clearPositionAfterAction(actor, move, positionBeforeAction) {
   return positionBeforeAction;
 }
 
-function applyBattleEffects(move, actor, skipEffectIds = null) {
+function applyBattleEffects(move, actor, target, skipEffectIds = null) {
+  const appliedBattleEffects = [];
   const pairs = [
     [move.battle_effect1, move.battle_effect_chance1],
     [move.battle_effect2, move.battle_effect_chance2],
@@ -1786,18 +2107,90 @@ function applyBattleEffects(move, actor, skipEffectIds = null) {
     if (battleEffectId === "charge_attack") {
       actor.statMods.phy_atk = clamp(actor.statMods.phy_atk + 10, -100, 100);
       pushLog(`${actor.name}は勢いづいた！`);
+      const battleEffect = state.battleEffects.get(battleEffectId);
+      if (battleEffect) {
+        appliedBattleEffects.push(battleEffect);
+      }
       continue;
     }
 
     const battleEffect = state.battleEffects.get(battleEffectId);
     if (!battleEffect) continue;
 
-    addBattleEffect(actor, battleEffect);
-    pushLog(`${actor.name}は${battleEffect.name}の構え！`);
+    const recipient = battleEffect.battle_effect_group === "delayed_attack" ? target : actor;
+    if (!recipient) continue;
+    addBattleEffect(
+      recipient,
+      battleEffect,
+      battleEffect.battle_effect_group === "delayed_attack"
+        ? delayedBattleEffectPayload(move, actor, battleEffect)
+        : {},
+    );
+    pushLog(battleEffectStartText(actor, battleEffect, recipient));
+    appliedBattleEffects.push(battleEffect);
   }
+  return appliedBattleEffects;
 }
 
-function addBattleEffect(fighter, battleEffect) {
+function hasDelayedAttackBattleEffect(move) {
+  return [
+    [move.battle_effect1, move.battle_effect_chance1],
+    [move.battle_effect2, move.battle_effect_chance2],
+  ].some(([effectId, chance]) => (
+    chance > 0 && state.battleEffects.get(effectId)?.battle_effect_group === "delayed_attack"
+  ));
+}
+
+function delayedBattleEffectPayload(move, actor, battleEffect) {
+  const fixedPower = battleEffect.damage_type === "fixed_power" ? battleEffect.damage_value : 0;
+  const ratePower =
+    battleEffect.damage_type === "skill_power_rate"
+      ? Math.round(move.power * ((battleEffect.damage_value || 100) / 100))
+      : 0;
+  const delayedPower = Math.max(1, fixedPower || ratePower || move.power);
+  return {
+    delayedMove: {
+      name: move.name,
+      power: delayedPower,
+      element: safeText(move.element, "none"),
+      attack_type: safeText(move.attack_type, "special"),
+      hit_type: safeText(move.hit_type, "sure_hit"),
+    },
+    source: {
+      name: actor.name,
+      element: actor.base.element,
+      phy_atk: effectiveStat(actor, "phy_atk"),
+      sp_atk: effectiveStat(actor, "sp_atk"),
+    },
+  };
+}
+
+function battleEffectStartText(actor, battleEffect, recipient = actor) {
+  if (battleEffect.battle_effect_id === "future_blast") {
+    return "周囲に粉塵が舞う！";
+  }
+
+  if (battleEffect.battle_effect_group === "delayed_attack" && recipient !== actor) {
+    return `${actor.name}は${recipient.name}に${battleEffect.name}を仕掛けた！`;
+  }
+
+  if (battleEffect.battle_effect_id === "protect") {
+    return `${actor.name}は防御態勢をとっている！`;
+  }
+
+  const positionMessages = {
+    fly: "上空に飛び上がった",
+    underground: "地中に潜った",
+    underwater: "水中に潜った",
+    ghost_phase: "姿を消した",
+  };
+  const message = positionMessages[battleEffect.battle_effect_id];
+  return message
+    ? `${actor.name}は${message}！`
+    : `${actor.name}は${battleEffect.name}の構え！`;
+}
+
+function addBattleEffect(fighter, battleEffect, extra = {}) {
   const current = fighter.battleEffects.find(
     (effect) => effect.id === battleEffect.battle_effect_id,
   );
@@ -1809,6 +2202,9 @@ function addBattleEffect(fighter, battleEffect) {
     createdTurn: state.turn,
     damage_value: battleEffect.damage_value,
     damage_cut: battleEffect.damage_cut,
+    animation: battleEffect.animation,
+    animation_duration_ms: battleEffect.animation_duration_ms,
+    ...extra,
   };
 
   if (current) {
@@ -1820,6 +2216,73 @@ function addBattleEffect(fighter, battleEffect) {
 
 function removeBattleEffect(fighter, id) {
   fighter.battleEffects = fighter.battleEffects.filter((effect) => effect.id !== id);
+}
+
+async function resolveDelayedBattleEffects() {
+  for (const side of ["player", "enemy"]) {
+    const target = activeBySide(side);
+    if (!target || target.fainted) continue;
+
+    const delayedEffects = target.battleEffects.filter(
+      (effect) => effect.group === "delayed_attack" && delayedBattleEffectReady(effect),
+    );
+    for (const effect of delayedEffects) {
+      removeBattleEffect(target, effect.id);
+      const attacker = delayedEffectAttacker(effect, side);
+      const move = delayedEffectMove(effect);
+      if (!attacker || !move) continue;
+
+      pushLog(`${target.name}に${effect.name}が炸裂した！`);
+      await pause(420);
+      const result = dealDamage(attacker, target, move);
+      if (result.damage > 0) {
+        flashSprite(side);
+        pushLog(`${target.name}に ${result.damage} ダメージ！${result.effectText}`);
+      } else {
+        pushLog(result.effectText.trim());
+      }
+      await pause(520);
+      await handleFaint(side);
+      if (state.gameOver || state.pendingSwitchSide) return;
+    }
+  }
+}
+
+function delayedBattleEffectReady(effect) {
+  const delayTurns = Math.max(1, number(effect.turns, 1));
+  return state.turn - effect.createdTurn >= delayTurns;
+}
+
+function delayedEffectMove(effect) {
+  if (!effect.delayedMove) return null;
+  return {
+    skill_id: effect.id,
+    name: effect.delayedMove.name || effect.name,
+    category: "attack",
+    power: Math.max(1, number(effect.delayedMove.power, 1)),
+    element: safeText(effect.delayedMove.element, "none"),
+    attack_type: safeText(effect.delayedMove.attack_type, "special"),
+    hit_type: safeText(effect.delayedMove.hit_type, "sure_hit"),
+    target: "enemy",
+  };
+}
+
+function delayedEffectAttacker(effect, targetSide) {
+  const source = effect.source;
+  if (source) {
+    return {
+      name: source.name || effect.name,
+      base: {
+        element: safeText(source.element, "none"),
+        phy_atk: Math.max(1, number(source.phy_atk, 1)),
+        sp_atk: Math.max(1, number(source.sp_atk, 1)),
+      },
+      statMods: createEmptyStatMods(),
+    };
+  }
+
+  const sourceSide = targetSide === "player" ? "enemy" : "player";
+  return activeBySide(sourceSide);
 }
 
 function blockedByControl(fighter) {
@@ -1865,17 +2328,32 @@ async function endRound() {
     }
   }
 
-  for (const team of [state.playerTeam, state.enemyTeam]) {
-    for (const fighter of team) {
-      if (fighter.fainted) continue;
-      fighter.energy = clamp(fighter.energy + fighter.base.energy_charge, 0, fighter.maxEnergy);
-      fighter.battleEffects = fighter.battleEffects
-        .map((effect) => (
-          effect.createdTurn === state.turn ? effect : { ...effect, turns: effect.turns - 1 }
-        ))
-        .filter((effect) => effect.turns > 0);
-    }
+  for (const side of ["player", "enemy"]) {
+    const fighter = activeBySide(side);
+    if (!fighter || fighter.fainted) continue;
+    fighter.energy = clamp(fighter.energy + fighter.base.energy_charge, 0, fighter.maxEnergy);
+    fighter.battleEffects = tickBattleEffectsAfterRound(fighter.battleEffects);
   }
+}
+
+function tickBattleEffectsAfterRound(battleEffects) {
+  return battleEffects
+    .map((effect) => {
+      if (
+        effect.group === "position" ||
+        effect.group === "charge" ||
+        effect.group === "delayed_attack"
+      ) {
+        return effect;
+      }
+      return { ...effect, turns: effect.turns - 1 };
+    })
+    .filter((effect) => (
+      effect.group === "position" ||
+      effect.group === "charge" ||
+      effect.group === "delayed_attack" ||
+      effect.turns > 0
+    ));
 }
 
 async function handleFaint(side) {
@@ -1884,7 +2362,7 @@ async function handleFaint(side) {
 
   fighter.hp = 0;
   fighter.fainted = true;
-  fighter.pendingMove = null;
+  clearPendingSkill(fighter);
   fighter.battleEffects = fighter.battleEffects.filter(
     (effect) => !TWO_TURN_BATTLE_EFFECT_IDS.has(effect.id),
   );
@@ -1906,7 +2384,7 @@ async function handleFaint(side) {
     return;
   }
 
-  switchActive(side, nextIndex);
+  switchActive(side, nextIndex, { resetEnergy: true });
   pushLog(`${activeBySide(side).name}が場に出た！`);
   await pause(520);
 }
@@ -1915,16 +2393,13 @@ function finishBattle(winner) {
   state.gameOver = true;
   state.pendingSwitchSide = null;
   state.battleWinner = winner;
+  state.battleAnimation = null;
   state.commandMode = winner === "player" ? "exchange" : "fight";
-  state.exchange = {
-    playerIndex: null,
-    enemyIndex: null,
-    completed: false,
-  };
+  state.exchange = createExchangeState();
   pushLog(winner === "player" ? "勝負に勝った！" : "目の前が真っ暗になった...");
 }
 
-function switchActive(side, index) {
+function switchActive(side, index, options = {}) {
   const team = teamBySide(side);
   const previousIndex = side === "player" ? state.playerActiveIndex : state.enemyActiveIndex;
   const previous = team[previousIndex];
@@ -1941,14 +2416,15 @@ function switchActive(side, index) {
   }
 
   const fighter = activeBySide(side);
-  if (fighter && !fighter.fainted) {
+  if (options.resetEnergy && fighter && !fighter.fainted) {
     fighter.energy = START_ENERGY;
   }
 }
 
 function clearSwitchVolatileState(fighter) {
-  fighter.pendingMove = null;
+  clearPendingSkill(fighter);
   fighter.battleEffects = [];
+  fighter.statMods = createEmptyStatMods();
 }
 
 function moveForFighter(fighter, moveId) {
@@ -2049,9 +2525,272 @@ function applyPositionEffectClass(sprite, fighter) {
 }
 
 function flashSprite(side) {
+  void side;
+}
+
+function animationDefinitionForId(animationId) {
+  return animationId ? state.animationDefinitions.get(animationId) ?? null : null;
+}
+
+function animationDurationFromDefinition(definition) {
+  const frameTotal = Math.max(1, definition.frame_order.length || definition.frame_count);
+  return (frameTotal / Math.max(1, definition.fps)) * 1000;
+}
+
+function animationSheetMetaFromDefinition(definition) {
+  const frameCount = Math.max(1, definition.frame_count);
+  return {
+    columns: Math.max(1, definition.columns),
+    rows: Math.max(1, definition.rows),
+    frameCount,
+    frameOrder: definition.frame_order.length ? definition.frame_order : parseFrameOrder("", frameCount),
+    frameWidth: Math.max(1, definition.frame_width),
+    frameHeight: Math.max(1, definition.frame_height),
+  };
+}
+
+async function playSkillAnimation(move, side) {
+  const definition = animationDefinitionForId(move.animation_id);
+  if (!definition) return;
+
+  await playBattleAnimation(
+    {
+      definition,
+      fileName: definition.image_path,
+      duration: move.animation_duration_ms || animationDurationFromDefinition(definition),
+      repeatCount: move.repeat_count || definition.repeat_count,
+    },
+    side,
+  );
+}
+
+async function playBattleEffectAnimation(battleEffect, side) {
+  void battleEffect;
+  void side;
+  return;
+}
+
+async function playBattleEffectAnimations(battleEffects, side) {
+  for (const battleEffect of battleEffects) {
+    await playBattleEffectAnimation(battleEffect, side);
+  }
+}
+
+async function playBattleAnimation(config, side) {
+  const definition = config.definition;
+  const rawSrc = animationAssetPath(config.fileName);
+  if (!rawSrc) return;
+  const src = config.transparentDarkBackground
+    ? await transparentDarkAnimationSrc(rawSrc, config.transparentThreshold)
+    : rawSrc;
+
+  const sheetMeta = definition ? animationSheetMetaFromDefinition(definition) : await loadAnimationSheetMeta(src);
+  const duration = Math.max(80, number(config.duration, 500) || 500);
+  const repeatCount = Math.min(8, Math.max(1, Math.floor(number(config.repeatCount, 1))));
+  const targetCenter = battleAnimationTargetCenter(side);
+  for (let index = 0; index < repeatCount; index += 1) {
+    const sequence = `${Date.now()}-${index}-${Math.random()}`;
+    state.battleAnimation = {
+      src,
+      side,
+      duration,
+      sequence,
+      x: targetCenter.x,
+      y: targetCenter.y,
+      scale: number(config.scale, BATTLE_ANIMATION_SCALE),
+      columns: sheetMeta.columns,
+      frameCount: sheetMeta.frameCount,
+      frameOrder: sheetMeta.frameOrder,
+      frameWidth: sheetMeta.frameWidth,
+      frameHeight: sheetMeta.frameHeight,
+      frameIndex: 0,
+      cellIndex: sheetMeta.frameOrder[0] ?? 0,
+    };
+    renderBattle();
+    await playBattleAnimationFrames(sequence, duration, sheetMeta);
+    state.battleAnimation = null;
+    renderBattle();
+    if (index < repeatCount - 1) {
+      await rawDelay(80);
+    }
+  }
+}
+
+function battleAnimationTargetCenter(side) {
   const sprite = side === "player" ? els.playerSprite : els.enemySprite;
-  sprite.classList.remove("screen-flash");
-  window.requestAnimationFrame(() => sprite.classList.add("screen-flash"));
+  const field = sprite?.closest(".battle-field");
+  const targetNode = sprite?.querySelector(".sprite-image") ?? sprite;
+  if (!field || !targetNode) return { x: Number.NaN, y: Number.NaN };
+
+  const fieldRect = field.getBoundingClientRect();
+  const targetRect = targetNode.getBoundingClientRect();
+  if (!fieldRect.width || !fieldRect.height || !targetRect.width || !targetRect.height) {
+    return { x: Number.NaN, y: Number.NaN };
+  }
+
+  return {
+    x: targetRect.left - fieldRect.left + targetRect.width / 2,
+    y: targetRect.top - fieldRect.top + targetRect.height / 2,
+  };
+}
+
+function transparentDarkAnimationSrc(src, threshold = 28) {
+  const safeThreshold = Math.max(0, Math.min(255, Math.round(number(threshold, 28))));
+  const cacheKey = `${src}|${safeThreshold}`;
+  if (transparentAnimationCache.has(cacheKey)) {
+    return transparentAnimationCache.get(cacheKey);
+  }
+
+  const imagePromise = new Promise((resolve) => {
+    const image = new Image();
+    image.onload = () => {
+      const canvas = document.createElement("canvas");
+      canvas.width = image.naturalWidth;
+      canvas.height = image.naturalHeight;
+      const context = canvas.getContext("2d");
+      if (!context) {
+        resolve(src);
+        return;
+      }
+
+      try {
+        context.drawImage(image, 0, 0);
+        const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+        const pixels = imageData.data;
+        for (let index = 0; index < pixels.length; index += 4) {
+          const brightness = Math.max(pixels[index], pixels[index + 1], pixels[index + 2]);
+          if (brightness <= safeThreshold) {
+            pixels[index + 3] = 0;
+          }
+        }
+        context.putImageData(imageData, 0, 0);
+        resolve(canvas.toDataURL("image/png"));
+      } catch (error) {
+        resolve(src);
+      }
+    };
+    image.onerror = () => resolve(src);
+    image.src = src;
+  });
+
+  transparentAnimationCache.set(cacheKey, imagePromise);
+  return imagePromise;
+}
+
+function loadAnimationSheetMeta(src) {
+  if (animationSheetMetaCache.has(src)) {
+    return animationSheetMetaCache.get(src);
+  }
+
+  const metaPromise = new Promise((resolve) => {
+    const image = new Image();
+    image.onload = () => {
+      const columns = Math.max(1, Math.floor(image.naturalWidth / ANIMATION_FRAME_WIDTH));
+      const rows = Math.max(1, Math.floor(image.naturalHeight / ANIMATION_FRAME_HEIGHT));
+      const frameCount = Math.max(1, columns * rows);
+      resolve({
+        columns,
+        rows,
+        frameCount,
+        frameOrder: parseFrameOrder("", frameCount),
+        frameWidth: ANIMATION_FRAME_WIDTH,
+        frameHeight: ANIMATION_FRAME_HEIGHT,
+      });
+    };
+    image.onerror = () => {
+      resolve({
+        columns: 1,
+        rows: 1,
+        frameCount: 1,
+        frameOrder: [0],
+        frameWidth: ANIMATION_FRAME_WIDTH,
+        frameHeight: ANIMATION_FRAME_HEIGHT,
+      });
+    };
+    image.src = src;
+  });
+
+  animationSheetMetaCache.set(src, metaPromise);
+  return metaPromise;
+}
+
+function playBattleAnimationFrames(sequence, duration, sheetMeta) {
+  const configuredFrameCount = Math.max(1, sheetMeta.frameCount);
+  const frameOrder = sheetMeta.frameOrder?.length ? sheetMeta.frameOrder : parseFrameOrder("", configuredFrameCount);
+  const frameCount = Math.max(1, frameOrder.length);
+  const totalDuration = Math.max(1, duration);
+  const startedAt = window.performance.now();
+
+  return new Promise((resolve) => {
+    const updateFrame = (timestamp) => {
+      const animation = state.battleAnimation;
+      if (!animation || animation.sequence !== sequence) {
+        resolve();
+        return;
+      }
+
+      const elapsed = Math.max(0, timestamp - startedAt);
+      const progress = Math.min(1, elapsed / totalDuration);
+      const nextFrameIndex = Math.min(frameCount - 1, Math.floor(progress * frameCount));
+      if (animation.frameIndex !== nextFrameIndex) {
+        const cellIndex = frameOrder[nextFrameIndex] ?? nextFrameIndex;
+        animation.frameIndex = nextFrameIndex;
+        animation.cellIndex = cellIndex;
+        updateBattleAnimationFrame(cellIndex, sheetMeta);
+      }
+
+      if (progress < 1) {
+        window.requestAnimationFrame(updateFrame);
+        return;
+      }
+
+      resolve();
+    };
+
+    updateBattleAnimationFrame(frameOrder[0] ?? 0, sheetMeta);
+    window.requestAnimationFrame(updateFrame);
+  });
+}
+
+function updateBattleAnimationFrame(cellIndex, sheetMeta) {
+  const animationNode = els.battleAnimationLayer?.querySelector(".battle-animation");
+  if (!animationNode) return;
+
+  const framePosition = animationFramePosition(
+    cellIndex,
+    sheetMeta.columns,
+    sheetMeta.frameWidth,
+    sheetMeta.frameHeight,
+  );
+  animationNode.style.setProperty("--battle-animation-frame-x", `${framePosition.x}px`);
+  animationNode.style.setProperty("--battle-animation-frame-y", `${framePosition.y}px`);
+}
+
+function animationFramePosition(cellIndex, columns, frameWidth = ANIMATION_FRAME_WIDTH, frameHeight = ANIMATION_FRAME_HEIGHT) {
+  const safeColumns = Math.max(1, Math.floor(number(columns, 1)));
+  const safeCellIndex = Math.max(0, Math.floor(number(cellIndex, 0)));
+  const column = safeCellIndex % safeColumns;
+  const row = Math.floor(safeCellIndex / safeColumns);
+  return {
+    x: -column * frameWidth,
+    y: -row * frameHeight,
+  };
+}
+
+function animationAssetPath(fileName) {
+  const text = animationAssetName(fileName).replace(/\\/g, "/");
+  if (!text) return "";
+  if (/^(https?:|data:)/i.test(text)) return text;
+
+  const relativePath = text.replace(/^\.?\//, "");
+  const assetPath = relativePath.startsWith("assets/")
+    ? relativePath
+    : `assets/animation/${relativePath}`;
+  const parts = assetPath
+    .split("/")
+    .map((part) => part.trim())
+    .filter((part) => part && part !== "." && part !== "..");
+  return parts.length ? `./${parts.map(encodeURIComponent).join("/")}` : "";
 }
 
 function elementName(element) {
@@ -2141,7 +2880,15 @@ function clamp(value, min, max) {
 }
 
 function pause(ms) {
-  return new Promise((resolve) => window.setTimeout(resolve, ms));
+  return new Promise((resolve) => window.setTimeout(resolve, scaledBattleTextDelay(ms)));
+}
+
+function rawDelay(ms) {
+  return new Promise((resolve) => window.setTimeout(resolve, Math.max(0, Math.round(ms))));
+}
+
+function scaledBattleTextDelay(ms) {
+  return Math.max(0, Math.round(ms * BATTLE_TEXT_SPEED_SCALE));
 }
 
 function escapeHtml(value) {
