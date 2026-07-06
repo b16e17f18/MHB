@@ -346,9 +346,12 @@ async function loadGameData() {
 
 async function loadCsvText(key, path) {
   try {
-    const cacheBustedPath = `${path}${path.includes("?") ? "&" : "?"}v=${Date.now()}`;
-    const response = await fetch(cacheBustedPath, { cache: "no-store" });
-    if (response.ok) return response.text();
+    const url = `${path}${path.includes("?") ? "&" : "?"}v=${Date.now()}`;
+    const response = await fetch(url, { cache: "no-store" });
+    if (response.ok) {
+      const text = await response.text();
+      return text;
+    }
   } catch {
     // File URLs and some preview panes block fetch; the inline CSV keeps the app playable.
   }
