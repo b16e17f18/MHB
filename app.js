@@ -67,7 +67,7 @@ const STAT_GRAPH_MAX = {
   sp_atk: 500,
   sp_def: 500,
   speed: 500,
-  regen_value: 500,
+  regen_value: 105,
 };
 
 const STAT_LABELS = {
@@ -701,7 +701,8 @@ function renderDetailPanel() {
           <img class="detail-image" src="${escapeHtml(character.imageSrc)}" alt="${escapeHtml(character.name)}" />
         </div>
         <div class="detail-summary">
-          <div class="dex-data-row"><span>charge</span><strong>${energyBadge(character.energy_charge)}</strong></div>
+          <div class="dex-data-row"><span>スロット</span><strong>${slotMarks(character.slot)}</strong></div>
+          <div class="dex-data-row"><span>EN回復</span><strong>${energyBadge(character.energy_charge)}</strong></div>
           <div class="dex-data-row"><span>弱点</span><strong>${renderWeaknessBadges(character)}</strong></div>
         </div>
       </div>
@@ -712,12 +713,19 @@ function renderDetailPanel() {
         ${detailStat("特殊攻撃", character.sp_atk, "sp_atk")}
         ${detailStat("特殊防御", character.sp_def, "sp_def")}
         ${detailStat("敏捷", character.speed, "speed")}
+        ${detailStat("回復力", character.regen_value, "regen_value")}
       </div>
       <div class="detail-skills">
         <div class="detail-section-title">技</div>
         ${movesForCharacter(character)
           .map((move) => renderSkillDetail(move))
           .join("")}
+      </div>
+      <div class="detail-resistances">
+        <div class="detail-section-title">属性耐性</div>
+        <div class="resistance-grid">
+          ${ELEMENT_TYPES.map((element) => resistanceCell(character, element)).join("")}
+        </div>
       </div>
     </div>
   `;
@@ -840,8 +848,8 @@ function renderDexPanel() {
           <div class="dex-summary">
             <div class="detail-title">${escapeHtml(character.name)}</div>
             <div class="detail-subtitle">${characterSubtitle(character)}</div>
-            <div class="dex-data-row"><span>スロット</span><strong>${escapeHtml(slotMarks(character.slot))}</strong></div>
-            <div class="dex-data-row"><span>EN回復</span><strong>${escapeHtml(character.energy_charge)}</strong></div>
+            <div class="dex-data-row"><span>スロット</span><strong>${slotMarks(character.slot)}</strong></div>
+            <div class="dex-data-row"><span>EN回復</span><strong>${energyBadge(character.energy_charge)}</strong></div>
             <div class="dex-data-row"><span>回復力</span><strong>${escapeHtml(character.regen_value)}</strong></div>
           </div>
         </div>
@@ -902,7 +910,17 @@ function selectedSlotTotal() {
 
 function slotMarks(value) {
   const count = Math.max(0, Math.floor(number(value)));
-  return "〇".repeat(count);
+  if (count <= 0) {
+    return `<span class="slot-mark-list is-empty" aria-label="スロットなし">-</span>`;
+  }
+
+  const marks = Array.from({ length: count }, () => `<span class="slot-mark" aria-hidden="true"></span>`).join("");
+  return `<span class="slot-mark-list" aria-label="スロット${count}">${marks}</span>`;
+}
+
+function slotMarkText(value) {
+  const count = Math.max(0, Math.floor(number(value)));
+  return count > 0 ? "〇".repeat(count) : "-";
 }
 
 function slotTotal(characters) {
@@ -1338,12 +1356,12 @@ function renderEnemyInfoPanel(enemy) {
     </div>
     <div class="battle-inspect-body">
       <div class="dex-data-row battle-inspect-row">
-        <span>弱点</span>
-        <strong>${renderWeaknessBadges(enemy.base)}</strong>
-      </div>
-      <div class="dex-data-row battle-inspect-row">
         <span>状態</span>
         <strong>${renderFighterStatusChips(enemy)}</strong>
+      </div>
+      <div class="detail-section-title">属性耐性</div>
+      <div class="resistance-grid battle-inspect-resistance-grid">
+        ${ELEMENT_TYPES.map((element) => resistanceCell(enemy.base, element)).join("")}
       </div>
     </div>
   `;
@@ -1575,7 +1593,7 @@ function exchangeChoiceButton(side, member, index) {
   return `
     <button class="exchange-choice ${selected ? "is-selected" : ""}" type="button" data-exchange-side="${side}" data-exchange-index="${index}" ${state.exchange.completed ? "disabled" : ""}>
       <span class="switch-name">${escapeHtml(member.name)}</span>
-      <span class="switch-meta">スロット ${escapeHtml(slotText)} / 体力 ${Math.max(0, member.hp)}/${member.maxHp}</span>
+      <span class="switch-meta">スロット ${slotText} / 体力 ${Math.max(0, member.hp)}/${member.maxHp}</span>
     </button>
   `;
 }
@@ -1686,7 +1704,7 @@ function exchangeNextPlayerSlotTotal() {
 function exchangeSlotNote(playerSlotTotal, enemySlotNeed, nextPlayerSlotTotal, hasEnemyTarget) {
   if (state.exchange.completed || !hasEnemyTarget) return "";
   if (playerSlotTotal === 0) {
-    return `相手のスロット ${slotMarks(enemySlotNeed)} に合わせて、自分のモンスターを選んでください。`;
+    return `相手のスロット ${slotMarkText(enemySlotNeed)} に合わせて、自分のモンスターを選んでください。`;
   }
   if (nextPlayerSlotTotal > TEAM_SLOT_LIMIT) {
     return `交換後のスロットが上限を超えます。${nextPlayerSlotTotal}/${TEAM_SLOT_LIMIT}`;

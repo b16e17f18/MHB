@@ -175,6 +175,28 @@ button:disabled {
   font-weight: 900;
 }
 
+.slot-mark-list {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 3px;
+  vertical-align: middle;
+}
+
+.slot-mark-list.is-empty {
+  color: var(--muted);
+  font-weight: 900;
+}
+
+.slot-mark {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 3px solid #111111;
+  border-radius: 999px;
+  background: #b4fb00;
+}
+
 .setup-actions {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -1325,6 +1347,12 @@ button {
   gap: 8px;
 }
 
+.detail-resistances {
+  display: grid;
+  grid-column: 1 / -1;
+  gap: 8px;
+}
+
 .detail-stat,
 .detail-skill-row {
   display: flex;
@@ -1497,7 +1525,7 @@ button {
   min-height: 26px;
   min-width: 54px;
   padding: 3px 7px;
-  border: 2px solid #ffffff;
+  border: 3px solid #006fe8;
   background: #006fe8;
   color: #ffffff;
   font-weight: 900;
@@ -1701,6 +1729,16 @@ button {
 
 .resistance-cell.is-neutral {
   background: #ffffff;
+}
+
+.battle-inspect-resistance-grid {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.battle-inspect-resistance-grid .resistance-cell {
+  min-height: 76px;
+  padding: 6px 4px;
+  font-size: 0.78rem;
 }
 
 .battle-card {
@@ -2666,4 +2704,11 @@ button {
   .battle-view .command-tabs {
     grid-template-columns: repeat(3, 1fr);
   }
+}
+
+.battle-view .battle-action-area > .battle-log.is-visible {
+  inset: 0;
+  z-index: 30;
+  min-height: 0;
+  pointer-events: auto;
 }
