@@ -5,7 +5,7 @@ skill_003,噛みつき,attack,80,none,physical,normal,phy_def_down,50,none,0,non
 skill_004,威嚇,status,0,none,none,normal,phy_def_down,100,none,0,none,0,none,0,enemy,0,0,相手の物理防御を25％下げる。,attack_beat01,500,1
 skill_005,薙ぎ払い,attack,70,none,physical,normal,none,0,none,0,none,0,none,0,enemy,0,1,通常攻撃。,attack_slash04,750,1
 skill_006,猪突猛進,attack,120,none,physical,normal,none,0,none,0,charge_attack,100,none,0,enemy,1,2,1ターン目に溜め、2ターン目に攻撃する。技優先度+１。,attack_hit01,250,1
-skill_007,突っつく,attack,60,none,physical,normal,def_down,50,none,0,none,0,none,0,enemy,0,1,通常攻撃。,attack_hit02,150,3
+skill_007,突っつく,attack,60,none,physical,normal,def_down,50,none,0,none,0,none,0,enemy,0,1,50％の確率で相手の物理防御を25％downさせる。,attack_hit02,150,3
 skill_008,毒液,attack,50,none,special,normal,poison,100,none,0,none,0,none,0,enemy,0,2,相手を毒にする。,magic_shadow01,500,1
 skill_009,閃光,status,0,none,none,normal,sp_def_down,100,none,0,none,0,none,0,enemy,0,1,相手の特殊防御を25％downさせる。,magic_energy01,500,1
 skill_010,暴れる,attack,90,none,physical,normal,none,0,none,0,none,0,none,0,enemy,0,2,通常攻撃。,magic_shieldbreak01,100,5
