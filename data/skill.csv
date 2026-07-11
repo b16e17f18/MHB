@@ -37,7 +37,7 @@ skill_035,雷撃,attack,50,thunder,special,water_wave,sp_atk_down,50,none,0,none
 skill_036,可燃ガス,attack,50,fire,special,normal,burn,75,none,0,none,0,none,0,enemy,0,1,75％の確率で相手を火やられにする。,magic_mist02,1000,1
 skill_037,大車輪,attack,80,fire,physical,normal,none,0,none,0,none,0,none,0,enemy,0,2,通常攻撃。,attack_hit01,250,3
 skill_038,雷拳,attack,110,thunder,physical,normal,none,0,none,0,charge_attack,100,none,0,enemy,0,2,1ターン目に溜め、2ターン目に攻撃する。,magic_lightning01_akira,250,1
-skill_039,氷結牙,attack,80,ice,physical,normal,phy_def_down,50,none,0,none,0,none,0,enemy,0,2,50％の確率で相手の物理防御を25％downさせる。,attack_spear01,500,1
+skill_039,氷結牙,attack,90,ice,physical,normal,phy_def_down,50,none,0,none,0,none,0,enemy,0,3,50％の確率で相手の物理防御を25％downさせる。,attack_spear01,500,1
 skill_040,氷ブレス,attack,80,ice,special,normal,speed_down,50,none,0,none,0,none,0,enemy,0,2,50％の確率で相手の敏捷を25％downさせる。,magic_ice01,750,1
 skill_041,激昂,status,0,thunder,none,normal,phy_atk_up,100,phy_def_up,100,none,0,none,0,self,0,1,物理攻撃と物理防御を25％upする。,attack_beat01,1250,1
 skill_042,龍ブレス,attack,80,dragon,special,normal,phy_atk_down,100,none,0,none,0,none,0,enemy,0,3,相手の特殊攻撃を25％downさせる。,magic_holy02,750,1
@@ -49,7 +49,7 @@ skill_047,落雷,attack,60,thunder,special,anti_air,paralysis,25,none,0,none,0,n
 skill_048,連続電撃,attack,80,thunder,special,normal,sp_def_down,75,none,0,none,0,none,0,enemy,0,3,75％の確率で相手の特殊防御を25％downさせる。,magic_lightning01_akira,100,5
 skill_049,炎の風,attack,60,fire,special,normal,burn,100,none,0,none,0,none,0,enemy,0,2,相手を火やられにする。,magic_fire01,250,2
 skill_050,龍風圧,attack,70,dragon,physical,normal,none,0,none,0,none,0,none,0,enemy,0,1,通常攻撃。,magic_holy02,250,3
-skill_051,竜巻ブレス,attack,100,dragon,special,normal,wind,100,none,0,none,0,none,0,enemy,0,3,相手の場に竜巻が起きる。,magic_circle01,150,5
+skill_051,竜巻ブレス,attack,110,dragon,special,normal,wind,100,none,0,none,0,none,0,enemy,0,3,相手の場に竜巻が起きる。,magic_circle01,150,5
 skill_052,長い舌,attack,50,dragon,physical,normal,phy_atk_down,50,none,0,none,0,none,0,enemy,0,2,50％の確率で相手の特殊攻撃を25％downさせる。,attack_hit01,500,1
 skill_053,幻影,attack,120,dragon,physical,guard_break,none,0,none,0,ghost_phase,100,none,0,enemy,0,4,1ターン目に姿を消し、2ターン目に攻撃する。相手はダメージをcutできない。,magic_sonicwave01,500,1
 skill_054,粉塵爆破,attack,110,fire,special,sure_hit,none,0,none,0,future_blast,100,none,0,enemy,0,3,1ターン目に粉塵をばら撒き、次のターンに爆破する。次のターンは行動できる。必ず命中する。,magic_fire01,50,10
