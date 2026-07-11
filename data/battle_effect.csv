@@ -1,7 +1,7 @@
 battle_effect_id,name,battle_effect_group,damage_type,damage_value,turn,can_move,guard_type,weak_hit_type,damage_cut,turn
 protect,防御態勢,guard,none,50,1,TRUE,all_damage,guard_break,50,1
 endure,こらえる,trigger,none,1,1,TRUE,hp,none,0,1
-revenge,反撃準備,trigger,received_damage_rate,100,1,TRUE,none,none,0,1
+revenge,反撃準備,trigger,received_damage_rate,150,1,TRUE,none,none,0,1
 fly,上空,position,none,0,1,FALSE,ground_attack,anti_air,0,1
 underground,地中,position,none,0,1,FALSE,surface_attack,ground_wave,0,1
 underwater,水中,position,none,0,1,FALSE,surface_attack,water_wave,0,1
