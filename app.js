@@ -210,6 +210,7 @@ document.addEventListener("DOMContentLoaded", () => {
     battleView: document.querySelector("#battleView"),
     storyModeButton: document.querySelector("#storyModeButton"),
     battleModeButton: document.querySelector("#battleModeButton"),
+    titleMessage: document.querySelector("#titleMessage"),
     storyBackButton: document.querySelector("#storyBackButton"),
     storyMap: document.querySelector("#storyMap"),
     storyTiles: document.querySelector("#storyTiles"),
@@ -248,7 +249,7 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 function bindEvents() {
-  els.storyModeButton.addEventListener("click", startStoryMode);
+  els.storyModeButton.addEventListener("click", showStoryPreparing);
   els.battleModeButton.addEventListener("click", showBattleSetup);
   els.storyBackButton.addEventListener("click", showTitleView);
   document.addEventListener("keydown", handleStoryKeydown);
@@ -299,16 +300,32 @@ function showTitleView() {
   els.setupView.classList.add("is-hidden");
   els.storyView.classList.add("is-hidden");
   els.titleView.classList.remove("is-hidden");
+  clearTitleMessage();
+}
+
+function showStoryPreparing() {
+  state.story.active = false;
+  clearStoryWalkTimer();
+  els.setupView.classList.add("is-hidden");
+  els.battleView.classList.add("is-hidden");
+  els.storyView.classList.add("is-hidden");
+  els.titleView.classList.remove("is-hidden");
+  els.titleMessage.classList.remove("is-hidden");
 }
 
 function showBattleSetup() {
   state.story.active = false;
   clearStoryWalkTimer();
+  clearTitleMessage();
   els.titleView.classList.add("is-hidden");
   els.storyView.classList.add("is-hidden");
   els.battleView.classList.add("is-hidden");
   els.setupView.classList.remove("is-hidden");
   renderSetup();
+}
+
+function clearTitleMessage() {
+  els.titleMessage.classList.add("is-hidden");
 }
 
 async function startStoryMode() {
