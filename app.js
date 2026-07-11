@@ -325,7 +325,7 @@ function showBattleSetup() {
 }
 
 function clearTitleMessage() {
-  els.titleMessage.classList.add("is-hidden");
+  els.titleMessage?.classList.add("is-hidden");
 }
 
 async function startStoryMode() {
