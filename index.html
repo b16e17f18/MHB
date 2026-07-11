@@ -8,7 +8,28 @@
   </head>
   <body>
     <main class="app-shell">
-      <section id="setupView" class="view setup-view" aria-label="チーム選択">
+      <section id="titleView" class="view title-view" aria-label="タイトル">
+        <div class="title-stage">
+          <img class="title-image" src="./assets/タイトル画面.png" alt="MonsterHunterBreeder" />
+          <button id="storyModeButton" class="title-choice title-choice-story" type="button" aria-label="ストーリーモード"></button>
+          <button id="battleModeButton" class="title-choice title-choice-battle" type="button" aria-label="バトルモード"></button>
+        </div>
+      </section>
+
+      <section id="storyView" class="view story-view is-hidden" aria-label="ストーリーモード">
+        <div class="story-shell">
+          <div class="story-topbar">
+            <div class="story-map-name">Map_002</div>
+            <button id="storyBackButton" class="small-button" type="button">タイトルへ</button>
+          </div>
+          <div id="storyMap" class="story-map" tabindex="0" aria-label="Map_002">
+            <div id="storyTiles" class="story-tiles"></div>
+            <div id="storyPlayer" class="story-player" aria-label="ミヤサコ"></div>
+          </div>
+        </div>
+      </section>
+
+      <section id="setupView" class="view setup-view is-hidden" aria-label="チーム選択">
         <div class="brand-line">
           <span class="brand-mark">MHB</span>
           <span class="brand-sub">MonsterHunterBreeder</span>

@@ -7,6 +7,26 @@ const DATA_PATHS = {
   animations: "./data/animation.csv",
 };
 
+const STORY_MAP_PATHS = [
+  "./assets/Map_data/Map002.mps",
+  "./assets/Map_data/Map002_1.mps",
+  "./assets/Map_data/Map002_2.mps",
+  "./assets/Map_data/Map002_3.mps",
+  "./assets/Map_data/Map002_4.mps",
+];
+const STORY_PLAYER_SHEET = "./assets/character_chip/ミヤサコ.png";
+const STORY_FRAME_WIDTH = 20;
+const STORY_FRAME_HEIGHT = 28;
+const STORY_SHEET_COLUMNS = 6;
+const STORY_TILE_SIZE = 36;
+const STORY_INITIAL_PLAYER = { x: 7, y: 13 };
+const STORY_DIRECTION_ROWS = {
+  down: 0,
+  left: 1,
+  right: 2,
+  up: 3,
+};
+
 const ELEMENT_LABELS = {
   none: "無",
   fire: "火",
@@ -156,6 +176,17 @@ const state = {
     open: false,
     characterId: null,
   },
+  story: {
+    active: false,
+    map: null,
+    player: {
+      ...STORY_INITIAL_PLAYER,
+      direction: "down",
+      frame: 0,
+    },
+    walkTimer: null,
+    walkToken: 0,
+  },
 };
 
 const els = {};
@@ -173,8 +204,16 @@ function createExchangeState() {
 
 document.addEventListener("DOMContentLoaded", () => {
   Object.assign(els, {
+    titleView: document.querySelector("#titleView"),
+    storyView: document.querySelector("#storyView"),
     setupView: document.querySelector("#setupView"),
     battleView: document.querySelector("#battleView"),
+    storyModeButton: document.querySelector("#storyModeButton"),
+    battleModeButton: document.querySelector("#battleModeButton"),
+    storyBackButton: document.querySelector("#storyBackButton"),
+    storyMap: document.querySelector("#storyMap"),
+    storyTiles: document.querySelector("#storyTiles"),
+    storyPlayer: document.querySelector("#storyPlayer"),
     selectedSlots: document.querySelector("#selectedSlots"),
     rosterGrid: document.querySelector("#rosterGrid"),
     randomTeamButton: document.querySelector("#randomTeamButton"),
@@ -209,6 +248,11 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 function bindEvents() {
+  els.storyModeButton.addEventListener("click", startStoryMode);
+  els.battleModeButton.addEventListener("click", showBattleSetup);
+  els.storyBackButton.addEventListener("click", showTitleView);
+  document.addEventListener("keydown", handleStoryKeydown);
+
   els.randomTeamButton.addEventListener("click", () => {
     state.selectedIds = buildSlotTeam(state.characters, TEAM_SLOT_LIMIT, true).map((character) => character.character_id);
     renderSetup();
@@ -248,7 +292,203 @@ function bindEvents() {
   });
 }
 
+function showTitleView() {
+  state.story.active = false;
+  clearStoryWalkTimer();
+  els.battleView.classList.add("is-hidden");
+  els.setupView.classList.add("is-hidden");
+  els.storyView.classList.add("is-hidden");
+  els.titleView.classList.remove("is-hidden");
+}
+
+function showBattleSetup() {
+  state.story.active = false;
+  clearStoryWalkTimer();
+  els.titleView.classList.add("is-hidden");
+  els.storyView.classList.add("is-hidden");
+  els.battleView.classList.add("is-hidden");
+  els.setupView.classList.remove("is-hidden");
+  renderSetup();
+}
+
+async function startStoryMode() {
+  state.story.active = true;
+  state.story.player = {
+    ...STORY_INITIAL_PLAYER,
+    direction: "down",
+    frame: 0,
+  };
+  clearStoryWalkTimer();
+  els.titleView.classList.add("is-hidden");
+  els.setupView.classList.add("is-hidden");
+  els.battleView.classList.add("is-hidden");
+  els.storyView.classList.remove("is-hidden");
+
+  if (!state.story.map) {
+    state.story.map = await loadStoryMap();
+  }
+  renderStoryMap();
+  els.storyMap.focus({ preventScroll: true });
+}
+
+function handleStoryKeydown(event) {
+  if (!state.story.active) return;
+
+  const moves = {
+    ArrowUp: { dx: 0, dy: -1, direction: "up" },
+    ArrowDown: { dx: 0, dy: 1, direction: "down" },
+    ArrowLeft: { dx: -1, dy: 0, direction: "left" },
+    ArrowRight: { dx: 1, dy: 0, direction: "right" },
+  };
+  const move = moves[event.key];
+  if (!move) return;
+
+  event.preventDefault();
+  moveStoryPlayer(move);
+}
+
+function moveStoryPlayer({ dx, dy, direction }) {
+  const storyMap = state.story.map ?? fallbackStoryMap();
+  const nextX = clamp(state.story.player.x + dx, 0, storyMap.width - 1);
+  const nextY = clamp(state.story.player.y + dy, 0, storyMap.height - 1);
+  const moved = nextX !== state.story.player.x || nextY !== state.story.player.y;
+  state.story.player = {
+    ...state.story.player,
+    x: nextX,
+    y: nextY,
+    direction,
+    frame: moved ? 1 : 0,
+  };
+  renderStoryPlayer();
+  if (!moved) return;
+  playStoryWalkAnimation();
+}
+
+async function loadStoryMap() {
+  const results = await Promise.allSettled(STORY_MAP_PATHS.map(loadStoryMapLayer));
+  const layers = results
+    .filter((result) => result.status === "fulfilled" && result.value)
+    .map((result) => result.value);
+
+  if (!layers.length) return fallbackStoryMap();
+  const base = layers[0];
+  return {
+    width: base.width,
+    height: base.height,
+    layers: layers.filter((layer) => layer.width === base.width && layer.height === base.height),
+  };
+}
+
+async function loadStoryMapLayer(path) {
+  const url = `${path}${path.includes("?") ? "&" : "?"}v=${Date.now()}`;
+  const response = await fetch(url, { cache: "no-store" });
+  if (!response.ok) throw new Error(`Map load failed: ${path}`);
+  return parseStoryMapLayer(await response.arrayBuffer());
+}
+
+function parseStoryMapLayer(buffer) {
+  const view = new DataView(buffer);
+  if (view.byteLength < 50) return fallbackStoryMap().layers[0];
+
+  const width = Math.max(1, view.getUint32(38, true));
+  const height = Math.max(1, view.getUint32(42, true));
+  const cellCount = width * height;
+  const cells = [];
+  const startOffset = 46;
+  for (let index = 0; index < cellCount; index += 1) {
+    const offset = startOffset + index * 4;
+    cells.push(offset + 4 <= view.byteLength ? view.getUint32(offset, true) : 0);
+  }
+
+  return { width, height, cells };
+}
+
+function fallbackStoryMap() {
+  return {
+    width: 15,
+    height: 15,
+    layers: [
+      {
+        width: 15,
+        height: 15,
+        cells: Array.from({ length: 15 * 15 }, (_, index) => index),
+      },
+    ],
+  };
+}
+
+function renderStoryMap() {
+  const storyMap = state.story.map ?? fallbackStoryMap();
+  els.storyMap.style.setProperty("--story-map-width", storyMap.width);
+  els.storyMap.style.setProperty("--story-map-height", storyMap.height);
+  els.storyMap.style.setProperty("--story-tile-size", `${STORY_TILE_SIZE}px`);
+  els.storyMap.style.width = `${storyMap.width * STORY_TILE_SIZE}px`;
+  els.storyMap.style.height = `${storyMap.height * STORY_TILE_SIZE}px`;
+  els.storyTiles.style.setProperty("--story-map-width", storyMap.width);
+  els.storyTiles.style.setProperty("--story-map-height", storyMap.height);
+  els.storyTiles.style.setProperty("--story-tile-size", `${STORY_TILE_SIZE}px`);
+  els.storyTiles.innerHTML = Array.from({ length: storyMap.width * storyMap.height }, (_, index) => {
+    const tileValue = storyTileValue(storyMap, index);
+    return `<div class="story-tile story-tile-${storyTilePalette(tileValue)}"></div>`;
+  }).join("");
+  renderStoryPlayer();
+}
+
+function renderStoryPlayer() {
+  const player = state.story.player;
+  const row = STORY_DIRECTION_ROWS[player.direction] ?? STORY_DIRECTION_ROWS.down;
+  const column = Math.max(0, Math.min(STORY_SHEET_COLUMNS - 1, player.frame));
+  els.storyPlayer.style.left = `${(player.x + 0.5) * STORY_TILE_SIZE}px`;
+  els.storyPlayer.style.top = `${(player.y + 1) * STORY_TILE_SIZE}px`;
+  els.storyPlayer.style.setProperty("--story-frame-x", `${-column * STORY_FRAME_WIDTH}px`);
+  els.storyPlayer.style.setProperty("--story-frame-y", `${-row * STORY_FRAME_HEIGHT}px`);
+  els.storyPlayer.style.backgroundImage = `url("${STORY_PLAYER_SHEET}")`;
+}
+
+function storyTileValue(storyMap, index) {
+  for (let layerIndex = storyMap.layers.length - 1; layerIndex >= 0; layerIndex -= 1) {
+    const value = storyMap.layers[layerIndex]?.cells?.[index] ?? 0;
+    if (value !== 0) return value;
+  }
+  return 0;
+}
+
+function storyTilePalette(value) {
+  if (!value) return 0;
+  return Math.abs(((value >>> 0) ^ (value >>> 8) ^ (value >>> 16))) % 8;
+}
+
+function playStoryWalkAnimation() {
+  clearStoryWalkTimer();
+  const token = state.story.walkToken + 1;
+  state.story.walkToken = token;
+  const frames = [1, 2, 3, 4, 5, 0];
+  let frameIndex = 0;
+
+  const step = () => {
+    if (state.story.walkToken !== token || !state.story.active) return;
+    state.story.player.frame = frames[frameIndex] ?? 0;
+    renderStoryPlayer();
+    frameIndex += 1;
+    if (frameIndex >= frames.length) return;
+    state.story.walkTimer = window.setTimeout(step, 70);
+  };
+
+  step();
+}
+
+function clearStoryWalkTimer() {
+  state.story.walkToken += 1;
+  if (!state.story.walkTimer) return;
+  window.clearTimeout(state.story.walkTimer);
+  state.story.walkTimer = null;
+}
+
 function returnToSetup() {
+  state.story.active = false;
+  clearStoryWalkTimer();
+  els.titleView.classList.add("is-hidden");
+  els.storyView.classList.add("is-hidden");
   els.battleView.classList.add("is-hidden");
   els.setupView.classList.remove("is-hidden");
   state.commandMode = "fight";
@@ -1123,6 +1363,10 @@ function startBattle() {
     visible: false,
   };
 
+  state.story.active = false;
+  clearStoryWalkTimer();
+  els.titleView.classList.add("is-hidden");
+  els.storyView.classList.add("is-hidden");
   els.setupView.classList.add("is-hidden");
   els.battleView.classList.remove("is-hidden");
   renderBattle();
