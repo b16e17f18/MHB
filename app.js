@@ -2125,10 +2125,12 @@ async function executeAction(action) {
     }
   }
 
-  const animationSide = move.target === "self" ? action.side : targetSide;
-  await playSkillAnimation(move, animationSide);
-
   const delayedAttackSetup = hasDelayedAttackBattleEffect(move);
+  const animationSide = move.target === "self" ? action.side : targetSide;
+  if (!delayedAttackSetup) {
+    await playSkillAnimation(move, animationSide);
+  }
+
   if (move.category === "attack" && !delayedAttackSetup) {
     const result = dealDamage(actor, target, move);
     if (result.damage > 0) {
@@ -2437,6 +2439,9 @@ function delayedBattleEffectPayload(move, actor, battleEffect) {
       element: safeText(move.element, "none"),
       attack_type: safeText(move.attack_type, "special"),
       hit_type: safeText(move.hit_type, "sure_hit"),
+      animation_id: safeText(move.animation_id),
+      animation_duration_ms: Math.max(0, number(move.animation_duration_ms)),
+      repeat_count: Math.max(0, number(move.repeat_count)),
     },
     source: {
       name: actor.name,
@@ -2516,6 +2521,7 @@ async function resolveDelayedBattleEffects() {
 
       pushLog(`${target.name}に${effect.name}が炸裂した！`);
       await pause(420);
+      await playSkillAnimation(move, side);
       const result = dealDamage(attacker, target, move);
       if (result.damage > 0) {
         flashSprite(side);
@@ -2545,6 +2551,9 @@ function delayedEffectMove(effect) {
     element: safeText(effect.delayedMove.element, "none"),
     attack_type: safeText(effect.delayedMove.attack_type, "special"),
     hit_type: safeText(effect.delayedMove.hit_type, "sure_hit"),
+    animation_id: safeText(effect.delayedMove.animation_id),
+    animation_duration_ms: Math.max(0, number(effect.delayedMove.animation_duration_ms)),
+    repeat_count: Math.max(0, number(effect.delayedMove.repeat_count)),
     target: "enemy",
   };
 }
