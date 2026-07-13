@@ -29,7 +29,10 @@ const STORY_DIRECTION_ROWS = {
   up: 3,
 };
 const STORY_RANK_BATTLE_FALLBACKS = {
-  battle_f_1: ["character_002", "character_003"],
+  battle_f_1: {
+    name: "道外れたハンター",
+    enemyCharacterIds: ["character_002", "character_003"],
+  },
 };
 
 const ELEMENT_LABELS = {
@@ -193,6 +196,7 @@ const state = {
     },
     walkTimer: null,
     walkToken: 0,
+    pendingRankBattleId: null,
   },
 };
 
@@ -221,6 +225,10 @@ document.addEventListener("DOMContentLoaded", () => {
     titleMessage: document.querySelector("#titleMessage"),
     storyBackButton: document.querySelector("#storyBackButton"),
     storyRankBattleF1Button: document.querySelector("#storyRankBattleF1Button"),
+    storyBattleConfirmOverlay: document.querySelector("#storyBattleConfirmOverlay"),
+    storyBattleConfirmText: document.querySelector("#storyBattleConfirmText"),
+    storyBattleConfirmYesButton: document.querySelector("#storyBattleConfirmYesButton"),
+    storyBattleConfirmNoButton: document.querySelector("#storyBattleConfirmNoButton"),
     storyMap: document.querySelector("#storyMap"),
     storyTiles: document.querySelector("#storyTiles"),
     storyPlayer: document.querySelector("#storyPlayer"),
@@ -263,7 +271,14 @@ function bindEvents() {
   els.storyBackButton.addEventListener("click", showTitleView);
   els.storyRankBattleF1Button?.addEventListener("click", (event) => {
     event.preventDefault();
-    startRankBattle("battle_f_1");
+    showRankBattleConfirm("battle_f_1");
+  });
+  els.storyBattleConfirmYesButton?.addEventListener("click", confirmRankBattleStart);
+  els.storyBattleConfirmNoButton?.addEventListener("click", () => hideRankBattleConfirm({ restoreFocus: true }));
+  els.storyBattleConfirmOverlay?.addEventListener("click", (event) => {
+    if (event.target === els.storyBattleConfirmOverlay) {
+      hideRankBattleConfirm({ restoreFocus: true });
+    }
   });
   document.addEventListener("keydown", handleStoryKeydown);
 
@@ -309,6 +324,7 @@ function bindEvents() {
 function showTitleView() {
   state.story.active = false;
   clearStoryWalkTimer();
+  hideRankBattleConfirm();
   els.battleView.classList.add("is-hidden");
   els.setupView.classList.add("is-hidden");
   els.storyView.classList.add("is-hidden");
@@ -329,6 +345,7 @@ function showStoryPreparing() {
 function showBattleSetup() {
   state.story.active = false;
   clearStoryWalkTimer();
+  hideRankBattleConfirm();
   clearTitleMessage();
   els.titleView.classList.add("is-hidden");
   els.storyView.classList.add("is-hidden");
@@ -344,6 +361,7 @@ function clearTitleMessage() {
 async function startStoryMode() {
   state.story.active = false;
   clearStoryWalkTimer();
+  hideRankBattleConfirm();
   clearTitleMessage();
   els.titleView.classList.add("is-hidden");
   els.setupView.classList.add("is-hidden");
@@ -1401,6 +1419,39 @@ function startRandomBattle() {
   startBattle();
 }
 
+async function showRankBattleConfirm(rankBattleId) {
+  if (gameDataPromise) {
+    await gameDataPromise;
+  }
+
+  state.story.pendingRankBattleId = rankBattleId;
+  const opponentName = rankBattleDisplayName(rankBattleId);
+  els.storyBattleConfirmText.textContent = `${opponentName}と対戦を開始しますか？`;
+  els.storyBattleConfirmOverlay.classList.remove("is-hidden");
+  els.storyBattleConfirmYesButton.focus({ preventScroll: true });
+}
+
+function hideRankBattleConfirm({ restoreFocus = false } = {}) {
+  state.story.pendingRankBattleId = null;
+  els.storyBattleConfirmOverlay?.classList.add("is-hidden");
+  if (restoreFocus) {
+    els.storyRankBattleF1Button?.focus({ preventScroll: true });
+  }
+}
+
+async function confirmRankBattleStart() {
+  const rankBattleId = state.story.pendingRankBattleId;
+  if (!rankBattleId) return;
+  hideRankBattleConfirm();
+  await startRankBattle(rankBattleId);
+}
+
+function rankBattleDisplayName(rankBattleId) {
+  return state.rankBattles.get(rankBattleId)?.name ||
+    STORY_RANK_BATTLE_FALLBACKS[rankBattleId]?.name ||
+    rankBattleId;
+}
+
 async function startRankBattle(rankBattleId) {
   if (gameDataPromise) {
     await gameDataPromise;
@@ -1410,7 +1461,7 @@ async function startRankBattle(rankBattleId) {
   const enemyParty = state.enemyParties.get(rankBattle?.enemy_party_id ?? rankBattleId);
   const enemyCharacterIds = enemyParty?.characterIds.length
     ? enemyParty.characterIds
-    : STORY_RANK_BATTLE_FALLBACKS[rankBattleId] ?? [];
+    : STORY_RANK_BATTLE_FALLBACKS[rankBattleId]?.enemyCharacterIds ?? [];
 
   if (!enemyCharacterIds.length) return;
 

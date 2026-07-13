@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>MonsterHunterBreeder</title>
-    <link rel="stylesheet" href="./styles.css?v=20260713-story-rank-f1" />
+    <link rel="stylesheet" href="./styles.css?v=20260713-story-confirm" />
   </head>
   <body>
     <main class="app-shell">
@@ -24,6 +24,15 @@
             <button id="storyRankBattleF1Button" class="story-rank-button story-rank-button-f-lower" type="button" aria-label="battle_f_1"></button>
           </div>
           <button id="storyBackButton" class="small-button story-back-button" type="button">戻る</button>
+          <div id="storyBattleConfirmOverlay" class="story-confirm-overlay is-hidden" role="dialog" aria-modal="true" aria-labelledby="storyBattleConfirmText">
+            <div class="story-confirm-panel">
+              <div id="storyBattleConfirmText" class="story-confirm-text"></div>
+              <div class="story-confirm-actions">
+                <button id="storyBattleConfirmYesButton" class="primary-button story-confirm-button" type="button">はい</button>
+                <button id="storyBattleConfirmNoButton" class="small-button story-confirm-button" type="button">いいえ</button>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -103,6 +112,6 @@
     </main>
 
     <script src="./data-inline.js?v=20260709-utf8-clean"></script>
-    <script src="./app.js?v=20260713-story-rank-f1"></script>
+    <script src="./app.js?v=20260713-story-confirm"></script>
   </body>
 </html>
