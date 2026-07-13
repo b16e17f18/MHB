@@ -2782,6 +2782,55 @@ button {
   place-items: center;
 }
 
+.story-main-shell {
+  display: grid;
+  width: min(100%, 870px);
+  grid-template-rows: minmax(0, 1fr) auto;
+  gap: 10px;
+  place-items: center;
+}
+
+.story-main-stage {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 870 / 618;
+  min-height: 0;
+}
+
+.story-main-image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  image-rendering: auto;
+}
+
+.story-rank-button {
+  position: absolute;
+  z-index: 2;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  pointer-events: auto;
+}
+
+.story-rank-button:focus-visible {
+  outline: 4px solid #ffe600;
+  outline-offset: 2px;
+}
+
+.story-rank-button-f-lower {
+  left: 9.6%;
+  top: 10.6%;
+  width: 19.4%;
+  height: 15.4%;
+}
+
+.story-back-button {
+  min-width: 104px;
+}
+
 .story-shell {
   width: min(100%, 760px);
   padding: 14px;

@@ -20,7 +20,7 @@ character_018,ティガレックス,620,340,235,110,235,235,70,2,2,25,100,150,50
 character_019,ナルガクルガ,490,290,215,110,245,425,105,2,2,100,50,150,50,50,none,skill_001,skill_002,skill_033,skill_034,character_019.png,#ffffff,8,
 character_020,ラギアクルス,640,315,265,320,215,185,70,1,2,150,100,25,100,100,thunder,skill_001,skill_005,skill_024,skill_035,character_020.png,#ffffff,8,
 character_021,ルアルドロス,480,225,190,220,240,150,105,1,1,150,50,100,100,50,water,skill_001,skill_008,skill_015,skill_026,character_021.png,#ffffff,8,
-character_022,ウラガンキン,540,250,440,255,250,90,70,1,2,25,150,50,100,150,fire,skill_001,skill_026,skill_036,skill_037,character_022.png,#ffffff,8,
+character_022,ウラガンキン,540,270,440,255,250,90,70,1,2,25,150,50,100,150,fire,skill_001,skill_026,skill_036,skill_037,character_022.png,#ffffff,8,
 character_023,ジンオウガ,660,305,305,260,240,240,70,1,2,100,100,25,150,50,thunder,skill_056,skill_010,skill_035,skill_038,character_023.png,#ffffff,8,
 character_024,ベリオロス,540,310,240,270,240,325,35,2,2,150,100,100,25,50,ice,skill_001,skill_004,skill_039,skill_040,character_024.png,#ffffff,8,
 character_025,ラージャン,555,375,300,300,300,220,35,1,2,50,100,25,150,50,thunder,skill_004,skill_035,skill_038,skill_041,character_025.png,#ffffff,8,

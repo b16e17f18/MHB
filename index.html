@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>MonsterHunterBreeder</title>
-    <link rel="stylesheet" href="./styles.css?v=20260711-title-mode" />
+    <link rel="stylesheet" href="./styles.css?v=20260713-story-rank-f1" />
   </head>
   <body>
     <main class="app-shell">
@@ -18,15 +18,12 @@
       </section>
 
       <section id="storyView" class="view story-view is-hidden" aria-label="ストーリーモード">
-        <div class="story-shell">
-          <div class="story-topbar">
-            <div class="story-map-name">Map_002</div>
-            <button id="storyBackButton" class="small-button" type="button">タイトルへ</button>
+        <div class="story-main-shell">
+          <div class="story-main-stage">
+            <img class="story-main-image" src="./assets/メイン画面.png" alt="ストーリーモード メイン画面" />
+            <button id="storyRankBattleF1Button" class="story-rank-button story-rank-button-f-lower" type="button" aria-label="battle_f_1"></button>
           </div>
-          <div id="storyMap" class="story-map" tabindex="0" aria-label="Map_002">
-            <div id="storyTiles" class="story-tiles"></div>
-            <div id="storyPlayer" class="story-player" aria-label="ミヤサコ"></div>
-          </div>
+          <button id="storyBackButton" class="small-button story-back-button" type="button">戻る</button>
         </div>
       </section>
 
@@ -106,6 +103,6 @@
     </main>
 
     <script src="./data-inline.js?v=20260709-utf8-clean"></script>
-    <script src="./app.js?v=20260711-title-mode"></script>
+    <script src="./app.js?v=20260713-story-rank-f1"></script>
   </body>
 </html>

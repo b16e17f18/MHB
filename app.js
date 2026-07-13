@@ -5,6 +5,8 @@ const DATA_PATHS = {
   effects: "./data/effect.csv",
   hitTypes: "./data/hit_type.csv",
   animations: "./data/animation.csv",
+  rankBattles: "./data/rank_battle.csv",
+  enemyParties: "./data/enemy_party.csv",
 };
 
 const STORY_MAP_PATHS = [
@@ -25,6 +27,9 @@ const STORY_DIRECTION_ROWS = {
   left: 1,
   right: 2,
   up: 3,
+};
+const STORY_RANK_BATTLE_FALLBACKS = {
+  battle_f_1: ["character_002", "character_003"],
 };
 
 const ELEMENT_LABELS = {
@@ -153,6 +158,8 @@ const state = {
   hitTypes: new Map(),
   animations: new Map(),
   animationDefinitions: new Map(),
+  rankBattles: new Map(),
+  enemyParties: new Map(),
   selectedIds: [],
   playerTeam: [],
   enemyTeam: [],
@@ -191,6 +198,7 @@ const state = {
 
 const els = {};
 let battleMessageTimer = null;
+let gameDataPromise = null;
 const animationSheetMetaCache = new Map();
 const transparentAnimationCache = new Map();
 
@@ -212,6 +220,7 @@ document.addEventListener("DOMContentLoaded", () => {
     battleModeButton: document.querySelector("#battleModeButton"),
     titleMessage: document.querySelector("#titleMessage"),
     storyBackButton: document.querySelector("#storyBackButton"),
+    storyRankBattleF1Button: document.querySelector("#storyRankBattleF1Button"),
     storyMap: document.querySelector("#storyMap"),
     storyTiles: document.querySelector("#storyTiles"),
     storyPlayer: document.querySelector("#storyPlayer"),
@@ -245,13 +254,17 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   bindEvents();
-  loadGameData();
+  gameDataPromise = loadGameData();
 });
 
 function bindEvents() {
-  els.storyModeButton.addEventListener("click", showStoryPreparing);
+  els.storyModeButton.addEventListener("click", startStoryMode);
   els.battleModeButton.addEventListener("click", showBattleSetup);
   els.storyBackButton.addEventListener("click", showTitleView);
+  els.storyRankBattleF1Button?.addEventListener("click", (event) => {
+    event.preventDefault();
+    startRankBattle("battle_f_1");
+  });
   document.addEventListener("keydown", handleStoryKeydown);
 
   els.randomTeamButton.addEventListener("click", () => {
@@ -329,23 +342,14 @@ function clearTitleMessage() {
 }
 
 async function startStoryMode() {
-  state.story.active = true;
-  state.story.player = {
-    ...STORY_INITIAL_PLAYER,
-    direction: "down",
-    frame: 0,
-  };
+  state.story.active = false;
   clearStoryWalkTimer();
+  clearTitleMessage();
   els.titleView.classList.add("is-hidden");
   els.setupView.classList.add("is-hidden");
   els.battleView.classList.add("is-hidden");
   els.storyView.classList.remove("is-hidden");
-
-  if (!state.story.map) {
-    state.story.map = await loadStoryMap();
-  }
-  renderStoryMap();
-  els.storyMap.focus({ preventScroll: true });
+  els.storyBackButton.focus({ preventScroll: true });
 }
 
 function handleStoryKeydown(event) {
@@ -527,13 +531,24 @@ function returnToSetup() {
 
 async function loadGameData() {
   try {
-    const [characterText, skillText, battleEffectText, effectText, hitTypeText, animationText] = await Promise.all([
+    const [
+      characterText,
+      skillText,
+      battleEffectText,
+      effectText,
+      hitTypeText,
+      animationText,
+      rankBattleText,
+      enemyPartyText,
+    ] = await Promise.all([
       loadCsvText("characters", DATA_PATHS.characters),
       loadCsvText("skills", DATA_PATHS.skills),
       loadCsvText("battleEffects", DATA_PATHS.battleEffects),
       loadCsvText("effects", DATA_PATHS.effects),
       loadCsvText("hitTypes", DATA_PATHS.hitTypes),
       loadCsvText("animations", DATA_PATHS.animations),
+      loadOptionalCsvText("rankBattles", DATA_PATHS.rankBattles),
+      loadOptionalCsvText("enemyParties", DATA_PATHS.enemyParties),
     ]);
 
     state.characters = rowsFromCsv(characterText)
@@ -568,6 +583,20 @@ async function loadGameData() {
     for (const hitType of rowsFromCsv(hitTypeText).map(normalizeHitType)) {
       if (hitType.hit_type_id && hitType.name) {
         state.hitTypes.set(hitType.hit_type_id, hitType);
+      }
+    }
+
+    state.rankBattles.clear();
+    for (const rankBattle of rowsFromCsv(rankBattleText).map(normalizeRankBattle)) {
+      if (rankBattle.rank_battle_id) {
+        state.rankBattles.set(rankBattle.rank_battle_id, rankBattle);
+      }
+    }
+
+    state.enemyParties.clear();
+    for (const enemyParty of rowsFromCsv(enemyPartyText).map(normalizeEnemyParty)) {
+      if (enemyParty.enemy_party_id) {
+        state.enemyParties.set(enemyParty.enemy_party_id, enemyParty);
       }
     }
 
@@ -618,6 +647,14 @@ async function loadCsvText(key, path) {
   }
 
   throw new Error(`CSV load failed: ${key}`);
+}
+
+async function loadOptionalCsvText(key, path) {
+  try {
+    return await loadCsvText(key, path);
+  } catch {
+    return "";
+  }
 }
 
 function rowsFromCsv(text) {
@@ -817,6 +854,25 @@ function normalizeAnimation(row) {
       ? Math.max(1, number(row.animation_duration_ms, fallback.animation_duration_ms ?? 520))
       : 0,
     surface_color: safeText(row.surface_color, fallback.surface_color ?? ""),
+  };
+}
+
+function normalizeRankBattle(row) {
+  return {
+    rank_battle_id: safeText(row.rank_battle_id),
+    rank: safeText(row.rank),
+    name: safeText(row.name),
+    enemy_party_id: safeText(row.enemy_party_id),
+    reward_money: number(row.reward_money),
+  };
+}
+
+function normalizeEnemyParty(row) {
+  return {
+    enemy_party_id: safeText(row.enemy_party_id),
+    characterIds: [row.character_id_1, row.character_id_2, row.character_id_3]
+      .map((characterId) => safeText(characterId))
+      .filter((characterId) => characterId && characterId !== "none"),
   };
 }
 
@@ -1345,7 +1401,28 @@ function startRandomBattle() {
   startBattle();
 }
 
-function startBattle() {
+async function startRankBattle(rankBattleId) {
+  if (gameDataPromise) {
+    await gameDataPromise;
+  }
+
+  const rankBattle = state.rankBattles.get(rankBattleId);
+  const enemyParty = state.enemyParties.get(rankBattle?.enemy_party_id ?? rankBattleId);
+  const enemyCharacterIds = enemyParty?.characterIds.length
+    ? enemyParty.characterIds
+    : STORY_RANK_BATTLE_FALLBACKS[rankBattleId] ?? [];
+
+  if (!enemyCharacterIds.length) return;
+
+  if (selectedSlotTotal() <= 0 || selectedSlotTotal() > TEAM_SLOT_LIMIT) {
+    state.selectedIds = buildSlotTeam(state.characters).map((character) => character.character_id);
+    renderSetup();
+  }
+
+  startBattle({ enemyCharacterIds });
+}
+
+function startBattle(options = {}) {
   if (selectedSlotTotal() <= 0 || selectedSlotTotal() > TEAM_SLOT_LIMIT) return;
   const enemyPool = state.characters.filter(
     (character) => !state.selectedIds.includes(character.character_id),
@@ -1353,7 +1430,13 @@ function startBattle() {
   const playerCharacters = state.selectedIds
     .map((id) => state.characterMap.get(id))
     .filter(Boolean);
-  const enemyCharacters = buildSlotTeam(enemyPool.length ? enemyPool : state.characters, TEAM_SLOT_LIMIT, true);
+  const enemyCharacters = Array.isArray(options.enemyCharacterIds)
+    ? options.enemyCharacterIds
+        .map((id) => state.characterMap.get(id))
+        .filter(Boolean)
+    : buildSlotTeam(enemyPool.length ? enemyPool : state.characters, TEAM_SLOT_LIMIT, true);
+
+  if (!enemyCharacters.length) return;
 
   state.playerTeam = playerCharacters.map(createFighter);
   state.enemyTeam = enemyCharacters.map(createFighter);
