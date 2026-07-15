@@ -227,6 +227,7 @@ function createExchangeState() {
     playerIndices: [],
     enemyIndex: null,
     completed: false,
+    storyDecision: null,
   };
 }
 
@@ -1881,6 +1882,8 @@ function arrayFromSave(value) {
 }
 
 function migrateLegacyInitialParty(saveData) {
+  if (saveData.initialPartyVersion >= INITIAL_PARTY_VERSION) return;
+
   const ownedCharacterIds = saveData.ownedMonsters.map((entry) => entry.characterId);
   if (sameCharacterIdSet(ownedCharacterIds, LEGACY_INITIAL_PLAYER_CHARACTER_IDS)) {
     saveData.ownedMonsters = initialPlayerCharacterIds().map((characterId, index) => ({
@@ -1892,7 +1895,6 @@ function migrateLegacyInitialParty(saveData) {
     return;
   }
 
-  if (saveData.initialPartyVersion >= INITIAL_PARTY_VERSION) return;
   saveData.initialPartyVersion = INITIAL_PARTY_VERSION;
 }
 
@@ -2525,6 +2527,15 @@ function renderExchangePanel() {
   }
 
   const isStoryRankBattle = Boolean(state.story.currentRankBattleId);
+  if (isStoryRankBattle && state.exchange.storyDecision === "choice") {
+    renderStoryVictoryExchangeChoice();
+    return;
+  }
+  if (isStoryRankBattle && state.exchange.storyDecision === "confirmSkip") {
+    renderStorySkipExchangeConfirm();
+    return;
+  }
+
   const selectedPlayerIndices = exchangePlayerIndices();
   const playerSlotTotal = exchangePlayerSlotTotal();
   const enemySlotNeed = exchangeEnemySlotNeed();
@@ -2593,6 +2604,50 @@ function renderExchangePanel() {
       } else if (button.dataset.resultAction === "rematch") {
         startBattle();
       }
+    });
+  }
+}
+
+function renderStoryVictoryExchangeChoice() {
+  els.exchangePanel.innerHTML = `
+    <div class="exchange-title">勝利交換</div>
+    <div class="command-note">モンスターを交換しますか？</div>
+    <div class="exchange-actions">
+      <button class="primary-button exchange-action" type="button" data-story-exchange-action="exchange">モンスターを交換する</button>
+      <button class="small-button exchange-action" type="button" data-story-exchange-action="skip">交換しない</button>
+    </div>
+  `;
+
+  for (const button of els.exchangePanel.querySelectorAll("[data-story-exchange-action]")) {
+    button.addEventListener("click", () => {
+      if (button.dataset.storyExchangeAction === "exchange") {
+        state.exchange.storyDecision = "exchange";
+      } else {
+        state.exchange.storyDecision = "confirmSkip";
+      }
+      renderBattle();
+    });
+  }
+}
+
+function renderStorySkipExchangeConfirm() {
+  els.exchangePanel.innerHTML = `
+    <div class="exchange-title">交換しない</div>
+    <div class="command-note">交換せずに終了しますか？</div>
+    <div class="exchange-actions">
+      <button class="primary-button exchange-action" type="button" data-story-skip-action="confirm">はい</button>
+      <button class="small-button exchange-action" type="button" data-story-skip-action="cancel">キャンセル</button>
+    </div>
+  `;
+
+  for (const button of els.exchangePanel.querySelectorAll("[data-story-skip-action]")) {
+    button.addEventListener("click", () => {
+      if (button.dataset.storySkipAction === "confirm") {
+        finalizeStoryBattleVictory(state.story.currentRankBattleId);
+        return;
+      }
+      state.exchange.storyDecision = "choice";
+      renderBattle();
     });
   }
 }
@@ -2753,7 +2808,7 @@ function completeVictoryExchange() {
   state.selectedIds = state.playerTeam.map((member) => member.id);
   syncOwnedMonsterPartyFromSelectedIds({ persist: false });
   if (state.story.currentRankBattleId) {
-    finishStoryRankBattle(state.story.currentRankBattleId);
+    finalizeStoryBattleVictory(state.story.currentRankBattleId);
     return;
   }
   saveGameData();
@@ -3445,10 +3500,13 @@ function finishBattle(winner) {
   state.battleAnimation = null;
   state.commandMode = winner === "player" ? "exchange" : "fight";
   state.exchange = createExchangeState();
+  if (winner === "player" && state.story.currentRankBattleId) {
+    state.exchange.storyDecision = "choice";
+  }
   pushLog(winner === "player" ? "勝負に勝った！" : "目の前が真っ暗になった...");
 }
 
-function finishStoryRankBattle(rankBattleId) {
+function finalizeStoryBattleVictory(rankBattleId) {
   const currentBattleId = safeText(rankBattleId);
   if (!currentBattleId) return;
   const alreadyCleared = state.story.clearedRankBattleIds.has(currentBattleId);
