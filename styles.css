@@ -2842,6 +2842,13 @@ button {
   height: 14.5%;
 }
 
+.story-my-house-button {
+  left: 4.4%;
+  top: 59.4%;
+  width: 19.5%;
+  height: 12.6%;
+}
+
 .story-back-button {
   min-width: 104px;
 }
@@ -3007,9 +3014,261 @@ button {
   background: #78350f;
 }
 
+.my-house-panel {
+  width: min(100%, 940px);
+  max-height: min(84vh, 720px);
+  padding: 18px;
+  overflow: auto;
+  border: 4px solid #111111;
+  border-radius: 8px;
+  background: #fffdf7;
+  box-shadow: 8px 8px 0 rgba(12, 22, 38, 0.28);
+}
+
+.my-house-header {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.my-house-title {
+  color: #111111;
+  font-size: 1.45rem;
+  font-weight: 900;
+  line-height: 1.1;
+}
+
+.my-house-subtitle {
+  margin-top: 5px;
+  color: #374151;
+  font-size: 0.9rem;
+  font-weight: 800;
+}
+
+.my-house-layout {
+  display: grid;
+  grid-template-columns: minmax(250px, 1fr) minmax(250px, 1fr);
+  gap: 12px;
+  align-items: start;
+}
+
+.my-house-section,
+.my-house-detail-panel {
+  min-height: 160px;
+  padding: 12px;
+  border: 3px solid #111111;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.my-house-detail-panel {
+  grid-column: 1 / -1;
+}
+
+.my-house-section-title {
+  margin-bottom: 10px;
+  color: #111111;
+  font-weight: 900;
+}
+
+.my-house-monster-list,
+.my-house-book-list {
+  display: grid;
+  gap: 8px;
+}
+
+.my-house-monster-card,
+.my-house-book-button {
+  width: 100%;
+  min-width: 0;
+  padding: 10px;
+  border: 2px solid #111111;
+  border-radius: 8px;
+  background: #f8fafc;
+  text-align: left;
+}
+
+.my-house-monster-card {
+  display: grid;
+  grid-template-columns: 82px minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+}
+
+.my-house-monster-card.is-selected,
+.my-house-book-button.is-selected {
+  background: #fff2bc;
+  box-shadow: inset 0 0 0 3px #e05d3f;
+}
+
+.my-house-monster-image-frame {
+  display: grid;
+  width: 82px;
+  height: 72px;
+  place-items: center;
+  overflow: hidden;
+  border: 2px solid #111111;
+  border-radius: 6px;
+  background: #eef2f6;
+}
+
+.my-house-monster-image {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+.my-house-monster-info,
+.my-house-book-button {
+  display: grid;
+  gap: 5px;
+}
+
+.my-house-monster-name {
+  min-width: 0;
+  overflow: hidden;
+  color: #111111;
+  font-size: 1rem;
+  font-weight: 900;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.my-house-monster-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px 8px;
+  align-items: center;
+  color: #374151;
+  font-size: 0.78rem;
+  font-weight: 900;
+}
+
+.my-house-mini-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 4px;
+  color: #111827;
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+.my-house-mini-stats span {
+  min-width: 0;
+  padding: 3px 4px;
+  overflow: hidden;
+  border-radius: 5px;
+  background: #e5e7eb;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.my-house-book-button span {
+  color: #374151;
+  font-size: 0.82rem;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
+.my-house-book-content {
+  margin-top: 10px;
+}
+
+.my-house-book-empty {
+  padding: 14px;
+  border: 2px dashed #9ca3af;
+  border-radius: 8px;
+  color: #374151;
+  font-weight: 800;
+  text-align: center;
+}
+
+.my-house-book-title,
+.my-house-detail-title {
+  color: #111111;
+  font-size: 1.1rem;
+  font-weight: 900;
+}
+
+.my-house-book-description {
+  margin: 4px 0 10px;
+  color: #374151;
+  font-size: 0.86rem;
+  font-weight: 800;
+}
+
+.my-house-book-monsters {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 8px;
+}
+
+.my-house-book-monster {
+  display: grid;
+  grid-template-columns: 58px minmax(0, 1fr);
+  gap: 8px;
+  align-items: center;
+  padding: 8px;
+  border: 2px solid #111111;
+  border-radius: 8px;
+  background: #f8fafc;
+}
+
+.my-house-book-monster-image {
+  width: 58px;
+  height: 50px;
+  object-fit: contain;
+}
+
+.my-house-detail-header {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.my-house-detail-slot {
+  flex: 0 0 auto;
+  color: #111111;
+  font-weight: 900;
+}
+
+.my-house-detail-body {
+  display: grid;
+  grid-template-columns: 180px minmax(0, 1fr);
+  gap: 14px;
+  align-items: start;
+}
+
+.my-house-detail-image-frame {
+  min-height: 160px;
+}
+
+.my-house-detail-stats {
+  align-self: stretch;
+}
+
 @media (max-width: 560px) {
   .shop-item {
     grid-template-columns: 1fr;
+  }
+
+  .my-house-layout,
+  .my-house-detail-body {
+    grid-template-columns: 1fr;
+  }
+
+  .my-house-monster-card {
+    grid-template-columns: 72px minmax(0, 1fr);
+  }
+
+  .my-house-monster-image-frame {
+    width: 72px;
+    height: 64px;
   }
 }
 

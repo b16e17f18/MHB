@@ -176,6 +176,10 @@ const state = {
   encyclopediaBooks: new Map(),
   saveData: createSaveData(),
   shop: createShopState(),
+  myHouse: {
+    selectedBookId: null,
+    selectedOwnedId: null,
+  },
   selectedIds: [],
   playerTeam: [],
   enemyTeam: [],
@@ -264,6 +268,7 @@ document.addEventListener("DOMContentLoaded", () => {
     storyBackButton: document.querySelector("#storyBackButton"),
     storyMainStage: document.querySelector("#storyMainStage"),
     storyBusinessButton: document.querySelector("#storyBusinessButton"),
+    storyMyHouseButton: document.querySelector("#storyMyHouseButton"),
     storyRankBattleF1Button: document.querySelector("#storyRankBattleF1Button"),
     storyBattleConfirmOverlay: document.querySelector("#storyBattleConfirmOverlay"),
     storyBattleConfirmText: document.querySelector("#storyBattleConfirmText"),
@@ -279,6 +284,12 @@ document.addEventListener("DOMContentLoaded", () => {
     businessShopSlots: document.querySelector("#businessShopSlots"),
     businessShopItems: document.querySelector("#businessShopItems"),
     businessShopExchangePanel: document.querySelector("#businessShopExchangePanel"),
+    myHousePanel: document.querySelector("#myHousePanel"),
+    myHouseBackButton: document.querySelector("#myHouseBackButton"),
+    myHouseMonsterList: document.querySelector("#myHouseMonsterList"),
+    myHouseBookList: document.querySelector("#myHouseBookList"),
+    myHouseBookContent: document.querySelector("#myHouseBookContent"),
+    myHouseDetailPanel: document.querySelector("#myHouseDetailPanel"),
     selectedSlots: document.querySelector("#selectedSlots"),
     rosterGrid: document.querySelector("#rosterGrid"),
     randomTeamButton: document.querySelector("#randomTeamButton"),
@@ -317,7 +328,9 @@ function bindEvents() {
   els.battleModeButton.addEventListener("click", showBattleSetup);
   els.storyBackButton.addEventListener("click", showTitleView);
   els.storyBusinessButton?.addEventListener("click", showBusinessShop);
+  els.storyMyHouseButton?.addEventListener("click", showMyHouse);
   els.businessShopBackButton?.addEventListener("click", hideBusinessShop);
+  els.myHouseBackButton?.addEventListener("click", hideMyHouse);
   els.storyRankBattleF1Button?.addEventListener("click", (event) => {
     event.preventDefault();
     if (isStoryRankBattleDisabled("battle_f_1")) return;
@@ -375,6 +388,7 @@ function showTitleView() {
   state.story.active = false;
   state.shop.open = false;
   hideBusinessShop();
+  hideMyHouse();
   clearStoryWalkTimer();
   hideRankBattleConfirm();
   state.story.currentRankBattleId = null;
@@ -389,6 +403,7 @@ function showStoryPreparing() {
   state.story.active = false;
   state.shop.open = false;
   hideBusinessShop();
+  hideMyHouse();
   clearStoryWalkTimer();
   els.setupView.classList.add("is-hidden");
   els.battleView.classList.add("is-hidden");
@@ -401,6 +416,7 @@ function showBattleSetup() {
   state.story.active = false;
   state.shop.open = false;
   hideBusinessShop();
+  hideMyHouse();
   clearStoryWalkTimer();
   hideRankBattleConfirm();
   state.story.currentRankBattleId = null;
@@ -420,6 +436,7 @@ async function startStoryMode() {
   state.story.active = false;
   state.shop.open = false;
   hideBusinessShop();
+  hideMyHouse();
   clearStoryWalkTimer();
   hideRankBattleConfirm();
   clearTitleMessage();
@@ -436,6 +453,7 @@ async function showBusinessShop() {
     await gameDataPromise;
   }
 
+  hideMyHouse();
   loadSaveData({ preserveCurrentOnMissing: true });
   initializeSaveDataParty();
   state.shop.open = true;
@@ -456,6 +474,212 @@ function hideBusinessShop() {
   els.businessShopPanel?.classList.add("is-hidden");
   els.storyMainStage?.classList.remove("is-hidden");
   els.storyBackButton?.classList.remove("is-hidden");
+}
+
+async function showMyHouse() {
+  if (gameDataPromise) {
+    await gameDataPromise;
+  }
+
+  hideBusinessShop();
+  loadSaveData({ preserveCurrentOnMissing: true });
+  initializeSaveDataParty();
+  ensureMyHouseSelection();
+  hideRankBattleConfirm();
+  els.storyMainStage?.classList.add("is-hidden");
+  els.storyBackButton?.classList.add("is-hidden");
+  els.myHousePanel?.classList.remove("is-hidden");
+  renderMyHouse();
+  els.myHouseBackButton?.focus({ preventScroll: true });
+}
+
+function hideMyHouse() {
+  els.myHousePanel?.classList.add("is-hidden");
+  els.storyMainStage?.classList.remove("is-hidden");
+  els.storyBackButton?.classList.remove("is-hidden");
+}
+
+function renderMyHouse() {
+  if (!els.myHousePanel) return;
+
+  ensureMyHouseSelection();
+
+  const monsterEntries = myHouseMonsterEntries();
+  const ownedBooks = myHouseOwnedBooks();
+  const selectedMonster = monsterEntries.find((entry) => entry.ownedId === state.myHouse.selectedOwnedId);
+  const selectedBook = ownedBooks.find((book) => book.book_id === state.myHouse.selectedBookId);
+
+  els.myHouseMonsterList.innerHTML = monsterEntries.length
+    ? monsterEntries.map((entry) => renderMyHouseMonsterCard(entry)).join("")
+    : `<div class="shop-empty">手持ちモンスターはいません。</div>`;
+
+  els.myHouseBookList.innerHTML = ownedBooks.length
+    ? ownedBooks.map((book) => renderMyHouseBookButton(book)).join("")
+    : `<div class="shop-empty">購入済み図鑑はありません。</div>`;
+
+  els.myHouseBookContent.innerHTML = selectedBook
+    ? renderMyHouseBookContent(selectedBook)
+    : `<div class="my-house-book-empty">図鑑を購入すると、ここに登録モンスターが表示されます。</div>`;
+
+  els.myHouseDetailPanel.innerHTML = selectedMonster
+    ? renderMyHouseMonsterDetail(selectedMonster.character)
+    : `<div class="my-house-book-empty">モンスターを選択してください。</div>`;
+
+  for (const button of els.myHouseMonsterList.querySelectorAll("[data-my-house-owned-id]")) {
+    button.addEventListener("click", () => {
+      state.myHouse.selectedOwnedId = button.dataset.myHouseOwnedId;
+      renderMyHouse();
+    });
+  }
+
+  for (const button of els.myHouseBookList.querySelectorAll("[data-my-house-book-id]")) {
+    button.addEventListener("click", () => {
+      state.myHouse.selectedBookId = button.dataset.myHouseBookId;
+      renderMyHouse();
+    });
+  }
+}
+
+function ensureMyHouseSelection() {
+  const monsterEntries = myHouseMonsterEntries();
+  if (!monsterEntries.some((entry) => entry.ownedId === state.myHouse.selectedOwnedId)) {
+    state.myHouse.selectedOwnedId = monsterEntries[0]?.ownedId ?? null;
+  }
+
+  const ownedBooks = myHouseOwnedBooks();
+  if (!ownedBooks.some((book) => book.book_id === state.myHouse.selectedBookId)) {
+    state.myHouse.selectedBookId = ownedBooks[0]?.book_id ?? null;
+  }
+}
+
+function myHouseMonsterEntries() {
+  return state.saveData.ownedMonsters
+    .map((entry) => ({
+      ownedId: entry.ownedId,
+      character: state.characterMap.get(entry.characterId),
+    }))
+    .filter((entry) => entry.ownedId && entry.character);
+}
+
+function myHouseOwnedBooks() {
+  return [...state.saveData.ownedBooks]
+    .map((bookId) => state.encyclopediaBooks.get(bookId))
+    .filter(Boolean);
+}
+
+function renderMyHouseMonsterCard(entry) {
+  const character = entry.character;
+  const selected = entry.ownedId === state.myHouse.selectedOwnedId;
+  return `
+    <button class="my-house-monster-card ${selected ? "is-selected" : ""}" type="button" data-my-house-owned-id="${escapeHtml(entry.ownedId)}">
+      <span class="my-house-monster-image-frame">
+        <img class="my-house-monster-image" src="${escapeHtml(character.imageSrc)}" alt="${escapeHtml(character.name)}" />
+      </span>
+      <span class="my-house-monster-info">
+        <strong class="my-house-monster-name">${escapeHtml(character.name)}</strong>
+        <span class="my-house-monster-meta">${elementPill(character.element)} <span>slot ${slotMarks(character.slot)}</span></span>
+        <span class="my-house-mini-stats">
+          <span>HP ${escapeHtml(character.hp)}</span>
+          <span>攻 ${escapeHtml(character.phy_atk)}</span>
+          <span>防 ${escapeHtml(character.phy_def)}</span>
+          <span>特攻 ${escapeHtml(character.sp_atk)}</span>
+          <span>特防 ${escapeHtml(character.sp_def)}</span>
+          <span>速 ${escapeHtml(character.speed)}</span>
+        </span>
+      </span>
+    </button>
+  `;
+}
+
+function renderMyHouseMonsterDetail(character) {
+  return renderMyHouseCompleteMonsterDetail(character);
+}
+
+function renderMyHouseCompleteMonsterDetail(character) {
+  return `
+    <div class="my-house-detail-header">
+      <div>
+        <div class="my-house-detail-title">${escapeHtml(character.name)}</div>
+        <div class="detail-subtitle">${characterSubtitle(character)}</div>
+      </div>
+      <div class="my-house-detail-slot">slot ${slotMarks(character.slot)}</div>
+    </div>
+    <div class="detail-body my-house-detail-body">
+      <div class="detail-profile-column">
+        <div class="detail-image-frame my-house-detail-image-frame">
+          <img class="detail-image" src="${escapeHtml(character.imageSrc)}" alt="${escapeHtml(character.name)}" />
+        </div>
+        <div class="detail-summary">
+          <div class="dex-data-row"><span>スロット</span><strong>${slotMarks(character.slot)}</strong></div>
+          <div class="dex-data-row"><span>EN回復</span><strong>${energyBadge(character.energy_charge)}</strong></div>
+          <div class="dex-data-row"><span>弱点</span><strong>${renderWeaknessBadges(character)}</strong></div>
+        </div>
+      </div>
+      <div class="detail-stats my-house-detail-stats">
+        ${detailStat("HP", character.hp, "hp")}
+        ${detailStat("物理攻撃", character.phy_atk, "phy_atk")}
+        ${detailStat("物理防御", character.phy_def, "phy_def")}
+        ${detailStat("特殊攻撃", character.sp_atk, "sp_atk")}
+        ${detailStat("特殊防御", character.sp_def, "sp_def")}
+        ${detailStat("素早さ", character.speed, "speed")}
+        ${detailStat("回復力", character.regen_value, "regen_value")}
+      </div>
+      <div class="detail-skills">
+        <div class="detail-section-title">技</div>
+        ${movesForCharacter(character)
+          .map((move) => renderSkillDetail(move))
+          .join("")}
+      </div>
+      <div class="detail-resistances">
+        <div class="detail-section-title">属性耐性</div>
+        <div class="resistance-grid">
+          ${ELEMENT_TYPES.map((element) => resistanceCell(character, element)).join("")}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function renderMyHouseBookButton(book) {
+  const selected = book.book_id === state.myHouse.selectedBookId;
+  return `
+    <button class="my-house-book-button ${selected ? "is-selected" : ""}" type="button" data-my-house-book-id="${escapeHtml(book.book_id)}">
+      <strong>${escapeHtml(book.name)}</strong>
+      <span>${escapeHtml(book.description)}</span>
+    </button>
+  `;
+}
+
+function renderMyHouseBookContent(book) {
+  const monsters = book.characterIds
+    .map((characterId) => state.characterMap.get(characterId))
+    .filter(Boolean);
+
+  return `
+    <div class="my-house-book-detail">
+      <div class="my-house-book-title">${escapeHtml(book.name)}</div>
+      <div class="my-house-book-description">${escapeHtml(book.description)}</div>
+      <div class="my-house-book-monsters">
+        ${
+          monsters.length
+            ? monsters.map(renderMyHouseBookMonster).join("")
+            : `<div class="shop-empty">登録モンスターがありません。</div>`
+        }
+      </div>
+    </div>
+  `;
+}
+
+function renderMyHouseBookMonster(character) {
+  return `
+    <article class="my-house-book-monster">
+      <img class="my-house-book-monster-image" src="${escapeHtml(character.imageSrc)}" alt="${escapeHtml(character.name)}" />
+      <div>
+        <strong>${escapeHtml(character.name)}</strong>
+        <div class="my-house-monster-meta">${elementPill(character.element)} <span>slot ${slotMarks(character.slot)}</span></div>
+      </div>
+    </article>
+  `;
 }
 
 function renderBusinessShop() {
@@ -870,6 +1094,7 @@ function returnToSetup() {
   state.story.active = false;
   state.shop.open = false;
   hideBusinessShop();
+  hideMyHouse();
   clearStoryWalkTimer();
   els.titleView.classList.add("is-hidden");
   els.storyView.classList.add("is-hidden");

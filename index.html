@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>MonsterHunterBreeder</title>
-    <link rel="stylesheet" href="./styles.css?v=20260714-business-shop" />
+    <link rel="stylesheet" href="./styles.css?v=20260715-my-house" />
   </head>
   <body>
     <main class="app-shell">
@@ -22,6 +22,7 @@
           <div id="storyMainStage" class="story-main-stage">
             <img class="story-main-image" src="./assets/メイン画面.png" alt="ストーリーモード メイン画面" />
             <button id="storyBusinessButton" class="story-rank-button story-business-button" type="button" aria-label="Business"></button>
+            <button id="storyMyHouseButton" class="story-rank-button story-my-house-button" type="button" aria-label="My House"></button>
             <button id="storyRankBattleF1Button" class="story-rank-button story-rank-button-f-lower" type="button" aria-label="battle_f_1"></button>
           </div>
           <button id="storyBackButton" class="small-button story-back-button" type="button">戻る</button>
@@ -38,6 +39,27 @@
             </div>
             <div id="businessShopItems" class="business-shop-items"></div>
             <div id="businessShopExchangePanel" class="shop-exchange-panel is-hidden"></div>
+          </section>
+          <section id="myHousePanel" class="my-house-panel is-hidden" aria-label="My House">
+            <div class="my-house-header">
+              <div>
+                <div class="my-house-title">My House</div>
+                <div class="my-house-subtitle">手持ちモンスター / 購入済み図鑑</div>
+              </div>
+              <button id="myHouseBackButton" class="small-button" type="button">戻る</button>
+            </div>
+            <div class="my-house-layout">
+              <section class="my-house-section">
+                <div class="my-house-section-title">手持ちモンスター</div>
+                <div id="myHouseMonsterList" class="my-house-monster-list"></div>
+              </section>
+              <section class="my-house-section">
+                <div class="my-house-section-title">購入済み図鑑</div>
+                <div id="myHouseBookList" class="my-house-book-list"></div>
+                <div id="myHouseBookContent" class="my-house-book-content"></div>
+              </section>
+              <section id="myHouseDetailPanel" class="my-house-detail-panel"></section>
+            </div>
           </section>
           <div id="storyBattleConfirmOverlay" class="story-confirm-overlay is-hidden" role="dialog" aria-modal="true" aria-labelledby="storyBattleConfirmText">
             <div class="story-confirm-layout">
@@ -132,6 +154,6 @@
     </main>
 
     <script src="./data-inline.js?v=20260709-utf8-clean"></script>
-    <script src="./app.js?v=20260715-story-victory"></script>
+    <script src="./app.js?v=20260715-my-house-detail"></script>
   </body>
 </html>
