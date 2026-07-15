@@ -37,6 +37,27 @@ const STORY_RANK_BATTLE_FALLBACKS = {
   },
 };
 
+const STORY_RANK_ORDER = ["f", "F", "e", "E", "d", "D", "c", "C", "b", "B", "a", "A", "s", "S", "SS"];
+const STORY_RANK_BUTTON_AREAS = {
+  f: { left: 8.8, top: 9.7, width: 21, height: 17 },
+  F: { left: 8.8, top: 27.4, width: 21, height: 10.5 },
+  e: { left: 31, top: 5.8, width: 19.2, height: 13 },
+  E: { left: 31, top: 23, width: 19.2, height: 12.5 },
+  d: { left: 51, top: 8, width: 19.3, height: 13 },
+  D: { left: 51, top: 23, width: 19.3, height: 12.5 },
+  c: { left: 76.2, top: 6, width: 19.5, height: 29 },
+  C: { left: 73.5, top: 36.2, width: 19.3, height: 28.5 },
+  b: { left: 3.8, top: 73.6, width: 20.8, height: 20.2 },
+  B: { left: 25, top: 70.8, width: 18, height: 19 },
+  a: { left: 48.5, top: 39.8, width: 19.4, height: 28.2 },
+  A: { left: 27.7, top: 40, width: 19.4, height: 28 },
+  s: { left: 44.2, top: 70.6, width: 29.2, height: 11.3 },
+  S: { left: 44, top: 82.2, width: 29.2, height: 11.8 },
+  SS: { left: 74.6, top: 66.5, width: 20.8, height: 27.5 },
+};
+const STORY_RANK_ORDER_INDEX = new Map(STORY_RANK_ORDER.map((rank, index) => [rank, index]));
+const INITIAL_STORY_RANK_BATTLE_IDS = new Set(["battle_f_1"]);
+
 const SAVE_STORAGE_KEY = "mhb_save_data_v1";
 const INITIAL_MONEY = 1500;
 const BUSINESS_SHOP_ID = "business";
@@ -269,7 +290,7 @@ document.addEventListener("DOMContentLoaded", () => {
     storyMainStage: document.querySelector("#storyMainStage"),
     storyBusinessButton: document.querySelector("#storyBusinessButton"),
     storyMyHouseButton: document.querySelector("#storyMyHouseButton"),
-    storyRankBattleF1Button: document.querySelector("#storyRankBattleF1Button"),
+    storyRankBattleButtons: document.querySelector("#storyRankBattleButtons"),
     storyBattleConfirmOverlay: document.querySelector("#storyBattleConfirmOverlay"),
     storyBattleConfirmText: document.querySelector("#storyBattleConfirmText"),
     storyBattleOpponentList: document.querySelector("#storyBattleOpponentList"),
@@ -331,10 +352,13 @@ function bindEvents() {
   els.storyMyHouseButton?.addEventListener("click", showMyHouse);
   els.businessShopBackButton?.addEventListener("click", hideBusinessShop);
   els.myHouseBackButton?.addEventListener("click", hideMyHouse);
-  els.storyRankBattleF1Button?.addEventListener("click", (event) => {
+  els.storyRankBattleButtons?.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-rank-battle-id]");
+    if (!button || !els.storyRankBattleButtons.contains(button)) return;
     event.preventDefault();
-    if (isStoryRankBattleDisabled("battle_f_1")) return;
-    showRankBattleConfirm("battle_f_1");
+    const rankBattleId = button.dataset.rankBattleId;
+    if (!rankBattleId || isStoryRankBattleDisabled(rankBattleId)) return;
+    showRankBattleConfirm(rankBattleId);
   });
   els.storyBattleConfirmYesButton?.addEventListener("click", confirmRankBattleStart);
   els.storyBattleConfirmNoButton?.addEventListener("click", () => hideRankBattleConfirm({ restoreFocus: true }));
@@ -1468,6 +1492,14 @@ function normalizeRankBattle(row) {
     name: safeText(row.name),
     enemy_party_id: safeText(row.enemy_party_id),
     reward_money: number(row.reward_money),
+    unlockBattleIds: [
+      row.unlock_battle_id1,
+      row.unlock_battle_id2,
+      row.unlock_battle_id3,
+      row.unlock_battle_id4,
+    ]
+      .map((rankBattleId) => safeText(rankBattleId))
+      .filter((rankBattleId) => rankBattleId && rankBattleId !== "none"),
   };
 }
 
@@ -2072,6 +2104,7 @@ function loadSaveData({ preserveCurrentOnMissing = false } = {}) {
         .map((rankBattleId) => safeText(rankBattleId))
         .filter(Boolean),
     );
+    state.story.disabledRankBattleIds = new Set(state.story.clearedRankBattleIds);
   }
 
   state.saveData = nextSaveData;
@@ -2222,6 +2255,7 @@ async function showRankBattleConfirm(rankBattleId) {
   }
 
   if (isStoryRankBattleDisabled(rankBattleId)) return;
+  if (!rankBattleEnemyCharacterIds(rankBattleId).length) return;
 
   state.story.pendingRankBattleId = rankBattleId;
   const opponentName = rankBattleDisplayName(rankBattleId);
@@ -2232,13 +2266,14 @@ async function showRankBattleConfirm(rankBattleId) {
 }
 
 function hideRankBattleConfirm({ restoreFocus = false } = {}) {
+  const restoreRankBattleId = state.story.pendingRankBattleId;
   state.story.pendingRankBattleId = null;
   els.storyBattleConfirmOverlay?.classList.add("is-hidden");
   if (els.storyBattleOpponentList) {
     els.storyBattleOpponentList.innerHTML = "";
   }
   if (restoreFocus) {
-    els.storyRankBattleF1Button?.focus({ preventScroll: true });
+    findStoryRankBattleButton(restoreRankBattleId)?.focus({ preventScroll: true });
   }
 }
 
@@ -2277,26 +2312,89 @@ function isStoryRankBattleCleared(rankBattleId) {
   return state.story.clearedRankBattleIds.has(rankBattleId);
 }
 
+function isStoryRankBattleUnlocked(rankBattleId) {
+  const id = safeText(rankBattleId);
+  if (!id) return false;
+  if (INITIAL_STORY_RANK_BATTLE_IDS.has(id)) return true;
+  if (isStoryRankBattleCleared(id)) return true;
+  if (!state.rankBattles.has(id)) return Boolean(STORY_RANK_BATTLE_FALLBACKS[id]);
+  return [...state.story.clearedRankBattleIds].some((clearedRankBattleId) =>
+    state.rankBattles.get(clearedRankBattleId)?.unlockBattleIds?.includes(id),
+  );
+}
+
 function isStoryRankBattleDisabled(rankBattleId) {
-  return state.story.disabledRankBattleIds.has(rankBattleId);
+  return state.story.disabledRankBattleIds.has(rankBattleId) || !isStoryRankBattleUnlocked(rankBattleId);
 }
 
 function updateStoryRankBattleButtons() {
-  updateStoryRankBattleButton(els.storyRankBattleF1Button, "battle_f_1");
+  if (!els.storyRankBattleButtons) return;
+  els.storyRankBattleButtons.innerHTML = storyRankBattles()
+    .map(renderStoryRankBattleButton)
+    .join("");
+
+  for (const button of els.storyRankBattleButtons.querySelectorAll("[data-rank-battle-id]")) {
+    updateStoryRankBattleButton(button, button.dataset.rankBattleId);
+  }
+}
+
+function storyRankBattles() {
+  return [...state.rankBattles.values()]
+    .filter((rankBattle) => STORY_RANK_ORDER_INDEX.has(rankBattle.rank))
+    .filter((rankBattle) => STORY_RANK_BUTTON_AREAS[rankBattle.rank])
+    .filter((rankBattle) => rankBattleEnemyCharacterIds(rankBattle.rank_battle_id).length > 0)
+    .sort((a, b) => {
+      const rankOrder = STORY_RANK_ORDER_INDEX.get(a.rank) - STORY_RANK_ORDER_INDEX.get(b.rank);
+      return rankOrder || a.rank_battle_id.localeCompare(b.rank_battle_id);
+    });
+}
+
+function renderStoryRankBattleButton(rankBattle) {
+  const area = STORY_RANK_BUTTON_AREAS[rankBattle.rank];
+  const label = `${rankBattle.rank} ${rankBattle.name}`;
+  const style = `left: ${area.left}%; top: ${area.top}%; width: ${area.width}%; height: ${area.height}%;`;
+  return `
+    <button
+      class="story-rank-button story-rank-battle-button story-rank-battle-${escapeHtml(cssToken(rankBattle.rank, "rank"))}"
+      type="button"
+      data-rank-battle-id="${escapeHtml(rankBattle.rank_battle_id)}"
+      data-rank="${escapeHtml(rankBattle.rank)}"
+      style="${style}"
+      aria-label="${escapeHtml(label)}"
+      title="${escapeHtml(label)}"
+    >
+      <span class="story-rank-state" aria-hidden="true"></span>
+    </button>
+  `;
+}
+
+function findStoryRankBattleButton(rankBattleId) {
+  if (!els.storyRankBattleButtons || !rankBattleId) return null;
+  return [...els.storyRankBattleButtons.querySelectorAll("[data-rank-battle-id]")]
+    .find((button) => button.dataset.rankBattleId === rankBattleId) ?? null;
 }
 
 function updateStoryRankBattleButton(button, rankBattleId) {
   if (!button) return;
-  const disabled = isStoryRankBattleDisabled(rankBattleId);
+  const cleared = isStoryRankBattleCleared(rankBattleId);
+  const locked = !isStoryRankBattleUnlocked(rankBattleId);
+  const disabled = cleared || locked;
   button.disabled = disabled;
-  button.classList.toggle("is-cleared", disabled);
+  button.classList.toggle("is-cleared", cleared);
+  button.classList.toggle("is-locked", locked);
   button.setAttribute("aria-disabled", `${disabled}`);
+  const stateLabel = button.querySelector(".story-rank-state");
+  if (stateLabel) {
+    stateLabel.textContent = cleared ? "CLEAR" : locked ? "LOCK" : "";
+  }
 }
 
 async function startRankBattle(rankBattleId) {
   if (gameDataPromise) {
     await gameDataPromise;
   }
+
+  if (isStoryRankBattleDisabled(rankBattleId)) return;
 
   const enemyCharacterIds = rankBattleEnemyCharacterIds(rankBattleId);
 

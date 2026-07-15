@@ -2806,6 +2806,13 @@ button {
   image-rendering: auto;
 }
 
+.story-rank-battle-buttons {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  pointer-events: none;
+}
+
 .story-rank-button {
   position: absolute;
   z-index: 4;
@@ -2828,11 +2835,43 @@ button {
   pointer-events: none;
 }
 
-.story-rank-button-f-lower {
-  left: 8.8%;
-  top: 9.7%;
-  width: 21%;
-  height: 17%;
+.story-rank-battle-button {
+  overflow: hidden;
+}
+
+.story-rank-battle-button.is-locked::before,
+.story-rank-battle-button.is-cleared::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.24);
+}
+
+.story-rank-state {
+  position: absolute;
+  right: 5px;
+  bottom: 5px;
+  z-index: 1;
+  min-width: 42px;
+  padding: 2px 5px;
+  border-radius: 3px;
+  background: transparent;
+  color: transparent;
+  font-size: 0.68rem;
+  font-weight: 800;
+  line-height: 1.2;
+  text-align: center;
+  pointer-events: none;
+}
+
+.story-rank-battle-button.is-locked .story-rank-state {
+  background: #111;
+  color: #fff;
+}
+
+.story-rank-battle-button.is-cleared .story-rank-state {
+  background: #f8e047;
+  color: #141414;
 }
 
 .story-business-button {
