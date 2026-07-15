@@ -7,6 +7,8 @@ const DATA_PATHS = {
   animations: "./data/animation.csv",
   rankBattles: "./data/rank_battle.csv",
   enemyParties: "./data/enemy_party.csv",
+  shopItems: "./data/shop_item.csv",
+  encyclopediaBooks: "./data/encyclopedia_book.csv",
 };
 
 const STORY_MAP_PATHS = [
@@ -34,6 +36,13 @@ const STORY_RANK_BATTLE_FALLBACKS = {
     enemyCharacterIds: ["character_002", "character_003"],
   },
 };
+
+const SAVE_STORAGE_KEY = "mhb_save_data_v1";
+const INITIAL_MONEY = 1500;
+const BUSINESS_SHOP_ID = "business";
+const INITIAL_PLAYER_CHARACTER_IDS = ["character_001", "character_004"];
+const LEGACY_INITIAL_PLAYER_CHARACTER_IDS = ["character_004", "character_002"];
+const INITIAL_PARTY_VERSION = 1;
 
 const ELEMENT_LABELS = {
   none: "無",
@@ -163,6 +172,10 @@ const state = {
   animationDefinitions: new Map(),
   rankBattles: new Map(),
   enemyParties: new Map(),
+  shopItems: [],
+  encyclopediaBooks: new Map(),
+  saveData: createSaveData(),
+  shop: createShopState(),
   selectedIds: [],
   playerTeam: [],
   enemyTeam: [],
@@ -197,6 +210,9 @@ const state = {
     walkTimer: null,
     walkToken: 0,
     pendingRankBattleId: null,
+    currentRankBattleId: null,
+    clearedRankBattleIds: new Set(),
+    disabledRankBattleIds: new Set(),
   },
 };
 
@@ -214,6 +230,27 @@ function createExchangeState() {
   };
 }
 
+function createSaveData() {
+  return {
+    money: INITIAL_MONEY,
+    ownedBooks: new Set(),
+    ownedMonsters: [],
+    shopStock: new Map(),
+    purchasedShopEntries: new Set(),
+    nextOwnedMonsterNumber: 1,
+    initialMoneyVersion: 1,
+    initialPartyVersion: INITIAL_PARTY_VERSION,
+  };
+}
+
+function createShopState() {
+  return {
+    open: false,
+    exchangeEntryId: null,
+    offerOwnedIds: [],
+  };
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   Object.assign(els, {
     titleView: document.querySelector("#titleView"),
@@ -224,14 +261,23 @@ document.addEventListener("DOMContentLoaded", () => {
     battleModeButton: document.querySelector("#battleModeButton"),
     titleMessage: document.querySelector("#titleMessage"),
     storyBackButton: document.querySelector("#storyBackButton"),
+    storyMainStage: document.querySelector("#storyMainStage"),
+    storyBusinessButton: document.querySelector("#storyBusinessButton"),
     storyRankBattleF1Button: document.querySelector("#storyRankBattleF1Button"),
     storyBattleConfirmOverlay: document.querySelector("#storyBattleConfirmOverlay"),
     storyBattleConfirmText: document.querySelector("#storyBattleConfirmText"),
+    storyBattleOpponentList: document.querySelector("#storyBattleOpponentList"),
     storyBattleConfirmYesButton: document.querySelector("#storyBattleConfirmYesButton"),
     storyBattleConfirmNoButton: document.querySelector("#storyBattleConfirmNoButton"),
     storyMap: document.querySelector("#storyMap"),
     storyTiles: document.querySelector("#storyTiles"),
     storyPlayer: document.querySelector("#storyPlayer"),
+    businessShopPanel: document.querySelector("#businessShopPanel"),
+    businessShopBackButton: document.querySelector("#businessShopBackButton"),
+    businessShopMoney: document.querySelector("#businessShopMoney"),
+    businessShopSlots: document.querySelector("#businessShopSlots"),
+    businessShopItems: document.querySelector("#businessShopItems"),
+    businessShopExchangePanel: document.querySelector("#businessShopExchangePanel"),
     selectedSlots: document.querySelector("#selectedSlots"),
     rosterGrid: document.querySelector("#rosterGrid"),
     randomTeamButton: document.querySelector("#randomTeamButton"),
@@ -269,8 +315,11 @@ function bindEvents() {
   els.storyModeButton.addEventListener("click", startStoryMode);
   els.battleModeButton.addEventListener("click", showBattleSetup);
   els.storyBackButton.addEventListener("click", showTitleView);
+  els.storyBusinessButton?.addEventListener("click", showBusinessShop);
+  els.businessShopBackButton?.addEventListener("click", hideBusinessShop);
   els.storyRankBattleF1Button?.addEventListener("click", (event) => {
     event.preventDefault();
+    if (isStoryRankBattleDisabled("battle_f_1")) return;
     showRankBattleConfirm("battle_f_1");
   });
   els.storyBattleConfirmYesButton?.addEventListener("click", confirmRankBattleStart);
@@ -323,8 +372,11 @@ function bindEvents() {
 
 function showTitleView() {
   state.story.active = false;
+  state.shop.open = false;
+  hideBusinessShop();
   clearStoryWalkTimer();
   hideRankBattleConfirm();
+  state.story.currentRankBattleId = null;
   els.battleView.classList.add("is-hidden");
   els.setupView.classList.add("is-hidden");
   els.storyView.classList.add("is-hidden");
@@ -334,6 +386,8 @@ function showTitleView() {
 
 function showStoryPreparing() {
   state.story.active = false;
+  state.shop.open = false;
+  hideBusinessShop();
   clearStoryWalkTimer();
   els.setupView.classList.add("is-hidden");
   els.battleView.classList.add("is-hidden");
@@ -344,8 +398,11 @@ function showStoryPreparing() {
 
 function showBattleSetup() {
   state.story.active = false;
+  state.shop.open = false;
+  hideBusinessShop();
   clearStoryWalkTimer();
   hideRankBattleConfirm();
+  state.story.currentRankBattleId = null;
   clearTitleMessage();
   els.titleView.classList.add("is-hidden");
   els.storyView.classList.add("is-hidden");
@@ -360,6 +417,8 @@ function clearTitleMessage() {
 
 async function startStoryMode() {
   state.story.active = false;
+  state.shop.open = false;
+  hideBusinessShop();
   clearStoryWalkTimer();
   hideRankBattleConfirm();
   clearTitleMessage();
@@ -367,7 +426,290 @@ async function startStoryMode() {
   els.setupView.classList.add("is-hidden");
   els.battleView.classList.add("is-hidden");
   els.storyView.classList.remove("is-hidden");
+  updateStoryRankBattleButtons();
   els.storyBackButton.focus({ preventScroll: true });
+}
+
+async function showBusinessShop() {
+  if (gameDataPromise) {
+    await gameDataPromise;
+  }
+
+  loadSaveData({ preserveCurrentOnMissing: true });
+  initializeSaveDataParty();
+  state.shop.open = true;
+  state.shop.exchangeEntryId = null;
+  state.shop.offerOwnedIds = [];
+  hideRankBattleConfirm();
+  els.storyMainStage?.classList.add("is-hidden");
+  els.storyBackButton?.classList.add("is-hidden");
+  els.businessShopPanel?.classList.remove("is-hidden");
+  renderBusinessShop();
+  els.businessShopBackButton?.focus({ preventScroll: true });
+}
+
+function hideBusinessShop() {
+  state.shop.open = false;
+  state.shop.exchangeEntryId = null;
+  state.shop.offerOwnedIds = [];
+  els.businessShopPanel?.classList.add("is-hidden");
+  els.storyMainStage?.classList.remove("is-hidden");
+  els.storyBackButton?.classList.remove("is-hidden");
+}
+
+function renderBusinessShop() {
+  if (!els.businessShopPanel) return;
+
+  els.businessShopMoney.textContent = `${state.saveData.money}`;
+  els.businessShopSlots.textContent = `${ownedPartySlotTotal()} / ${TEAM_SLOT_LIMIT}`;
+
+  const items = availableShopItems(BUSINESS_SHOP_ID);
+  els.businessShopItems.innerHTML = items.length
+    ? items.map(renderShopItem).join("")
+    : `<div class="shop-empty">現在購入できる商品はありません。</div>`;
+
+  for (const button of els.businessShopItems.querySelectorAll("[data-shop-entry-id]")) {
+    button.addEventListener("click", () => handleShopPurchase(button.dataset.shopEntryId));
+  }
+
+  renderShopExchangePanel();
+}
+
+function availableShopItems(shopId) {
+  return state.shopItems
+    .filter((item) => item.shop_id === shopId)
+    .filter((item) => item.item_type && item.content_id)
+    .filter((item) => item.item_type === "book" || item.item_type === "monster")
+    .filter((item) => shopContentExists(item))
+    .filter((item) => shopUnlockMet(item.unlock_condition))
+    .sort((a, b) => a.display_order - b.display_order);
+}
+
+function shopContentExists(item) {
+  if (item.item_type === "book") return state.encyclopediaBooks.has(item.content_id);
+  if (item.item_type === "monster") return state.characterMap.has(item.content_id);
+  return false;
+}
+
+function shopUnlockMet(unlockCondition) {
+  const condition = safeText(unlockCondition);
+  if (!condition || condition === "none") return true;
+  return state.story.clearedRankBattleIds.has(condition);
+}
+
+function renderShopItem(item) {
+  const stock = currentShopStock(item);
+  const name = shopItemName(item);
+  const typeLabel = item.item_type === "book" ? "図鑑" : "モンスター";
+  const monster = item.item_type === "monster" ? state.characterMap.get(item.content_id) : null;
+  const book = item.item_type === "book" ? state.encyclopediaBooks.get(item.content_id) : null;
+  const disabledReason = shopDisabledReason(item);
+  const description = book?.description || (monster ? `${monster.name}を仲間にします。` : "");
+
+  return `
+    <article class="shop-item">
+      <div class="shop-item-main">
+        <div class="shop-item-topline">
+          <strong class="shop-item-name">${escapeHtml(name)}</strong>
+          <span class="shop-item-type">${escapeHtml(typeLabel)}</span>
+        </div>
+        ${description ? `<div class="shop-item-description">${escapeHtml(description)}</div>` : ""}
+        <div class="shop-item-meta">
+          <span>価格 ${escapeHtml(item.price)}z</span>
+          <span>在庫 ${escapeHtml(stock)}</span>
+          ${monster ? `<span>slot ${slotMarks(monster.slot)}</span>` : ""}
+        </div>
+      </div>
+      <button class="primary-button shop-buy-button" type="button" data-shop-entry-id="${escapeHtml(item.shop_entry_id)}" ${disabledReason ? "disabled" : ""}>
+        ${disabledReason ? escapeHtml(disabledReason) : "購入"}
+      </button>
+    </article>
+  `;
+}
+
+function shopItemName(item) {
+  if (item.item_type === "book") {
+    return state.encyclopediaBooks.get(item.content_id)?.name || item.content_id;
+  }
+  if (item.item_type === "monster") {
+    return state.characterMap.get(item.content_id)?.name || item.content_id;
+  }
+  return item.content_id;
+}
+
+function shopDisabledReason(item) {
+  if (currentShopStock(item) <= 0) return item.item_type === "book" ? "購入済み" : "在庫なし";
+  if (state.saveData.money < item.price) return "所持金不足";
+  if (item.item_type === "book" && state.saveData.ownedBooks.has(item.content_id)) return "購入済み";
+  if (item.item_type === "monster") {
+    const monster = state.characterMap.get(item.content_id);
+    if (!monster || monster.slot > TEAM_SLOT_LIMIT) return "購入不可";
+  }
+  return "";
+}
+
+function currentShopStock(item) {
+  return state.saveData.shopStock.has(item.shop_entry_id)
+    ? state.saveData.shopStock.get(item.shop_entry_id)
+    : item.stock;
+}
+
+function setShopStock(item, stock) {
+  state.saveData.shopStock.set(item.shop_entry_id, Math.max(0, Math.floor(number(stock))));
+}
+
+function handleShopPurchase(shopEntryId) {
+  const item = availableShopItems(BUSINESS_SHOP_ID).find((entry) => entry.shop_entry_id === shopEntryId);
+  if (!item || shopDisabledReason(item)) return;
+
+  if (item.item_type === "book") {
+    purchaseBook(item);
+    return;
+  }
+
+  beginMonsterPurchase(item);
+}
+
+function purchaseBook(item) {
+  if (shopDisabledReason(item)) return;
+  state.saveData.money -= item.price;
+  state.saveData.ownedBooks.add(item.content_id);
+  state.saveData.purchasedShopEntries.add(item.shop_entry_id);
+  setShopStock(item, currentShopStock(item) - 1);
+  saveGameData();
+  renderBusinessShop();
+}
+
+function beginMonsterPurchase(item) {
+  const monster = state.characterMap.get(item.content_id);
+  if (!monster || shopDisabledReason(item)) return;
+
+  if (ownedPartySlotTotal() + monster.slot <= TEAM_SLOT_LIMIT) {
+    completeMonsterPurchase(item, []);
+    return;
+  }
+
+  state.shop.exchangeEntryId = item.shop_entry_id;
+  state.shop.offerOwnedIds = [];
+  renderBusinessShop();
+}
+
+function renderShopExchangePanel() {
+  if (!els.businessShopExchangePanel) return;
+
+  const item = availableShopItems(BUSINESS_SHOP_ID).find(
+    (entry) => entry.shop_entry_id === state.shop.exchangeEntryId,
+  );
+  const monster = item ? state.characterMap.get(item.content_id) : null;
+
+  if (!item || !monster) {
+    els.businessShopExchangePanel.classList.add("is-hidden");
+    els.businessShopExchangePanel.innerHTML = "";
+    return;
+  }
+
+  const preview = shopExchangePreview(item);
+  els.businessShopExchangePanel.classList.remove("is-hidden");
+  els.businessShopExchangePanel.innerHTML = `
+    <div class="shop-exchange-header">
+      <div>
+        <div class="shop-exchange-title">${escapeHtml(monster.name)}を購入</div>
+        <div class="shop-exchange-note">手放すモンスターを選んでください。</div>
+      </div>
+      <button class="small-button shop-exchange-cancel" type="button">キャンセル</button>
+    </div>
+    <div class="shop-exchange-summary">
+      <span>購入対象 slot ${slotMarks(monster.slot)}</span>
+      <span>交換後 ${escapeHtml(preview.nextSlotTotal)} / ${TEAM_SLOT_LIMIT}</span>
+    </div>
+    <div class="shop-exchange-list">
+      ${state.saveData.ownedMonsters.map(renderShopExchangeCandidate).join("")}
+    </div>
+    <button class="primary-button shop-exchange-confirm" type="button" ${preview.canConfirm ? "" : "disabled"}>
+      購入確定
+    </button>
+  `;
+
+  for (const button of els.businessShopExchangePanel.querySelectorAll("[data-shop-offer-owned-id]")) {
+    button.addEventListener("click", () => toggleShopOfferOwnedId(button.dataset.shopOfferOwnedId));
+  }
+
+  els.businessShopExchangePanel.querySelector(".shop-exchange-cancel")?.addEventListener("click", () => {
+    state.shop.exchangeEntryId = null;
+    state.shop.offerOwnedIds = [];
+    renderBusinessShop();
+  });
+
+  els.businessShopExchangePanel.querySelector(".shop-exchange-confirm")?.addEventListener("click", () => {
+    completeMonsterPurchase(item, state.shop.offerOwnedIds);
+  });
+}
+
+function renderShopExchangeCandidate(ownedMonster) {
+  const character = state.characterMap.get(ownedMonster.characterId);
+  if (!character) return "";
+  const selected = state.shop.offerOwnedIds.includes(ownedMonster.ownedId);
+  return `
+    <button class="shop-exchange-candidate ${selected ? "is-selected" : ""}" type="button" data-shop-offer-owned-id="${escapeHtml(ownedMonster.ownedId)}">
+      <span>${escapeHtml(character.name)}</span>
+      <strong>slot ${slotMarks(character.slot)}</strong>
+    </button>
+  `;
+}
+
+function toggleShopOfferOwnedId(ownedId) {
+  const index = state.shop.offerOwnedIds.indexOf(ownedId);
+  if (index >= 0) {
+    state.shop.offerOwnedIds.splice(index, 1);
+  } else {
+    state.shop.offerOwnedIds.push(ownedId);
+  }
+  renderBusinessShop();
+}
+
+function shopExchangePreview(item) {
+  const monster = state.characterMap.get(item.content_id);
+  const offeredCharacters = state.shop.offerOwnedIds
+    .map((ownedId) => state.saveData.ownedMonsters.find((entry) => entry.ownedId === ownedId))
+    .filter(Boolean)
+    .map((entry) => state.characterMap.get(entry.characterId))
+    .filter(Boolean);
+  const nextSlotTotal = ownedPartySlotTotal() - slotTotal(offeredCharacters) + (monster?.slot ?? 0);
+  return {
+    nextSlotTotal,
+    canConfirm:
+      Boolean(monster) &&
+      currentShopStock(item) > 0 &&
+      state.saveData.money >= item.price &&
+      nextSlotTotal <= TEAM_SLOT_LIMIT,
+  };
+}
+
+function completeMonsterPurchase(item, offerOwnedIds) {
+  const monster = state.characterMap.get(item.content_id);
+  if (!monster || shopDisabledReason(item)) return;
+
+  const offerSet = new Set(offerOwnedIds);
+  const offeredCharacters = state.saveData.ownedMonsters
+    .filter((entry) => offerSet.has(entry.ownedId))
+    .map((entry) => state.characterMap.get(entry.characterId))
+    .filter(Boolean);
+  const nextSlotTotal = ownedPartySlotTotal() - slotTotal(offeredCharacters) + monster.slot;
+  if (nextSlotTotal > TEAM_SLOT_LIMIT) return;
+
+  state.saveData.money -= item.price;
+  setShopStock(item, currentShopStock(item) - 1);
+  state.saveData.purchasedShopEntries.add(item.shop_entry_id);
+  state.saveData.ownedMonsters = state.saveData.ownedMonsters.filter(
+    (entry) => !offerSet.has(entry.ownedId),
+  );
+  state.saveData.ownedMonsters.push(createOwnedMonster(monster.character_id));
+  syncSelectedIdsFromOwnedMonsters();
+  state.shop.exchangeEntryId = null;
+  state.shop.offerOwnedIds = [];
+  saveGameData();
+  renderSetup();
+  renderBusinessShop();
 }
 
 function handleStoryKeydown(event) {
@@ -525,6 +867,8 @@ function clearStoryWalkTimer() {
 
 function returnToSetup() {
   state.story.active = false;
+  state.shop.open = false;
+  hideBusinessShop();
   clearStoryWalkTimer();
   els.titleView.classList.add("is-hidden");
   els.storyView.classList.add("is-hidden");
@@ -558,6 +902,8 @@ async function loadGameData() {
       animationText,
       rankBattleText,
       enemyPartyText,
+      shopItemText,
+      encyclopediaBookText,
     ] = await Promise.all([
       loadCsvText("characters", DATA_PATHS.characters),
       loadCsvText("skills", DATA_PATHS.skills),
@@ -567,6 +913,8 @@ async function loadGameData() {
       loadCsvText("animations", DATA_PATHS.animations),
       loadOptionalCsvText("rankBattles", DATA_PATHS.rankBattles),
       loadOptionalCsvText("enemyParties", DATA_PATHS.enemyParties),
+      loadOptionalCsvText("shopItems", DATA_PATHS.shopItems),
+      loadOptionalCsvText("encyclopediaBooks", DATA_PATHS.encyclopediaBooks),
     ]);
 
     state.characters = rowsFromCsv(characterText)
@@ -618,6 +966,17 @@ async function loadGameData() {
       }
     }
 
+    state.encyclopediaBooks.clear();
+    for (const book of rowsFromCsv(encyclopediaBookText).map(normalizeEncyclopediaBook)) {
+      if (book.book_id) {
+        state.encyclopediaBooks.set(book.book_id, book);
+      }
+    }
+
+    state.shopItems = rowsFromCsv(shopItemText)
+      .map(normalizeShopItem)
+      .filter((item) => item.shop_entry_id);
+
     state.animations.clear();
     state.animationDefinitions.clear();
     for (const animation of rowsFromCsv(animationText).map(normalizeAnimation)) {
@@ -640,7 +999,8 @@ async function loadGameData() {
     }
     applyAnimationConfig();
 
-    state.selectedIds = buildSlotTeam(state.characters).map((character) => character.character_id);
+    loadSaveData();
+    initializeSaveDataParty();
     renderSetup();
   } catch (error) {
     els.rosterGrid.innerHTML = `<div class="selected-slot is-filled">CSVを読み込めませんでした。</div>`;
@@ -894,6 +1254,32 @@ function normalizeEnemyParty(row) {
   };
 }
 
+function normalizeShopItem(row) {
+  return {
+    shop_id: safeText(row.shop_id),
+    shop_entry_id: safeText(row.shop_entry_id),
+    item_type: safeText(row.item_type).toLowerCase(),
+    content_id: safeText(row.content_id),
+    price: Math.max(0, Math.floor(number(row.price))),
+    can_sell: parseBoolean(row.can_sell),
+    stock: Math.max(0, Math.floor(number(row.stock))),
+    unlock_condition: safeText(row.unlock_condition),
+    display_order: number(row.display_order, 9999),
+  };
+}
+
+function normalizeEncyclopediaBook(row) {
+  return {
+    book_id: safeText(row.book_id),
+    name: safeText(row.name),
+    description: safeText(row.description),
+    detail_level: Math.max(0, Math.floor(number(row.detail_level))),
+    characterIds: [row.character_id1, row.character_id2, row.character_id3, row.character_id4]
+      .map((characterId) => safeText(characterId))
+      .filter((characterId) => characterId && characterId !== "none"),
+  };
+}
+
 function applyAnimationConfig() {
   POSITION_EFFECT_IDS = [...new Set([...Object.keys(DEFAULT_POSITION_ANIMATIONS), ...state.animations.keys()])];
   TWO_TURN_BATTLE_EFFECT_IDS = new Set([...POSITION_EFFECT_IDS, "charge_attack"]);
@@ -905,7 +1291,7 @@ function characterImagePath(characterId, imageName = "") {
 }
 
 function safeText(value, fallback = "") {
-  const text = `${value ?? ""}`.trim();
+  const text = `${value ?? ""}`.replace(/^\uFEFF/, "").trim();
   return text || fallback;
 }
 
@@ -1395,6 +1781,190 @@ function buildSlotTeam(pool, slotLimit = TEAM_SLOT_LIMIT, randomize = false) {
   return team;
 }
 
+function initialPlayerCharacterIds() {
+  const characterIds = INITIAL_PLAYER_CHARACTER_IDS.filter((characterId) => state.characterMap.has(characterId));
+  return characterIds.length ? characterIds : buildSlotTeam(state.characters).map((character) => character.character_id);
+}
+
+function loadSaveData({ preserveCurrentOnMissing = false } = {}) {
+  const nextSaveData = createSaveData();
+  let rawData = null;
+
+  try {
+    rawData = JSON.parse(window.localStorage?.getItem(SAVE_STORAGE_KEY) || "null");
+  } catch {
+    rawData = null;
+  }
+
+  if (!rawData && preserveCurrentOnMissing) return;
+
+  if (rawData && typeof rawData === "object") {
+    const loadedMoney = Math.max(0, Math.floor(number(rawData.money)));
+    const initialMoneyVersion = Math.floor(number(rawData.initial_money_version ?? rawData.initialMoneyVersion));
+    nextSaveData.money = initialMoneyVersion >= 1 ? loadedMoney : Math.max(loadedMoney, INITIAL_MONEY);
+    nextSaveData.initialMoneyVersion = 1;
+
+    for (const bookId of arrayFromSave(rawData.owned_books ?? rawData.ownedBooks)) {
+      const id = safeText(bookId);
+      if (id) nextSaveData.ownedBooks.add(id);
+    }
+
+    for (const entryId of arrayFromSave(rawData.purchased_shop_entries ?? rawData.purchasedShopEntries)) {
+      const id = safeText(entryId);
+      if (id) nextSaveData.purchasedShopEntries.add(id);
+    }
+
+    const stockData = rawData.shop_stock ?? rawData.shopStock;
+    if (stockData && typeof stockData === "object") {
+      for (const [entryId, stock] of Object.entries(stockData)) {
+        const id = safeText(entryId);
+        if (id) nextSaveData.shopStock.set(id, Math.max(0, Math.floor(number(stock))));
+      }
+    }
+
+    nextSaveData.ownedMonsters = arrayFromSave(rawData.owned_monsters ?? rawData.ownedMonsters)
+      .map((entry) => ({
+        ownedId: safeText(entry?.owned_id ?? entry?.ownedId),
+        characterId: safeText(entry?.character_id ?? entry?.characterId),
+      }))
+      .filter((entry) => entry.ownedId && entry.characterId);
+
+    const loadedNextNumber = Math.max(
+      1,
+      Math.floor(number(rawData.next_owned_monster_number ?? rawData.nextOwnedMonsterNumber, 1)),
+    );
+    const nextNumberFromIds = nextSaveData.ownedMonsters.reduce((maxValue, entry) => {
+      const match = entry.ownedId.match(/(\d+)$/);
+      return match ? Math.max(maxValue, Number(match[1]) + 1) : maxValue;
+    }, 1);
+    nextSaveData.nextOwnedMonsterNumber = Math.max(loadedNextNumber, nextNumberFromIds);
+    nextSaveData.initialPartyVersion = Math.floor(number(rawData.initial_party_version ?? rawData.initialPartyVersion));
+    migrateLegacyInitialParty(nextSaveData);
+
+    state.story.clearedRankBattleIds = new Set(
+      arrayFromSave(rawData.cleared_battles ?? rawData.clearedBattles ?? rawData.cleared_rank_battle_ids ?? rawData.clearedRankBattleIds)
+        .map((rankBattleId) => safeText(rankBattleId))
+        .filter(Boolean),
+    );
+  }
+
+  state.saveData = nextSaveData;
+}
+
+function saveGameData() {
+  const clearedBattles = [...new Set([...state.story.clearedRankBattleIds].map((id) => safeText(id)).filter(Boolean))];
+  const saveData = {
+    money: state.saveData.money,
+    owned_books: [...state.saveData.ownedBooks],
+    owned_monsters: state.saveData.ownedMonsters.map((entry) => ({
+      owned_id: entry.ownedId,
+      character_id: entry.characterId,
+    })),
+    shop_stock: Object.fromEntries(state.saveData.shopStock),
+    purchased_shop_entries: [...state.saveData.purchasedShopEntries],
+    cleared_battles: clearedBattles,
+    cleared_rank_battle_ids: clearedBattles,
+    next_owned_monster_number: state.saveData.nextOwnedMonsterNumber,
+    initial_money_version: state.saveData.initialMoneyVersion,
+    initial_party_version: state.saveData.initialPartyVersion,
+  };
+
+  try {
+    window.localStorage?.setItem(SAVE_STORAGE_KEY, JSON.stringify(saveData));
+  } catch {
+    // Some private previews can block localStorage; the in-memory save_data still works.
+  }
+}
+
+function arrayFromSave(value) {
+  return Array.isArray(value) ? value : [];
+}
+
+function migrateLegacyInitialParty(saveData) {
+  const ownedCharacterIds = saveData.ownedMonsters.map((entry) => entry.characterId);
+  if (sameCharacterIdSet(ownedCharacterIds, LEGACY_INITIAL_PLAYER_CHARACTER_IDS)) {
+    saveData.ownedMonsters = initialPlayerCharacterIds().map((characterId, index) => ({
+      ownedId: `owned_${String(index + 1).padStart(3, "0")}`,
+      characterId,
+    }));
+    saveData.nextOwnedMonsterNumber = Math.max(saveData.nextOwnedMonsterNumber, saveData.ownedMonsters.length + 1);
+    saveData.initialPartyVersion = INITIAL_PARTY_VERSION;
+    return;
+  }
+
+  if (saveData.initialPartyVersion >= INITIAL_PARTY_VERSION) return;
+  saveData.initialPartyVersion = INITIAL_PARTY_VERSION;
+}
+
+function sameCharacterIdSet(leftIds, rightIds) {
+  if (leftIds.length !== rightIds.length) return false;
+  const left = [...leftIds].map((id) => safeText(id)).sort();
+  const right = [...rightIds].map((id) => safeText(id)).sort();
+  return left.every((id, index) => id === right[index]);
+}
+
+function initializeSaveDataParty() {
+  state.saveData.ownedMonsters = state.saveData.ownedMonsters.filter((entry) =>
+    state.characterMap.has(entry.characterId),
+  );
+
+  if (!state.saveData.ownedMonsters.length) {
+    state.saveData.ownedMonsters = initialPlayerCharacterIds().map((characterId) =>
+      createOwnedMonster(characterId),
+    );
+  }
+
+  syncSelectedIdsFromOwnedMonsters();
+  saveGameData();
+}
+
+function createOwnedMonster(characterId) {
+  return {
+    ownedId: nextOwnedMonsterId(),
+    characterId,
+  };
+}
+
+function nextOwnedMonsterId() {
+  const ownedId = `owned_${String(state.saveData.nextOwnedMonsterNumber).padStart(3, "0")}`;
+  state.saveData.nextOwnedMonsterNumber += 1;
+  return ownedId;
+}
+
+function syncSelectedIdsFromOwnedMonsters() {
+  state.selectedIds = state.saveData.ownedMonsters
+    .map((entry) => entry.characterId)
+    .filter((characterId) => state.characterMap.has(characterId));
+}
+
+function syncOwnedMonsterPartyFromSelectedIds({ persist = true } = {}) {
+  const remainingOwnedMonsters = [...state.saveData.ownedMonsters];
+  const nextOwnedMonsters = [];
+
+  for (const characterId of state.selectedIds) {
+    if (!state.characterMap.has(characterId)) continue;
+    const existingIndex = remainingOwnedMonsters.findIndex((entry) => entry.characterId === characterId);
+    if (existingIndex >= 0) {
+      nextOwnedMonsters.push(remainingOwnedMonsters.splice(existingIndex, 1)[0]);
+    } else {
+      nextOwnedMonsters.push(createOwnedMonster(characterId));
+    }
+  }
+
+  state.saveData.ownedMonsters = nextOwnedMonsters;
+  if (persist) saveGameData();
+}
+
+function ownedPartyCharacters() {
+  return state.saveData.ownedMonsters
+    .map((entry) => state.characterMap.get(entry.characterId))
+    .filter(Boolean);
+}
+
+function ownedPartySlotTotal() {
+  return slotTotal(ownedPartyCharacters());
+}
+
 function toggleCharacter(characterId) {
   const selectedIndex = state.selectedIds.indexOf(characterId);
   if (selectedIndex >= 0) {
@@ -1424,9 +1994,12 @@ async function showRankBattleConfirm(rankBattleId) {
     await gameDataPromise;
   }
 
+  if (isStoryRankBattleDisabled(rankBattleId)) return;
+
   state.story.pendingRankBattleId = rankBattleId;
   const opponentName = rankBattleDisplayName(rankBattleId);
   els.storyBattleConfirmText.textContent = `${opponentName}と対戦を開始しますか？`;
+  els.storyBattleOpponentList.innerHTML = renderStoryOpponentCharacterNames(rankBattleId);
   els.storyBattleConfirmOverlay.classList.remove("is-hidden");
   els.storyBattleConfirmYesButton.focus({ preventScroll: true });
 }
@@ -1434,6 +2007,9 @@ async function showRankBattleConfirm(rankBattleId) {
 function hideRankBattleConfirm({ restoreFocus = false } = {}) {
   state.story.pendingRankBattleId = null;
   els.storyBattleConfirmOverlay?.classList.add("is-hidden");
+  if (els.storyBattleOpponentList) {
+    els.storyBattleOpponentList.innerHTML = "";
+  }
   if (restoreFocus) {
     els.storyRankBattleF1Button?.focus({ preventScroll: true });
   }
@@ -1452,29 +2028,65 @@ function rankBattleDisplayName(rankBattleId) {
     rankBattleId;
 }
 
+function renderStoryOpponentCharacterNames(rankBattleId) {
+  const names = rankBattleEnemyCharacterIds(rankBattleId)
+    .map((characterId) => state.characterMap.get(characterId)?.name)
+    .filter(Boolean);
+
+  return names
+    .map((name) => `<div class="story-opponent-name">${escapeHtml(name)}</div>`)
+    .join("");
+}
+
+function rankBattleEnemyCharacterIds(rankBattleId) {
+  const rankBattle = state.rankBattles.get(rankBattleId);
+  const enemyParty = state.enemyParties.get(rankBattle?.enemy_party_id ?? rankBattleId);
+  return enemyParty?.characterIds.length
+    ? enemyParty.characterIds
+    : STORY_RANK_BATTLE_FALLBACKS[rankBattleId]?.enemyCharacterIds ?? [];
+}
+
+function isStoryRankBattleCleared(rankBattleId) {
+  return state.story.clearedRankBattleIds.has(rankBattleId);
+}
+
+function isStoryRankBattleDisabled(rankBattleId) {
+  return state.story.disabledRankBattleIds.has(rankBattleId);
+}
+
+function updateStoryRankBattleButtons() {
+  updateStoryRankBattleButton(els.storyRankBattleF1Button, "battle_f_1");
+}
+
+function updateStoryRankBattleButton(button, rankBattleId) {
+  if (!button) return;
+  const disabled = isStoryRankBattleDisabled(rankBattleId);
+  button.disabled = disabled;
+  button.classList.toggle("is-cleared", disabled);
+  button.setAttribute("aria-disabled", `${disabled}`);
+}
+
 async function startRankBattle(rankBattleId) {
   if (gameDataPromise) {
     await gameDataPromise;
   }
 
-  const rankBattle = state.rankBattles.get(rankBattleId);
-  const enemyParty = state.enemyParties.get(rankBattle?.enemy_party_id ?? rankBattleId);
-  const enemyCharacterIds = enemyParty?.characterIds.length
-    ? enemyParty.characterIds
-    : STORY_RANK_BATTLE_FALLBACKS[rankBattleId]?.enemyCharacterIds ?? [];
+  const enemyCharacterIds = rankBattleEnemyCharacterIds(rankBattleId);
 
   if (!enemyCharacterIds.length) return;
 
   if (selectedSlotTotal() <= 0 || selectedSlotTotal() > TEAM_SLOT_LIMIT) {
-    state.selectedIds = buildSlotTeam(state.characters).map((character) => character.character_id);
+    loadSaveData();
+    initializeSaveDataParty();
     renderSetup();
   }
 
-  startBattle({ enemyCharacterIds });
+  startBattle({ enemyCharacterIds, storyRankBattleId: rankBattleId });
 }
 
 function startBattle(options = {}) {
   if (selectedSlotTotal() <= 0 || selectedSlotTotal() > TEAM_SLOT_LIMIT) return;
+  const currentBattleId = options.storyRankBattleId || null;
   const enemyPool = state.characters.filter(
     (character) => !state.selectedIds.includes(character.character_id),
   );
@@ -1501,6 +2113,7 @@ function startBattle(options = {}) {
   state.battleWinner = null;
   state.battleAnimation = null;
   state.exchange = createExchangeState();
+  state.story.currentRankBattleId = currentBattleId;
   state.dex = {
     open: false,
     characterId: null,
@@ -1911,6 +2524,7 @@ function renderExchangePanel() {
     return;
   }
 
+  const isStoryRankBattle = Boolean(state.story.currentRankBattleId);
   const selectedPlayerIndices = exchangePlayerIndices();
   const playerSlotTotal = exchangePlayerSlotTotal();
   const enemySlotNeed = exchangeEnemySlotNeed();
@@ -1953,6 +2567,10 @@ function renderExchangePanel() {
     </div>
     ${invalidExchange ? `<div class="command-note">${escapeHtml(slotNote)}</div>` : slotNote ? `<div class="command-note">${escapeHtml(slotNote)}</div>` : ""}
   `;
+
+  if (isStoryRankBattle) {
+    els.exchangePanel.querySelector('[data-result-action="rematch"]')?.remove();
+  }
 
   for (const button of els.exchangePanel.querySelectorAll("[data-exchange-side]")) {
     button.addEventListener("click", () => {
@@ -2133,6 +2751,12 @@ function completeVictoryExchange() {
   state.playerActiveIndex = Math.min(state.playerActiveIndex, Math.max(0, state.playerTeam.length - 1));
   state.enemyActiveIndex = Math.min(state.enemyActiveIndex, Math.max(0, state.enemyTeam.length - 1));
   state.selectedIds = state.playerTeam.map((member) => member.id);
+  syncOwnedMonsterPartyFromSelectedIds({ persist: false });
+  if (state.story.currentRankBattleId) {
+    finishStoryRankBattle(state.story.currentRankBattleId);
+    return;
+  }
+  saveGameData();
   state.exchange = {
     ...createExchangeState(),
     completed: true,
@@ -2822,6 +3446,37 @@ function finishBattle(winner) {
   state.commandMode = winner === "player" ? "exchange" : "fight";
   state.exchange = createExchangeState();
   pushLog(winner === "player" ? "勝負に勝った！" : "目の前が真っ暗になった...");
+}
+
+function finishStoryRankBattle(rankBattleId) {
+  const currentBattleId = safeText(rankBattleId);
+  if (!currentBattleId) return;
+  const alreadyCleared = state.story.clearedRankBattleIds.has(currentBattleId);
+  if (!alreadyCleared) {
+    state.saveData.money += rankBattleRewardMoney(currentBattleId);
+  }
+  state.story.clearedRankBattleIds.add(currentBattleId);
+  state.story.disabledRankBattleIds.add(currentBattleId);
+  state.story.currentRankBattleId = null;
+  state.story.pendingRankBattleId = null;
+  state.gameOver = true;
+  state.pendingSwitchSide = null;
+  state.battleWinner = null;
+  state.battleAnimation = null;
+  state.exchange = createExchangeState();
+  state.commandMode = "fight";
+  saveGameData();
+  hideRankBattleConfirm();
+  updateStoryRankBattleButtons();
+  els.titleView.classList.add("is-hidden");
+  els.setupView.classList.add("is-hidden");
+  els.battleView.classList.add("is-hidden");
+  els.storyView.classList.remove("is-hidden");
+  els.storyBackButton.focus({ preventScroll: true });
+}
+
+function rankBattleRewardMoney(rankBattleId) {
+  return Math.max(0, Math.floor(number(state.rankBattles.get(rankBattleId)?.reward_money)));
 }
 
 function switchActive(side, index, options = {}) {

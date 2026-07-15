@@ -2808,11 +2808,12 @@ button {
 
 .story-rank-button {
   position: absolute;
-  z-index: 2;
+  z-index: 4;
   border: 0;
   border-radius: 0;
   background: transparent;
   box-shadow: none;
+  cursor: pointer;
   pointer-events: auto;
 }
 
@@ -2821,15 +2822,195 @@ button {
   outline-offset: 2px;
 }
 
+.story-rank-button:disabled,
+.story-rank-button.is-cleared {
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
 .story-rank-button-f-lower {
-  left: 9.6%;
-  top: 10.6%;
-  width: 19.4%;
-  height: 15.4%;
+  left: 8.8%;
+  top: 9.7%;
+  width: 21%;
+  height: 17%;
+}
+
+.story-business-button {
+  left: 4.4%;
+  top: 42.1%;
+  width: 19.5%;
+  height: 14.5%;
 }
 
 .story-back-button {
   min-width: 104px;
+}
+
+.business-shop-panel {
+  width: min(100%, 780px);
+  max-height: min(82vh, 680px);
+  padding: 18px;
+  border: 4px solid #111111;
+  border-radius: 8px;
+  background: #fffdf7;
+  box-shadow: 8px 8px 0 rgba(12, 22, 38, 0.28);
+  overflow: auto;
+}
+
+.business-shop-header {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.business-shop-title {
+  color: #111111;
+  font-size: 1.45rem;
+  font-weight: 900;
+  line-height: 1.1;
+}
+
+.business-shop-status {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  margin-top: 8px;
+  color: #1d2430;
+  font-size: 0.95rem;
+  font-weight: 800;
+}
+
+.business-shop-items {
+  display: grid;
+  gap: 10px;
+}
+
+.shop-empty {
+  padding: 18px;
+  border: 2px dashed #9ca3af;
+  border-radius: 8px;
+  color: #374151;
+  font-weight: 800;
+  text-align: center;
+}
+
+.shop-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(104px, auto);
+  gap: 12px;
+  align-items: center;
+  padding: 12px;
+  border: 3px solid #111111;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.shop-item-topline,
+.shop-item-meta,
+.shop-exchange-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  align-items: center;
+}
+
+.shop-item-name {
+  color: #111111;
+  font-size: 1rem;
+  line-height: 1.25;
+}
+
+.shop-item-type {
+  padding: 2px 8px;
+  border: 2px solid #111111;
+  border-radius: 999px;
+  background: #facc15;
+  color: #111111;
+  font-size: 0.75rem;
+  font-weight: 900;
+}
+
+.shop-item-description {
+  margin-top: 4px;
+  color: #374151;
+  font-size: 0.86rem;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.shop-item-meta {
+  margin-top: 8px;
+  color: #111827;
+  font-size: 0.86rem;
+  font-weight: 900;
+}
+
+.shop-buy-button {
+  min-height: 44px;
+  white-space: nowrap;
+}
+
+.shop-exchange-panel {
+  margin-top: 14px;
+  padding: 14px;
+  border: 4px solid #111111;
+  border-radius: 8px;
+  background: #111111;
+  color: #ffffff;
+}
+
+.shop-exchange-header {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.shop-exchange-title {
+  font-size: 1.05rem;
+  font-weight: 900;
+}
+
+.shop-exchange-note,
+.shop-exchange-summary {
+  color: #e5e7eb;
+  font-size: 0.9rem;
+  font-weight: 800;
+}
+
+.shop-exchange-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 8px;
+  margin: 12px 0;
+}
+
+.shop-exchange-candidate {
+  display: flex;
+  min-height: 48px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 10px;
+  border: 2px solid #ffffff;
+  border-radius: 8px;
+  background: #1f2937;
+  color: #ffffff;
+  font-weight: 900;
+}
+
+.shop-exchange-candidate.is-selected {
+  border-color: #facc15;
+  background: #78350f;
+}
+
+@media (max-width: 560px) {
+  .shop-item {
+    grid-template-columns: 1fr;
+  }
 }
 
 .story-confirm-overlay {
@@ -2842,8 +3023,16 @@ button {
   background: rgba(10, 14, 24, 0.48);
 }
 
+.story-confirm-layout {
+  display: grid;
+  width: min(100%, 680px);
+  grid-template-columns: minmax(0, 380px) minmax(160px, 220px);
+  gap: 12px;
+  align-items: stretch;
+}
+
 .story-confirm-panel {
-  width: min(100%, 380px);
+  width: 100%;
   padding: 20px;
   border: 4px solid #111111;
   border-radius: 8px;
@@ -2868,6 +3057,34 @@ button {
 
 .story-confirm-button {
   min-height: 44px;
+}
+
+.story-opponent-panel {
+  min-height: 100%;
+  padding: 16px;
+  border: 4px solid #ffffff;
+  border-radius: 8px;
+  background: #000000;
+  color: #ffffff;
+  box-shadow: 8px 8px 0 rgba(12, 22, 38, 0.28);
+}
+
+.story-opponent-list {
+  display: grid;
+  gap: 10px;
+}
+
+.story-opponent-name {
+  color: #ffffff;
+  font-size: 1rem;
+  font-weight: 900;
+  line-height: 1.35;
+}
+
+@media (max-width: 680px) {
+  .story-confirm-layout {
+    grid-template-columns: 1fr;
+  }
 }
 
 .story-shell {

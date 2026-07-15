@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>MonsterHunterBreeder</title>
-    <link rel="stylesheet" href="./styles.css?v=20260713-story-confirm" />
+    <link rel="stylesheet" href="./styles.css?v=20260714-business-shop" />
   </head>
   <body>
     <main class="app-shell">
@@ -19,17 +19,37 @@
 
       <section id="storyView" class="view story-view is-hidden" aria-label="ストーリーモード">
         <div class="story-main-shell">
-          <div class="story-main-stage">
+          <div id="storyMainStage" class="story-main-stage">
             <img class="story-main-image" src="./assets/メイン画面.png" alt="ストーリーモード メイン画面" />
+            <button id="storyBusinessButton" class="story-rank-button story-business-button" type="button" aria-label="Business"></button>
             <button id="storyRankBattleF1Button" class="story-rank-button story-rank-button-f-lower" type="button" aria-label="battle_f_1"></button>
           </div>
           <button id="storyBackButton" class="small-button story-back-button" type="button">戻る</button>
+          <section id="businessShopPanel" class="business-shop-panel is-hidden" aria-label="Business">
+            <div class="business-shop-header">
+              <div>
+                <div class="business-shop-title">Business</div>
+                <div class="business-shop-status">
+                  <span>所持金 <strong id="businessShopMoney">0</strong>z</span>
+                  <span>使用slot <strong id="businessShopSlots">0 / 5</strong></span>
+                </div>
+              </div>
+              <button id="businessShopBackButton" class="small-button" type="button">戻る</button>
+            </div>
+            <div id="businessShopItems" class="business-shop-items"></div>
+            <div id="businessShopExchangePanel" class="shop-exchange-panel is-hidden"></div>
+          </section>
           <div id="storyBattleConfirmOverlay" class="story-confirm-overlay is-hidden" role="dialog" aria-modal="true" aria-labelledby="storyBattleConfirmText">
-            <div class="story-confirm-panel">
-              <div id="storyBattleConfirmText" class="story-confirm-text"></div>
-              <div class="story-confirm-actions">
-                <button id="storyBattleConfirmYesButton" class="primary-button story-confirm-button" type="button">はい</button>
-                <button id="storyBattleConfirmNoButton" class="small-button story-confirm-button" type="button">いいえ</button>
+            <div class="story-confirm-layout">
+              <div class="story-confirm-panel">
+                <div id="storyBattleConfirmText" class="story-confirm-text"></div>
+                <div class="story-confirm-actions">
+                  <button id="storyBattleConfirmYesButton" class="primary-button story-confirm-button" type="button">はい</button>
+                  <button id="storyBattleConfirmNoButton" class="small-button story-confirm-button" type="button">いいえ</button>
+                </div>
+              </div>
+              <div class="story-opponent-panel" aria-label="相手の所持キャラクター">
+                <div id="storyBattleOpponentList" class="story-opponent-list"></div>
               </div>
             </div>
           </div>
@@ -112,6 +132,6 @@
     </main>
 
     <script src="./data-inline.js?v=20260709-utf8-clean"></script>
-    <script src="./app.js?v=20260713-story-confirm"></script>
+    <script src="./app.js?v=20260714-business-shop"></script>
   </body>
 </html>

@@ -12,7 +12,7 @@ skill_010,暴れる,attack,90,none,physical,normal,none,0,none,0,none,0,none,0,e
 skill_011,死んだふり,status,0,none,none,normal,none,0,none,0,endure,100,revenge,100,self,1,4,戦闘不能になるダメージを受けた時、HPが１残り、反撃する。技優先度+１。,none,0,0
 skill_012,火球,attack,80,fire,special,normal,sp_def_down,50,burn,50,none,0,none,0,enemy,0,1,50％の確率で相手の特殊防御を25％downさせ、火やられにする。,magic_fire01,750,1
 skill_013,放屁,status,0,none,none,guard_break,phy_def_down,100,sp_def_down,100,none,0,none,0,enemy,0,1,相手の物理防御と特殊防御を25％downさせる。,magic_shadow01,1000,1
-skill_014,きのこブレス,attack,90,none,special,guard_break,paralysis,25,sp_atk_down,25,none,0,none,0,enemy,0,3,25％の確率で相手の特殊攻撃を25％downさせる。25％の確率で相手を麻痺にする。,magic_mist02,750,1
+skill_014,きのこブレス,attack,90,none,special,guard_break,paralysis,100,sp_atk_down,25,none,0,none,0,enemy,0,3,相手の特殊攻撃を25％downさせる。25％の確率で相手を麻痺にする。,magic_mist02,750,1
 skill_015,水ブレス,attack,110,water,special,normal,speed_down,75,none,0,none,0,none,0,enemy,0,2,75％の確率で相手の敏捷を25％downさせる。,magic_holy01,500,1
 skill_016,爪ガード,status,0,none,none,normal,none,0,none,0,protect,100,revenge,100,self,1,2,ダメージを50％cutし、反撃する。技優先度+１。,none,0,0
 skill_017,突き上げ,attack,80,none,physical,normal,none,0,none,0,underground,100,none,0,enemy,0,1,1ターン目に地面に潜り、2ターン目に攻撃する。,attack_hit01,500,1

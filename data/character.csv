@@ -1,6 +1,6 @@
 ﻿character_id,name,hp,phy_atk,phy_def,sp_atk,sp_def,speed,regen_value,cost_charge,slot,weak_fire,weak_water,weak_thunder,weak_ice,weak_dragon,element,skill_1,skill_2,skill_3,skill_4,image,transparent_color,tolerance,render_offset_y
-character_001,ドスランポス,420,220,100,110,200,300,105,1,1,100,100,100,100,50,none,skill_001,skill_002,skill_003,skill_004,character_001.png,#ffffff,8,
-character_002,ドスファンゴ,460,265,250,100,160,165,35,1,1,100,100,150,50,50,none,skill_001,skill_005,skill_006,,character_002.png,#ffffff,8,
+character_001,ドスランポス,420,220,185,110,200,300,105,1,1,100,100,100,100,50,none,skill_001,skill_002,skill_003,skill_004,character_001.png,#ffffff,8,
+character_002,ドスファンゴ,460,240,200,100,160,165,35,1,1,100,100,150,50,50,none,skill_001,skill_005,skill_006,,character_002.png,#ffffff,8,
 character_003,ゲリョス,470,225,280,180,190,200,70,2,1,150,100,25,100,50,none,skill_007,skill_008,skill_009,skill_011,character_003.png,#ffffff,8,
 character_004,イャンクック,460,240,270,220,180,195,70,1,1,50,50,100,150,50,fire,skill_001,skill_007,skill_010,skill_012,character_004.png,#ffffff,8,
 character_005,ババコンガ,510,270,150,150,205,180,70,2,2,100,100,50,50,25,none,skill_001,skill_010,skill_013,skill_014,character_005.png,#ffffff,8,
@@ -8,7 +8,7 @@ character_006,ダイミョウザザミ,455,255,350,205,180,100,35,2,1,150,50,150
 character_007,ドスガレオス,425,240,190,240,190,170,70,1,1,25,100,100,150,50,none,skill_001,skill_003,skill_057,skill_017,character_007.png,#ffffff,8,
 character_008,リオレイア,510,270,225,260,320,150,70,2,2,50,100,100,50,150,fire,skill_001,skill_004,skill_018,skill_019,character_008.png,#ffffff,8,
 character_009,ドドブランゴ,530,285,195,110,255,215,70,2,2,150,100,100,25,25,ice,skill_002,skill_010,skill_017,skill_020,character_009.png,#ffffff,8,
-character_010,ドスゲネポス,420,225,100,110,200,305,105,1,1,100,100,150,150,50,none,skill_001,skill_002,skill_003,skill_021,character_010.png,#ffffff,8,
+character_010,ドスゲネポス,420,225,185,110,200,305,105,1,1,100,100,150,150,50,none,skill_001,skill_002,skill_003,skill_021,character_010.png,#ffffff,8,
 character_011,ガノトトス,540,295,200,295,295,155,70,1,2,100,50,150,50,50,water,skill_001,skill_015,skill_022,skill_026,character_011.png,#ffffff,8,
 character_012,ショウグンギザミ,520,285,285,255,195,210,70,2,2,150,50,150,100,25,water,skill_005,skill_015,skill_016,skill_023,character_012.png,#ffffff,8,
 character_013,フルフル,610,295,245,305,165,70,105,2,2,150,100,25,50,50,thunder,skill_001,skill_003,skill_024,skill_025,character_013.png,#ffffff,8,
