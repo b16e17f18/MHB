@@ -792,6 +792,7 @@ function renderOwnedMonsterAccessorySection(ownedMonster, character) {
         <div>
           <div class="my-house-accessory-label">アクセサリー</div>
           <strong>${escapeHtml(equipment?.name || "装備なし")}</strong>
+          ${equipment ? renderEquipmentBonusList(equipment) : ""}
         </div>
         <button class="small-button" type="button" data-my-house-accessory-change="${escapeHtml(ownedMonster.ownedId)}">変更</button>
       </div>
@@ -836,6 +837,8 @@ function renderAccessoryOption(ownedMonster, character, equipment, ownedCount) {
       ${disabledReason ? "disabled" : ""}>
       <span>${escapeHtml(equipment.name)}</span>
       <strong>使用可能 ${escapeHtml(availableCount)} / 所持 ${escapeHtml(ownedCount)}</strong>
+      ${renderEquipmentBonusList(equipment)}
+      ${equipment.text ? `<span class="accessory-description">${escapeHtml(equipment.text)}</span>` : ""}
       ${disabledReason ? `<em>${escapeHtml(disabledReason)}</em>` : ""}
     </button>
   `;
@@ -914,6 +917,35 @@ function accessoryRequirementText(equipment) {
   const speciesId = safeText(equipment?.species_id);
   if (!speciesId || speciesId === "all") return "全モンスター装備可能";
   return `${speciesLabel(speciesId)}のみ装備可能`;
+}
+
+function renderEquipmentBonusList(equipment) {
+  const entries = equipmentBonusEntries(equipment);
+  if (!entries.length) {
+    return `<span class="accessory-bonus-list"><span class="accessory-bonus is-neutral">増減なし</span></span>`;
+  }
+  return `
+    <span class="accessory-bonus-list">
+      ${entries.map((entry) => `
+        <span class="accessory-bonus ${entry.value > 0 ? "is-up" : "is-down"}">
+          ${escapeHtml(entry.label)} ${entry.value > 0 ? "+" : ""}${escapeHtml(entry.value)}
+        </span>
+      `).join("")}
+    </span>
+  `;
+}
+
+function equipmentBonusEntries(equipment) {
+  return [
+    ["HP", equipment?.hp_bonus],
+    ["物理攻撃", equipment?.atk_bonus],
+    ["物理防御", equipment?.def_bonus],
+    ["特殊攻撃", equipment?.sp_atk_bonus],
+    ["特殊防御", equipment?.sp_def_bonus],
+    ["素早さ", equipment?.speed_bonus],
+  ]
+    .map(([label, value]) => ({ label, value: number(value) }))
+    .filter((entry) => entry.value !== 0);
 }
 
 function isAccessoryEquipment(equipment) {
@@ -1917,6 +1949,7 @@ function normalizeEquipment(row) {
     equipment_id: safeText(row.equipment_id),
     name: safeText(row.name),
     equipment_type: safeText(row.equipment_type).toLowerCase(),
+    text: safeText(row.text),
     hp_bonus: number(row.hp_bonus),
     atk_bonus: number(row.atk_bonus),
     def_bonus: number(row.def_bonus),

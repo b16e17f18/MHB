@@ -3425,6 +3425,45 @@ button {
   font-weight: 900;
 }
 
+.accessory-bonus-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.accessory-bonus {
+  padding: 2px 6px;
+  border: 1px solid #111111;
+  border-radius: 999px;
+  background: #f8fafc;
+  color: #111111;
+  font-size: 0.72rem;
+  font-weight: 900;
+}
+
+.accessory-bonus.is-up {
+  border-color: #166534;
+  background: #dcfce7;
+  color: #166534;
+}
+
+.accessory-bonus.is-down {
+  border-color: #b91c1c;
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.accessory-bonus.is-neutral,
+.accessory-description {
+  color: #374151;
+}
+
+.accessory-description {
+  font-size: 0.76rem;
+  font-weight: 800;
+}
+
 .accessory-empty {
   padding: 8px;
   border: 2px dashed #9ca3af;

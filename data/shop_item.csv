@@ -13,10 +13,10 @@ business,shop_entry_011,book,book_legend3,300,FALSE,1,battle_b_2,11
 business,shop_entry_012,book,book_legend2,300,FALSE,1,battle_b_2,12
 business,shop_entry_013,book,book_legend4,300,FALSE,1,battle_a_1,13
 business,shop_entry_014,book,book_legend1,300,FALSE,1,battle_a_2,14
-business,shop_entry_051,equip,equip_001,500,FALSE,1,battle_e_2,101
-business,shop_entry_052,equip,equip_002,500,FALSE,1,battle_e_2,102
+business,shop_entry_051,equip,equip_001,500,FALSE,1,battle_e_1,101
+business,shop_entry_052,equip,equip_002,500,FALSE,1,battle_e_1,102
 business,shop_entry_053,equip,equip_003,500,FALSE,1,battle_e_2,103
-business,shop_entry_054,equip,equip_004,500,FALSE,1,battle_d_1,104
+business,shop_entry_054,equip,equip_004,500,FALSE,1,battle_e_2,104
 business,shop_entry_055,equip,equip_005,500,FALSE,1,battle_d_1,105
 business,shop_entry_056,equip,equip_006,500,FALSE,1,battle_c_1,106
 business,shop_entry_057,equip,equip_007,500,FALSE,1,battle_d_1,107
