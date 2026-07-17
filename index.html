@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>MonsterHunterBreeder</title>
-    <link rel="stylesheet" href="./styles.css?v=20260716-rank-battles" />
+    <link rel="stylesheet" href="./styles.css?v=20260718-accessory" />
   </head>
   <body>
     <main class="app-shell">
@@ -37,6 +37,7 @@
               </div>
               <button id="businessShopBackButton" class="small-button" type="button">戻る</button>
             </div>
+            <div id="businessShopMessage" class="business-shop-message" aria-live="polite"></div>
             <div id="businessShopItems" class="business-shop-items"></div>
             <div id="businessShopExchangePanel" class="shop-exchange-panel is-hidden"></div>
           </section>
@@ -48,6 +49,17 @@
               </div>
               <button id="myHouseBackButton" class="small-button" type="button">戻る</button>
             </div>
+            <section class="my-house-save-panel" aria-label="セーブとロード">
+              <div class="my-house-save-column">
+                <div class="my-house-section-title">セーブ</div>
+                <div id="myHouseSaveSlots" class="my-house-save-slots"></div>
+              </div>
+              <div class="my-house-save-column">
+                <div class="my-house-section-title">ロード</div>
+                <div id="myHouseLoadSlots" class="my-house-save-slots"></div>
+              </div>
+              <div id="myHouseSaveStatus" class="my-house-save-status" aria-live="polite"></div>
+            </section>
             <div class="my-house-layout">
               <section class="my-house-section">
                 <div class="my-house-section-title">手持ちモンスター</div>
@@ -154,6 +166,6 @@
     </main>
 
     <script src="./data-inline.js?v=20260709-utf8-clean"></script>
-    <script src="./app.js?v=20260716-rank-locks"></script>
+    <script src="./app.js?v=20260718-accessory"></script>
   </body>
 </html>

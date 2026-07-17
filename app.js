@@ -9,6 +9,7 @@ const DATA_PATHS = {
   enemyParties: "./data/enemy_party.csv",
   shopItems: "./data/shop_item.csv",
   encyclopediaBooks: "./data/encyclopedia_book.csv",
+  equipment: "./data/equipment.csv",
 };
 
 const STORY_MAP_PATHS = [
@@ -58,12 +59,23 @@ const STORY_RANK_BUTTON_AREAS = {
 const STORY_RANK_ORDER_INDEX = new Map(STORY_RANK_ORDER.map((rank, index) => [rank, index]));
 const INITIAL_STORY_RANK_BATTLE_IDS = new Set(["battle_f_1"]);
 
-const SAVE_STORAGE_KEY = "mhb_save_data_v1";
+const MANUAL_SAVE_STORAGE_KEYS = ["mhb_save_1", "mhb_save_2", "mhb_save_3"];
 const INITIAL_MONEY = 1500;
 const BUSINESS_SHOP_ID = "business";
 const INITIAL_PLAYER_CHARACTER_IDS = ["character_001", "character_004"];
-const LEGACY_INITIAL_PLAYER_CHARACTER_IDS = ["character_004", "character_002"];
 const INITIAL_PARTY_VERSION = 1;
+const EQUIPMENT_TYPE_ACCESSORY = "accessory";
+const EQUIPMENT_ITEM_TYPES = new Set(["equip", "equipment"]);
+const SPECIES_LABELS = {
+  all: "全員",
+  bird_wyvern: "鳥竜種",
+  brute_wyvern: "獣竜種",
+  elder_dragon: "古龍種",
+  fanged_beast: "牙獣種",
+  fanged_wyvern: "牙竜種",
+  flying_wyvern: "飛竜種",
+  piscine_wyvern: "魚竜種",
+};
 
 const ELEMENT_LABELS = {
   none: "無",
@@ -195,11 +207,16 @@ const state = {
   enemyParties: new Map(),
   shopItems: [],
   encyclopediaBooks: new Map(),
+  equipment: [],
+  equipmentMap: new Map(),
   saveData: createSaveData(),
   shop: createShopState(),
   myHouse: {
     selectedBookId: null,
+    selectedBookCharacterId: null,
     selectedOwnedId: null,
+    accessoryEditorOwnedId: null,
+    detailMode: "owned",
   },
   selectedIds: [],
   playerTeam: [],
@@ -207,6 +224,7 @@ const state = {
   playerActiveIndex: 0,
   enemyActiveIndex: 0,
   commandMode: "fight",
+  battleInspectSide: "enemy",
   log: [],
   battleMessage: {
     text: "",
@@ -244,6 +262,8 @@ const state = {
 const els = {};
 let battleMessageTimer = null;
 let gameDataPromise = null;
+let saveStatusTimer = null;
+let shopMessageTimer = null;
 const animationSheetMetaCache = new Map();
 const transparentAnimationCache = new Map();
 
@@ -261,6 +281,7 @@ function createSaveData() {
     money: INITIAL_MONEY,
     ownedBooks: new Set(),
     ownedMonsters: [],
+    ownedEquipment: new Map(),
     shopStock: new Map(),
     purchasedShopEntries: new Set(),
     nextOwnedMonsterNumber: 1,
@@ -303,6 +324,7 @@ document.addEventListener("DOMContentLoaded", () => {
     businessShopBackButton: document.querySelector("#businessShopBackButton"),
     businessShopMoney: document.querySelector("#businessShopMoney"),
     businessShopSlots: document.querySelector("#businessShopSlots"),
+    businessShopMessage: document.querySelector("#businessShopMessage"),
     businessShopItems: document.querySelector("#businessShopItems"),
     businessShopExchangePanel: document.querySelector("#businessShopExchangePanel"),
     myHousePanel: document.querySelector("#myHousePanel"),
@@ -311,6 +333,9 @@ document.addEventListener("DOMContentLoaded", () => {
     myHouseBookList: document.querySelector("#myHouseBookList"),
     myHouseBookContent: document.querySelector("#myHouseBookContent"),
     myHouseDetailPanel: document.querySelector("#myHouseDetailPanel"),
+    myHouseSaveSlots: document.querySelector("#myHouseSaveSlots"),
+    myHouseLoadSlots: document.querySelector("#myHouseLoadSlots"),
+    myHouseSaveStatus: document.querySelector("#myHouseSaveStatus"),
     selectedSlots: document.querySelector("#selectedSlots"),
     rosterGrid: document.querySelector("#rosterGrid"),
     randomTeamButton: document.querySelector("#randomTeamButton"),
@@ -352,6 +377,18 @@ function bindEvents() {
   els.storyMyHouseButton?.addEventListener("click", showMyHouse);
   els.businessShopBackButton?.addEventListener("click", hideBusinessShop);
   els.myHouseBackButton?.addEventListener("click", hideMyHouse);
+  els.myHouseSaveSlots?.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-manual-save-slot]");
+    if (!button || !els.myHouseSaveSlots.contains(button)) return;
+    event.preventDefault();
+    handleManualSave(Number(button.dataset.manualSaveSlot));
+  });
+  els.myHouseLoadSlots?.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-load-save-key]");
+    if (!button || !els.myHouseLoadSlots.contains(button) || button.disabled) return;
+    event.preventDefault();
+    handleSaveLoad(button.dataset.loadSaveKey, button.dataset.loadSaveLabel || "");
+  });
   els.storyRankBattleButtons?.addEventListener("click", (event) => {
     const button = event.target.closest("[data-rank-battle-id]");
     if (!button || !els.storyRankBattleButtons.contains(button)) return;
@@ -478,8 +515,7 @@ async function showBusinessShop() {
   }
 
   hideMyHouse();
-  loadSaveData({ preserveCurrentOnMissing: true });
-  initializeSaveDataParty();
+  initializeSaveDataParty({ persist: false });
   state.shop.open = true;
   state.shop.exchangeEntryId = null;
   state.shop.offerOwnedIds = [];
@@ -506,8 +542,7 @@ async function showMyHouse() {
   }
 
   hideBusinessShop();
-  loadSaveData({ preserveCurrentOnMissing: true });
-  initializeSaveDataParty();
+  initializeSaveDataParty({ persist: false });
   ensureMyHouseSelection();
   hideRankBattleConfirm();
   els.storyMainStage?.classList.add("is-hidden");
@@ -532,6 +567,15 @@ function renderMyHouse() {
   const ownedBooks = myHouseOwnedBooks();
   const selectedMonster = monsterEntries.find((entry) => entry.ownedId === state.myHouse.selectedOwnedId);
   const selectedBook = ownedBooks.find((book) => book.book_id === state.myHouse.selectedBookId);
+  const selectedBookCharacters = selectedBook ? myHouseBookCharacters(selectedBook) : [];
+  const selectedBookMonster = selectedBookCharacters.find(
+    (character) => character.character_id === state.myHouse.selectedBookCharacterId,
+  );
+  const detailCharacter =
+    state.myHouse.detailMode === "book"
+      ? selectedBookMonster
+      : selectedMonster?.character;
+  const detailOwnedMonster = state.myHouse.detailMode === "owned" ? selectedMonster?.ownedMonster : null;
 
   els.myHouseMonsterList.innerHTML = monsterEntries.length
     ? monsterEntries.map((entry) => renderMyHouseMonsterCard(entry)).join("")
@@ -545,13 +589,19 @@ function renderMyHouse() {
     ? renderMyHouseBookContent(selectedBook)
     : `<div class="my-house-book-empty">図鑑を購入すると、ここに登録モンスターが表示されます。</div>`;
 
-  els.myHouseDetailPanel.innerHTML = selectedMonster
-    ? renderMyHouseMonsterDetail(selectedMonster.character)
+  els.myHouseDetailPanel.innerHTML = detailCharacter
+    ? renderMyHouseMonsterDetail(detailCharacter, detailOwnedMonster)
     : `<div class="my-house-book-empty">モンスターを選択してください。</div>`;
+
+  renderMyHouseSaveControls();
 
   for (const button of els.myHouseMonsterList.querySelectorAll("[data-my-house-owned-id]")) {
     button.addEventListener("click", () => {
       state.myHouse.selectedOwnedId = button.dataset.myHouseOwnedId;
+      state.myHouse.detailMode = "owned";
+      if (state.myHouse.accessoryEditorOwnedId !== state.myHouse.selectedOwnedId) {
+        state.myHouse.accessoryEditorOwnedId = null;
+      }
       renderMyHouse();
     });
   }
@@ -559,7 +609,38 @@ function renderMyHouse() {
   for (const button of els.myHouseBookList.querySelectorAll("[data-my-house-book-id]")) {
     button.addEventListener("click", () => {
       state.myHouse.selectedBookId = button.dataset.myHouseBookId;
+      const book = state.encyclopediaBooks.get(state.myHouse.selectedBookId);
+      const firstCharacter = book ? myHouseBookCharacters(book)[0] : null;
+      state.myHouse.selectedBookCharacterId = firstCharacter?.character_id ?? null;
+      state.myHouse.detailMode = "book";
+      state.myHouse.accessoryEditorOwnedId = null;
       renderMyHouse();
+    });
+  }
+
+  for (const button of els.myHouseBookContent.querySelectorAll("[data-my-house-book-character-id]")) {
+    button.addEventListener("click", () => {
+      state.myHouse.selectedBookCharacterId = button.dataset.myHouseBookCharacterId;
+      state.myHouse.detailMode = "book";
+      state.myHouse.accessoryEditorOwnedId = null;
+      renderMyHouse();
+    });
+  }
+
+  for (const button of els.myHouseDetailPanel.querySelectorAll("[data-my-house-accessory-change]")) {
+    button.addEventListener("click", () => {
+      state.myHouse.accessoryEditorOwnedId =
+        state.myHouse.accessoryEditorOwnedId === button.dataset.myHouseAccessoryChange
+          ? null
+          : button.dataset.myHouseAccessoryChange;
+      renderMyHouse();
+    });
+  }
+
+  for (const button of els.myHouseDetailPanel.querySelectorAll("[data-my-house-accessory-id]")) {
+    button.addEventListener("click", () => {
+      if (button.disabled) return;
+      updateOwnedMonsterAccessory(button.dataset.myHouseOwnedId, button.dataset.myHouseAccessoryId || "");
     });
   }
 }
@@ -574,12 +655,23 @@ function ensureMyHouseSelection() {
   if (!ownedBooks.some((book) => book.book_id === state.myHouse.selectedBookId)) {
     state.myHouse.selectedBookId = ownedBooks[0]?.book_id ?? null;
   }
+
+  const selectedBook = ownedBooks.find((book) => book.book_id === state.myHouse.selectedBookId);
+  const bookCharacters = selectedBook ? myHouseBookCharacters(selectedBook) : [];
+  if (!bookCharacters.some((character) => character.character_id === state.myHouse.selectedBookCharacterId)) {
+    state.myHouse.selectedBookCharacterId = bookCharacters[0]?.character_id ?? null;
+  }
+
+  if (state.myHouse.detailMode === "book" && !state.myHouse.selectedBookCharacterId) {
+    state.myHouse.detailMode = state.myHouse.selectedOwnedId ? "owned" : "book";
+  }
 }
 
 function myHouseMonsterEntries() {
   return state.saveData.ownedMonsters
     .map((entry) => ({
       ownedId: entry.ownedId,
+      ownedMonster: entry,
       character: state.characterMap.get(entry.characterId),
     }))
     .filter((entry) => entry.ownedId && entry.character);
@@ -591,9 +683,34 @@ function myHouseOwnedBooks() {
     .filter(Boolean);
 }
 
+function myHouseBookCharacters(book) {
+  return (book?.characterIds ?? [])
+    .map((characterId) => state.characterMap.get(characterId))
+    .filter(Boolean);
+}
+
+function storyBattleEncyclopediaCharacterIds() {
+  const characterIds = new Set();
+  for (const bookId of state.saveData.ownedBooks) {
+    const book = state.encyclopediaBooks.get(bookId);
+    if (!book) continue;
+    for (const characterId of book.characterIds) {
+      characterIds.add(characterId);
+    }
+  }
+  return characterIds;
+}
+
+function canViewStoryBattleEncyclopedia(characterId) {
+  const id = safeText(characterId);
+  if (!id) return false;
+  if (!state.story.currentRankBattleId) return true;
+  return storyBattleEncyclopediaCharacterIds().has(id);
+}
+
 function renderMyHouseMonsterCard(entry) {
   const character = entry.character;
-  const selected = entry.ownedId === state.myHouse.selectedOwnedId;
+  const selected = state.myHouse.detailMode === "owned" && entry.ownedId === state.myHouse.selectedOwnedId;
   return `
     <button class="my-house-monster-card ${selected ? "is-selected" : ""}" type="button" data-my-house-owned-id="${escapeHtml(entry.ownedId)}">
       <span class="my-house-monster-image-frame">
@@ -615,11 +732,11 @@ function renderMyHouseMonsterCard(entry) {
   `;
 }
 
-function renderMyHouseMonsterDetail(character) {
-  return renderMyHouseCompleteMonsterDetail(character);
+function renderMyHouseMonsterDetail(character, ownedMonster = null) {
+  return renderMyHouseCompleteMonsterDetail(character, ownedMonster);
 }
 
-function renderMyHouseCompleteMonsterDetail(character) {
+function renderMyHouseCompleteMonsterDetail(character, ownedMonster = null) {
   return `
     <div class="my-house-detail-header">
       <div>
@@ -638,6 +755,7 @@ function renderMyHouseCompleteMonsterDetail(character) {
           <div class="dex-data-row"><span>EN回復</span><strong>${energyBadge(character.energy_charge)}</strong></div>
           <div class="dex-data-row"><span>弱点</span><strong>${renderWeaknessBadges(character)}</strong></div>
         </div>
+        ${ownedMonster ? renderOwnedMonsterAccessorySection(ownedMonster, character) : ""}
       </div>
       <div class="detail-stats my-house-detail-stats">
         ${detailStat("HP", character.hp, "hp")}
@@ -664,6 +782,144 @@ function renderMyHouseCompleteMonsterDetail(character) {
   `;
 }
 
+function renderOwnedMonsterAccessorySection(ownedMonster, character) {
+  const accessoryId = safeText(ownedMonster.equipment?.accessory);
+  const equipment = accessoryId ? state.equipmentMap.get(accessoryId) : null;
+  const isEditorOpen = state.myHouse.accessoryEditorOwnedId === ownedMonster.ownedId;
+  return `
+    <div class="my-house-accessory-panel">
+      <div class="my-house-accessory-header">
+        <div>
+          <div class="my-house-accessory-label">アクセサリー</div>
+          <strong>${escapeHtml(equipment?.name || "装備なし")}</strong>
+        </div>
+        <button class="small-button" type="button" data-my-house-accessory-change="${escapeHtml(ownedMonster.ownedId)}">変更</button>
+      </div>
+      ${isEditorOpen ? renderAccessoryChooser(ownedMonster, character) : ""}
+    </div>
+  `;
+}
+
+function renderAccessoryChooser(ownedMonster, character) {
+  const rows = [`<button class="accessory-option" type="button" data-my-house-owned-id="${escapeHtml(ownedMonster.ownedId)}" data-my-house-accessory-id="">
+    <span>装備しない</span>
+    <strong>${ownedMonster.equipment?.accessory ? "解除" : "選択中"}</strong>
+  </button>`];
+
+  for (const [equipmentId, count] of state.saveData.ownedEquipment) {
+    if (count <= 0) continue;
+    const equipment = state.equipmentMap.get(equipmentId);
+    if (!isAccessoryEquipment(equipment)) continue;
+    rows.push(renderAccessoryOption(ownedMonster, character, equipment, count));
+  }
+
+  if (rows.length === 1) {
+    rows.push(`<div class="accessory-empty">所持アクセサリーがありません。</div>`);
+  }
+
+  return `<div class="accessory-options">${rows.join("")}</div>`;
+}
+
+function renderAccessoryOption(ownedMonster, character, equipment, ownedCount) {
+  const equipStatus = accessoryEquipStatus(equipment, character);
+  const availableCount = availableAccessoryCount(equipment.equipment_id, ownedMonster.ownedId);
+  const selected = safeText(ownedMonster.equipment?.accessory) === equipment.equipment_id;
+  const disabledReason = !equipStatus.canEquip
+    ? equipStatus.reason
+    : availableCount <= 0 && !selected
+      ? "使用可能数 0"
+      : "";
+  return `
+    <button class="accessory-option ${selected ? "is-selected" : ""}" type="button"
+      data-my-house-owned-id="${escapeHtml(ownedMonster.ownedId)}"
+      data-my-house-accessory-id="${escapeHtml(equipment.equipment_id)}"
+      ${disabledReason ? "disabled" : ""}>
+      <span>${escapeHtml(equipment.name)}</span>
+      <strong>使用可能 ${escapeHtml(availableCount)} / 所持 ${escapeHtml(ownedCount)}</strong>
+      ${disabledReason ? `<em>${escapeHtml(disabledReason)}</em>` : ""}
+    </button>
+  `;
+}
+
+function updateOwnedMonsterAccessory(ownedId, accessoryId) {
+  const ownedMonster = state.saveData.ownedMonsters.find((entry) => entry.ownedId === ownedId);
+  const character = ownedMonster ? state.characterMap.get(ownedMonster.characterId) : null;
+  if (!ownedMonster || !character) return;
+
+  const nextAccessoryId = safeText(accessoryId);
+  if (nextAccessoryId) {
+    const equipment = state.equipmentMap.get(nextAccessoryId);
+    const equipStatus = accessoryEquipStatus(equipment, character);
+    if (!isAccessoryEquipment(equipment) || !equipStatus.canEquip) return;
+    if (availableAccessoryCount(nextAccessoryId, ownedId) <= 0) return;
+  }
+
+  ownedMonster.equipment = normalizeOwnedMonsterEquipment(ownedMonster.equipment);
+  ownedMonster.equipment.accessory = nextAccessoryId;
+  state.myHouse.accessoryEditorOwnedId = ownedId;
+  saveGameData();
+  renderMyHouse();
+}
+
+function availableAccessoryCount(equipmentId, selectedOwnedId = "") {
+  const ownedCount = ownedEquipmentCount(equipmentId);
+  const equippedByOthers = state.saveData.ownedMonsters.filter((entry) =>
+    entry.ownedId !== selectedOwnedId &&
+    safeText(entry.equipment?.accessory) === equipmentId,
+  ).length;
+  return Math.max(0, ownedCount - equippedByOthers);
+}
+
+function ownedEquipmentCount(equipmentId) {
+  return Math.max(0, Math.floor(number(state.saveData.ownedEquipment.get(equipmentId))));
+}
+
+function accessoryEquipStatus(equipment, character) {
+  if (!isAccessoryEquipment(equipment)) {
+    return { canEquip: false, reason: "装備できません" };
+  }
+
+  const requiredCharacterId = safeText(equipment.character_id);
+  if (requiredCharacterId) {
+    const canEquip = requiredCharacterId === character.character_id;
+    const requiredCharacter = state.characterMap.get(requiredCharacterId);
+    return {
+      canEquip,
+      reason: canEquip ? "" : `${requiredCharacter?.name || requiredCharacterId}専用`,
+    };
+  }
+
+  const requiredSpeciesId = safeText(equipment.species_id);
+  if (!requiredSpeciesId || requiredSpeciesId === "all") {
+    return { canEquip: true, reason: "" };
+  }
+
+  const canEquip = requiredSpeciesId === safeText(character.species_id);
+  return {
+    canEquip,
+    reason: canEquip ? "" : `${speciesLabel(requiredSpeciesId)}のみ装備可能`,
+  };
+}
+
+function speciesLabel(speciesId) {
+  return SPECIES_LABELS[safeText(speciesId)] || safeText(speciesId);
+}
+
+function accessoryRequirementText(equipment) {
+  const characterId = safeText(equipment?.character_id);
+  if (characterId) {
+    const character = state.characterMap.get(characterId);
+    return `${character?.name || characterId}専用`;
+  }
+  const speciesId = safeText(equipment?.species_id);
+  if (!speciesId || speciesId === "all") return "全モンスター装備可能";
+  return `${speciesLabel(speciesId)}のみ装備可能`;
+}
+
+function isAccessoryEquipment(equipment) {
+  return Boolean(equipment) && equipment.equipment_type === EQUIPMENT_TYPE_ACCESSORY;
+}
+
 function renderMyHouseBookButton(book) {
   const selected = book.book_id === state.myHouse.selectedBookId;
   return `
@@ -675,9 +931,7 @@ function renderMyHouseBookButton(book) {
 }
 
 function renderMyHouseBookContent(book) {
-  const monsters = book.characterIds
-    .map((characterId) => state.characterMap.get(characterId))
-    .filter(Boolean);
+  const monsters = myHouseBookCharacters(book);
 
   return `
     <div class="my-house-book-detail">
@@ -695,15 +949,93 @@ function renderMyHouseBookContent(book) {
 }
 
 function renderMyHouseBookMonster(character) {
+  const selected =
+    state.myHouse.detailMode === "book" &&
+    character.character_id === state.myHouse.selectedBookCharacterId;
   return `
-    <article class="my-house-book-monster">
+    <button class="my-house-book-monster ${selected ? "is-selected" : ""}" type="button" data-my-house-book-character-id="${escapeHtml(character.character_id)}">
       <img class="my-house-book-monster-image" src="${escapeHtml(character.imageSrc)}" alt="${escapeHtml(character.name)}" />
       <div>
         <strong>${escapeHtml(character.name)}</strong>
         <div class="my-house-monster-meta">${elementPill(character.element)} <span>slot ${slotMarks(character.slot)}</span></div>
       </div>
-    </article>
+    </button>
   `;
+}
+
+function renderMyHouseSaveControls() {
+  if (!els.myHouseSaveSlots || !els.myHouseLoadSlots) return;
+
+  els.myHouseSaveSlots.innerHTML = MANUAL_SAVE_STORAGE_KEYS
+    .map((key, index) => renderManualSaveSlotButton(index + 1, key))
+    .join("");
+
+  const loadSlots = MANUAL_SAVE_STORAGE_KEYS
+    .map((key, index) => ({ key, label: `セーブ${index + 1}` }));
+
+  els.myHouseLoadSlots.innerHTML = loadSlots
+    .map((slot) => renderLoadSaveSlotButton(slot))
+    .join("");
+}
+
+function renderManualSaveSlotButton(slotNumber, key) {
+  const info = readSaveSlotInfo(key);
+  return `
+    <button class="my-house-save-button ${info.invalid ? "is-invalid" : ""}" type="button" data-manual-save-slot="${slotNumber}">
+      <strong>セーブ${slotNumber}</strong>
+      <span>${escapeHtml(info.label)}</span>
+    </button>
+  `;
+}
+
+function renderLoadSaveSlotButton(slot) {
+  const info = readSaveSlotInfo(slot.key);
+  return `
+    <button
+      class="my-house-save-button ${info.invalid ? "is-invalid" : ""}"
+      type="button"
+      data-load-save-key="${escapeHtml(slot.key)}"
+      data-load-save-label="${escapeHtml(slot.label)}"
+      ${info.exists ? "" : "disabled"}
+    >
+      <strong>${escapeHtml(slot.label)}</strong>
+      <span>${escapeHtml(info.label)}</span>
+    </button>
+  `;
+}
+
+function readSaveSlotInfo(key) {
+  const raw = readStorageValue(key);
+  if (!raw) {
+    return { exists: false, invalid: false, label: "データなし" };
+  }
+
+  try {
+    const data = JSON.parse(raw);
+    if (!data || typeof data !== "object") {
+      return { exists: true, invalid: true, label: "データ破損" };
+    }
+    return {
+      exists: true,
+      invalid: false,
+      label: formatSaveTimestamp(safeText(data.saved_at ?? data.savedAt)),
+    };
+  } catch {
+    return { exists: true, invalid: true, label: "データ破損" };
+  }
+}
+
+function formatSaveTimestamp(value) {
+  if (!value) return "保存日時なし";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "保存日時不明";
+  return date.toLocaleString("ja-JP", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 }
 
 function renderBusinessShop() {
@@ -728,7 +1060,7 @@ function availableShopItems(shopId) {
   return state.shopItems
     .filter((item) => item.shop_id === shopId)
     .filter((item) => item.item_type && item.content_id)
-    .filter((item) => item.item_type === "book" || item.item_type === "monster")
+    .filter((item) => item.item_type === "book" || item.item_type === "monster" || EQUIPMENT_ITEM_TYPES.has(item.item_type))
     .filter((item) => shopContentExists(item))
     .filter((item) => shopUnlockMet(item.unlock_condition))
     .sort((a, b) => a.display_order - b.display_order);
@@ -737,6 +1069,7 @@ function availableShopItems(shopId) {
 function shopContentExists(item) {
   if (item.item_type === "book") return state.encyclopediaBooks.has(item.content_id);
   if (item.item_type === "monster") return state.characterMap.has(item.content_id);
+  if (EQUIPMENT_ITEM_TYPES.has(item.item_type)) return isAccessoryEquipment(state.equipmentMap.get(item.content_id));
   return false;
 }
 
@@ -749,11 +1082,17 @@ function shopUnlockMet(unlockCondition) {
 function renderShopItem(item) {
   const stock = currentShopStock(item);
   const name = shopItemName(item);
-  const typeLabel = item.item_type === "book" ? "図鑑" : "モンスター";
+  const isEquipmentItem = EQUIPMENT_ITEM_TYPES.has(item.item_type);
+  const typeLabel = item.item_type === "book" ? "図鑑" : isEquipmentItem ? "アクセサリー" : "モンスター";
   const monster = item.item_type === "monster" ? state.characterMap.get(item.content_id) : null;
   const book = item.item_type === "book" ? state.encyclopediaBooks.get(item.content_id) : null;
+  const equipment = isEquipmentItem ? state.equipmentMap.get(item.content_id) : null;
   const disabledReason = shopDisabledReason(item);
-  const description = book?.description || (monster ? `${monster.name}を仲間にします。` : "");
+  const description =
+    book?.description ||
+    (monster ? `${monster.name}を仲間にします。` : "") ||
+    (equipment ? accessoryRequirementText(equipment) : "");
+  const stockLabel = isEquipmentItem ? `所持数 ${ownedEquipmentCount(item.content_id)}` : `在庫 ${stock}`;
 
   return `
     <article class="shop-item">
@@ -765,7 +1104,7 @@ function renderShopItem(item) {
         ${description ? `<div class="shop-item-description">${escapeHtml(description)}</div>` : ""}
         <div class="shop-item-meta">
           <span>価格 ${escapeHtml(item.price)}z</span>
-          <span>在庫 ${escapeHtml(stock)}</span>
+          <span>${escapeHtml(stockLabel)}</span>
           ${monster ? `<span>slot ${slotMarks(monster.slot)}</span>` : ""}
         </div>
       </div>
@@ -783,11 +1122,14 @@ function shopItemName(item) {
   if (item.item_type === "monster") {
     return state.characterMap.get(item.content_id)?.name || item.content_id;
   }
+  if (EQUIPMENT_ITEM_TYPES.has(item.item_type)) {
+    return state.equipmentMap.get(item.content_id)?.name || item.content_id;
+  }
   return item.content_id;
 }
 
 function shopDisabledReason(item) {
-  if (currentShopStock(item) <= 0) return item.item_type === "book" ? "購入済み" : "在庫なし";
+  if (!EQUIPMENT_ITEM_TYPES.has(item.item_type) && currentShopStock(item) <= 0) return item.item_type === "book" ? "購入済み" : "在庫なし";
   if (state.saveData.money < item.price) return "所持金不足";
   if (item.item_type === "book" && state.saveData.ownedBooks.has(item.content_id)) return "購入済み";
   if (item.item_type === "monster") {
@@ -809,10 +1151,20 @@ function setShopStock(item, stock) {
 
 function handleShopPurchase(shopEntryId) {
   const item = availableShopItems(BUSINESS_SHOP_ID).find((entry) => entry.shop_entry_id === shopEntryId);
-  if (!item || shopDisabledReason(item)) return;
+  if (!item) return;
+  const disabledReason = shopDisabledReason(item);
+  if (disabledReason) {
+    showShopMessage(disabledReason, { isError: true });
+    return;
+  }
 
   if (item.item_type === "book") {
     purchaseBook(item);
+    return;
+  }
+
+  if (EQUIPMENT_ITEM_TYPES.has(item.item_type)) {
+    purchaseEquipment(item);
     return;
   }
 
@@ -826,6 +1178,29 @@ function purchaseBook(item) {
   state.saveData.purchasedShopEntries.add(item.shop_entry_id);
   setShopStock(item, currentShopStock(item) - 1);
   saveGameData();
+  showShopMessage(`${shopItemName(item)}を購入しました。`);
+  renderBusinessShop();
+}
+
+function purchaseEquipment(item) {
+  const disabledReason = shopDisabledReason(item);
+  if (disabledReason) {
+    showShopMessage(disabledReason, { isError: true });
+    return;
+  }
+
+  const equipment = state.equipmentMap.get(item.content_id);
+  if (!isAccessoryEquipment(equipment)) return;
+
+  state.saveData.money -= item.price;
+  state.saveData.ownedEquipment.set(
+    equipment.equipment_id,
+    ownedEquipmentCount(equipment.equipment_id) + 1,
+  );
+  state.saveData.purchasedShopEntries.add(item.shop_entry_id);
+  saveGameData();
+  showShopMessage(`${equipment.name}を購入しました。`);
+  if (els.myHousePanel && !els.myHousePanel.classList.contains("is-hidden")) renderMyHouse();
   renderBusinessShop();
 }
 
@@ -1131,6 +1506,7 @@ function returnToSetup() {
   state.battleWinner = null;
   state.battleAnimation = null;
   state.exchange = createExchangeState();
+  state.battleInspectSide = "enemy";
   state.detailCharacterId = null;
   hideBattleMessage();
   state.dex = {
@@ -1154,6 +1530,7 @@ async function loadGameData() {
       enemyPartyText,
       shopItemText,
       encyclopediaBookText,
+      equipmentText,
     ] = await Promise.all([
       loadCsvText("characters", DATA_PATHS.characters),
       loadCsvText("skills", DATA_PATHS.skills),
@@ -1165,6 +1542,7 @@ async function loadGameData() {
       loadOptionalCsvText("enemyParties", DATA_PATHS.enemyParties),
       loadOptionalCsvText("shopItems", DATA_PATHS.shopItems),
       loadOptionalCsvText("encyclopediaBooks", DATA_PATHS.encyclopediaBooks),
+      loadOptionalCsvText("equipment", DATA_PATHS.equipment),
     ]);
 
     state.characters = rowsFromCsv(characterText)
@@ -1227,6 +1605,13 @@ async function loadGameData() {
       .map(normalizeShopItem)
       .filter((item) => item.shop_entry_id);
 
+    state.equipment = rowsFromCsv(equipmentText)
+      .map(normalizeEquipment)
+      .filter((equipment) => equipment.equipment_id);
+    state.equipmentMap = new Map(
+      state.equipment.map((equipment) => [equipment.equipment_id, equipment]),
+    );
+
     state.animations.clear();
     state.animationDefinitions.clear();
     for (const animation of rowsFromCsv(animationText).map(normalizeAnimation)) {
@@ -1250,7 +1635,7 @@ async function loadGameData() {
     applyAnimationConfig();
 
     loadSaveData();
-    initializeSaveDataParty();
+    initializeSaveDataParty({ persist: false });
     renderSetup();
   } catch (error) {
     els.rosterGrid.innerHTML = `<div class="selected-slot is-filled">CSVを読み込めませんでした。</div>`;
@@ -1357,6 +1742,7 @@ function normalizeCharacter(row) {
   return {
     character_id: characterId,
     battleNo: safeText(row.battleno ?? row.battle_no ?? row.battleNo ?? row.no),
+    species_id: safeText(row.species_id),
     name: row.name,
     hp: number(row.hp, 1),
     phy_atk: number(row.phy_atk),
@@ -1523,6 +1909,22 @@ function normalizeShopItem(row) {
     stock: Math.max(0, Math.floor(number(row.stock))),
     unlock_condition: safeText(row.unlock_condition),
     display_order: number(row.display_order, 9999),
+  };
+}
+
+function normalizeEquipment(row) {
+  return {
+    equipment_id: safeText(row.equipment_id),
+    name: safeText(row.name),
+    equipment_type: safeText(row.equipment_type).toLowerCase(),
+    hp_bonus: number(row.hp_bonus),
+    atk_bonus: number(row.atk_bonus),
+    def_bonus: number(row.def_bonus),
+    sp_atk_bonus: number(row.sp_atk_bonus),
+    sp_def_bonus: number(row.sp_def_bonus),
+    speed_bonus: number(row.speed_bonus),
+    species_id: safeText(row.species_id),
+    character_id: safeText(row.character_id),
   };
 }
 
@@ -1794,6 +2196,45 @@ function renderDexPanel() {
     return;
   }
 
+  const isStoryBattle = Boolean(state.story.currentRankBattleId);
+  const canViewCharacter = !isStoryBattle || canViewStoryBattleEncyclopedia(character.character_id);
+  const dexCharacterName = canViewCharacter ? character.name : "？？？？？";
+  const dexCharacterSubtitle = canViewCharacter
+    ? characterSubtitle(character)
+    : "対応する図鑑を購入すると情報を確認できます";
+  const dexProfileRows = canViewCharacter
+    ? `
+      <div class="dex-data-row"><span>スロット</span><strong>${slotMarks(character.slot)}</strong></div>
+      <div class="dex-data-row"><span>EN回復</span><strong>${energyBadge(character.energy_charge)}</strong></div>
+      <div class="dex-data-row"><span>回復力</span><strong>${escapeHtml(character.regen_value)}</strong></div>
+    `
+    : `
+      <div class="dex-data-row"><span>能力値</span><strong>？？？</strong></div>
+      <div class="command-note">対応する図鑑を購入すると情報を確認できます</div>
+    `;
+  const dexStatsSection = canViewCharacter
+    ? `
+      <div class="detail-section-title">パラメータ</div>
+      <div class="detail-stats dex-stats">
+        ${detailStat("体力", character.hp, "hp")}
+        ${detailStat("物理攻撃", character.phy_atk, "phy_atk")}
+        ${detailStat("物理防御", character.phy_def, "phy_def")}
+        ${detailStat("特殊攻撃", character.sp_atk, "sp_atk")}
+        ${detailStat("特殊防御", character.sp_def, "sp_def")}
+        ${detailStat("敏捷", character.speed, "speed")}
+        ${detailStat("回復力", character.regen_value, "regen_value")}
+      </div>
+    `
+    : "";
+  const dexResistanceSection = canViewCharacter
+    ? `
+      <div class="detail-section-title">属性耐性</div>
+      <div class="resistance-grid">
+        ${ELEMENT_TYPES.map((element) => resistanceCell(character, element)).join("")}
+      </div>
+    `
+    : "";
+
   els.dexPanel.innerHTML = `
     <div class="detail-header">
       <div>
@@ -1805,43 +2246,30 @@ function renderDexPanel() {
     <div class="dex-layout">
       <aside class="dex-list" aria-label="Breeder一覧">
         ${state.characters
-          .map(
-            (entry) => `
+          .map((entry) => {
+            const canViewEntry = !isStoryBattle || canViewStoryBattleEncyclopedia(entry.character_id);
+            return `
               <button class="dex-list-button ${entry.character_id === character.character_id ? "is-selected" : ""}" type="button" data-dex-id="${escapeHtml(entry.character_id)}">
-                <span>${escapeHtml(entry.name)}</span>
-                ${elementPill(entry.element)}
+                <span>${escapeHtml(canViewEntry ? entry.name : "？？？？？")}</span>
+                ${canViewEntry ? elementPill(entry.element) : ""}
               </button>
-            `,
-          )
+            `;
+          })
           .join("")}
       </aside>
       <section class="dex-content">
         <div class="dex-profile">
           <div class="detail-image-frame dex-image-frame">
-            <img class="detail-image" src="${escapeHtml(character.imageSrc)}" alt="${escapeHtml(character.name)}" />
+            <img class="detail-image" src="${escapeHtml(character.imageSrc)}" alt="${escapeHtml(dexCharacterName)}" />
           </div>
           <div class="dex-summary">
-            <div class="detail-title">${escapeHtml(character.name)}</div>
-            <div class="detail-subtitle">${characterSubtitle(character)}</div>
-            <div class="dex-data-row"><span>スロット</span><strong>${slotMarks(character.slot)}</strong></div>
-            <div class="dex-data-row"><span>EN回復</span><strong>${energyBadge(character.energy_charge)}</strong></div>
-            <div class="dex-data-row"><span>回復力</span><strong>${escapeHtml(character.regen_value)}</strong></div>
+            <div class="detail-title">${escapeHtml(dexCharacterName)}</div>
+            <div class="detail-subtitle">${dexCharacterSubtitle}</div>
+            ${dexProfileRows}
           </div>
         </div>
-        <div class="detail-section-title">パラメータ</div>
-        <div class="detail-stats dex-stats">
-          ${detailStat("体力", character.hp, "hp")}
-          ${detailStat("物理攻撃", character.phy_atk, "phy_atk")}
-          ${detailStat("物理防御", character.phy_def, "phy_def")}
-          ${detailStat("特殊攻撃", character.sp_atk, "sp_atk")}
-          ${detailStat("特殊防御", character.sp_def, "sp_def")}
-          ${detailStat("敏捷", character.speed, "speed")}
-          ${detailStat("回復力", character.regen_value, "regen_value")}
-        </div>
-        <div class="detail-section-title">属性耐性</div>
-        <div class="resistance-grid">
-          ${ELEMENT_TYPES.map((element) => resistanceCell(character, element)).join("")}
-        </div>
+        ${dexStatsSection}
+        ${dexResistanceSection}
       </section>
     </div>
   `;
@@ -2044,81 +2472,50 @@ function initialPlayerCharacterIds() {
   return characterIds.length ? characterIds : buildSlotTeam(state.characters).map((character) => character.character_id);
 }
 
-function loadSaveData({ preserveCurrentOnMissing = false } = {}) {
-  const nextSaveData = createSaveData();
-  let rawData = null;
-
-  try {
-    rawData = JSON.parse(window.localStorage?.getItem(SAVE_STORAGE_KEY) || "null");
-  } catch {
-    rawData = null;
+function loadSaveData({ preserveCurrentOnMissing = false, storageKey = null, allowLegacy = false } = {}) {
+  if (!storageKey) {
+    if (!preserveCurrentOnMissing) {
+      state.saveData = createSaveData();
+      state.story.clearedRankBattleIds = new Set();
+      state.story.disabledRankBattleIds = new Set();
+    }
+    return { ok: false, missing: true };
   }
 
-  if (!rawData && preserveCurrentOnMissing) return;
-
-  if (rawData && typeof rawData === "object") {
-    const loadedMoney = Math.max(0, Math.floor(number(rawData.money)));
-    const initialMoneyVersion = Math.floor(number(rawData.initial_money_version ?? rawData.initialMoneyVersion));
-    nextSaveData.money = initialMoneyVersion >= 1 ? loadedMoney : Math.max(loadedMoney, INITIAL_MONEY);
-    nextSaveData.initialMoneyVersion = 1;
-
-    for (const bookId of arrayFromSave(rawData.owned_books ?? rawData.ownedBooks)) {
-      const id = safeText(bookId);
-      if (id) nextSaveData.ownedBooks.add(id);
+  const source = findSaveStorageSource(storageKey, { allowLegacy });
+  if (!source.raw) {
+    if (!preserveCurrentOnMissing) {
+      state.saveData = createSaveData();
+      state.story.clearedRankBattleIds = new Set();
+      state.story.disabledRankBattleIds = new Set();
     }
-
-    for (const entryId of arrayFromSave(rawData.purchased_shop_entries ?? rawData.purchasedShopEntries)) {
-      const id = safeText(entryId);
-      if (id) nextSaveData.purchasedShopEntries.add(id);
-    }
-
-    const stockData = rawData.shop_stock ?? rawData.shopStock;
-    if (stockData && typeof stockData === "object") {
-      for (const [entryId, stock] of Object.entries(stockData)) {
-        const id = safeText(entryId);
-        if (id) nextSaveData.shopStock.set(id, Math.max(0, Math.floor(number(stock))));
-      }
-    }
-
-    nextSaveData.ownedMonsters = arrayFromSave(rawData.owned_monsters ?? rawData.ownedMonsters)
-      .map((entry) => ({
-        ownedId: safeText(entry?.owned_id ?? entry?.ownedId),
-        characterId: safeText(entry?.character_id ?? entry?.characterId),
-      }))
-      .filter((entry) => entry.ownedId && entry.characterId);
-
-    const loadedNextNumber = Math.max(
-      1,
-      Math.floor(number(rawData.next_owned_monster_number ?? rawData.nextOwnedMonsterNumber, 1)),
-    );
-    const nextNumberFromIds = nextSaveData.ownedMonsters.reduce((maxValue, entry) => {
-      const match = entry.ownedId.match(/(\d+)$/);
-      return match ? Math.max(maxValue, Number(match[1]) + 1) : maxValue;
-    }, 1);
-    nextSaveData.nextOwnedMonsterNumber = Math.max(loadedNextNumber, nextNumberFromIds);
-    nextSaveData.initialPartyVersion = Math.floor(number(rawData.initial_party_version ?? rawData.initialPartyVersion));
-    migrateLegacyInitialParty(nextSaveData);
-
-    state.story.clearedRankBattleIds = new Set(
-      arrayFromSave(rawData.cleared_battles ?? rawData.clearedBattles ?? rawData.cleared_rank_battle_ids ?? rawData.clearedRankBattleIds)
-        .map((rankBattleId) => safeText(rankBattleId))
-        .filter(Boolean),
-    );
-    state.story.disabledRankBattleIds = new Set(state.story.clearedRankBattleIds);
+    return { ok: false, missing: true };
   }
 
-  state.saveData = nextSaveData;
+  const result = applySaveDataFromRaw(source.raw);
+  if (!result.ok) {
+    showSaveStatus(result.error, { isError: true });
+    return { ...result, key: source.key };
+  }
+
+  return { ok: true, key: source.key, legacy: source.legacy };
 }
 
 function saveGameData() {
+  return { ok: true, skipped: true };
+}
+
+function createSavePayload() {
   const clearedBattles = [...new Set([...state.story.clearedRankBattleIds].map((id) => safeText(id)).filter(Boolean))];
-  const saveData = {
+  return {
     money: state.saveData.money,
     owned_books: [...state.saveData.ownedBooks],
     owned_monsters: state.saveData.ownedMonsters.map((entry) => ({
       owned_id: entry.ownedId,
       character_id: entry.characterId,
+      equipment: normalizeOwnedMonsterEquipment(entry.equipment),
     })),
+    owned_equipment: Object.fromEntries(state.saveData.ownedEquipment),
     shop_stock: Object.fromEntries(state.saveData.shopStock),
     purchased_shop_entries: [...state.saveData.purchasedShopEntries],
     cleared_battles: clearedBattles,
@@ -2127,46 +2524,245 @@ function saveGameData() {
     initial_money_version: state.saveData.initialMoneyVersion,
     initial_party_version: state.saveData.initialPartyVersion,
   };
+}
+
+function handleManualSave(slotNumber) {
+  const key = MANUAL_SAVE_STORAGE_KEYS[slotNumber - 1];
+  if (!key) return;
+
+  const existingSave = readStorageValue(key);
+  if (existingSave && !window.confirm(`セーブ${slotNumber}を上書きしますか？`)) return;
+
+  const payload = createSavePayload();
+  payload.saved_at = new Date().toISOString();
 
   try {
-    window.localStorage?.setItem(SAVE_STORAGE_KEY, JSON.stringify(saveData));
+    setStorageValue(key, JSON.stringify(payload));
+    renderMyHouseSaveControls();
+    showSaveStatus(`セーブ${slotNumber}に保存しました。`);
   } catch {
-    // Some private previews can block localStorage; the in-memory save_data still works.
+    showSaveStatus(`セーブ${slotNumber}への保存に失敗しました。`, { isError: true });
   }
 }
 
-function arrayFromSave(value) {
-  return Array.isArray(value) ? value : [];
+function handleSaveLoad(key, label) {
+  const slotLabel = label || key;
+  const confirmMessage = `${slotLabel}をロードしますか？現在の表示中データは上書きされます。`;
+  if (!window.confirm(confirmMessage)) return;
+
+  const raw = readStorageValue(key);
+  if (!raw) {
+    showSaveStatus(`${slotLabel}にはデータがありません。`, { isError: true });
+    renderMyHouseSaveControls();
+    return;
+  }
+
+  const result = applySaveDataFromRaw(raw);
+  if (!result.ok) {
+    showSaveStatus(result.error, { isError: true });
+    renderMyHouseSaveControls();
+    return;
+  }
+
+  initializeSaveDataParty({ persist: false });
+  refreshProgressViews();
+  showSaveStatus(`${slotLabel}をロードしました。`);
+}
+
+function applySaveDataFromRaw(raw) {
+  let rawData = null;
+  try {
+    rawData = JSON.parse(raw || "null");
+  } catch {
+    return { ok: false, error: "セーブデータのJSONが破損しています。" };
+  }
+
+  const normalized = normalizeSavePayload(rawData);
+  if (!normalized.ok) return normalized;
+
+  state.saveData = normalized.saveData;
+  state.story.clearedRankBattleIds = normalized.clearedRankBattleIds;
+  state.story.disabledRankBattleIds = new Set(state.story.clearedRankBattleIds);
+  return { ok: true };
+}
+
+function normalizeSavePayload(rawData) {
+  if (!rawData || typeof rawData !== "object" || Array.isArray(rawData)) {
+    return { ok: false, error: "セーブデータの形式が正しくありません。" };
+  }
+
+  const nextSaveData = createSaveData();
+  nextSaveData.money = Math.max(0, Math.floor(number(rawData.money, INITIAL_MONEY)));
+  nextSaveData.initialMoneyVersion = Math.floor(number(rawData.initial_money_version ?? rawData.initialMoneyVersion, 1));
+  nextSaveData.initialPartyVersion = Math.floor(number(rawData.initial_party_version ?? rawData.initialPartyVersion, INITIAL_PARTY_VERSION));
+
+  const ownedBooks = saveArrayField(rawData.owned_books ?? rawData.ownedBooks, "owned_books");
+  if (!ownedBooks.ok) return ownedBooks;
+  for (const bookId of ownedBooks.value) {
+    const id = safeText(bookId);
+    if (id) nextSaveData.ownedBooks.add(id);
+  }
+
+  const purchasedEntries = saveArrayField(rawData.purchased_shop_entries ?? rawData.purchasedShopEntries, "purchased_shop_entries");
+  if (!purchasedEntries.ok) return purchasedEntries;
+  for (const entryId of purchasedEntries.value) {
+    const id = safeText(entryId);
+    if (id) nextSaveData.purchasedShopEntries.add(id);
+  }
+
+  const stockData = rawData.shop_stock ?? rawData.shopStock;
+  if (stockData != null) {
+    if (typeof stockData !== "object" || Array.isArray(stockData)) {
+      return { ok: false, error: "shop_stockの形式が正しくありません。" };
+    }
+    for (const [entryId, stock] of Object.entries(stockData)) {
+      const id = safeText(entryId);
+      if (id) nextSaveData.shopStock.set(id, Math.max(0, Math.floor(number(stock))));
+    }
+  }
+
+  const equipmentData = rawData.owned_equipment ?? rawData.ownedEquipment;
+  if (equipmentData != null) {
+    if (typeof equipmentData !== "object" || Array.isArray(equipmentData)) {
+      return { ok: false, error: "owned_equipmentの形式が正しくありません。" };
+    }
+    for (const [equipmentId, count] of Object.entries(equipmentData)) {
+      const id = safeText(equipmentId);
+      const ownedCount = Math.max(0, Math.floor(number(count)));
+      if (id && ownedCount > 0) nextSaveData.ownedEquipment.set(id, ownedCount);
+    }
+  }
+
+  const ownedMonsters = saveArrayField(rawData.owned_monsters ?? rawData.ownedMonsters, "owned_monsters");
+  if (!ownedMonsters.ok) return ownedMonsters;
+  nextSaveData.ownedMonsters = ownedMonsters.value
+    .map((entry) => ({
+      ownedId: safeText(entry?.owned_id ?? entry?.ownedId),
+      characterId: safeText(entry?.character_id ?? entry?.characterId),
+      equipment: normalizeOwnedMonsterEquipment(entry?.equipment),
+    }))
+    .filter((entry) => entry.ownedId && entry.characterId);
+
+  const loadedNextNumber = Math.max(
+    1,
+    Math.floor(number(rawData.next_owned_monster_number ?? rawData.nextOwnedMonsterNumber, 1)),
+  );
+  const nextNumberFromIds = nextSaveData.ownedMonsters.reduce((maxValue, entry) => {
+    const match = entry.ownedId.match(/(\d+)$/);
+    return match ? Math.max(maxValue, Number(match[1]) + 1) : maxValue;
+  }, 1);
+  nextSaveData.nextOwnedMonsterNumber = Math.max(loadedNextNumber, nextNumberFromIds);
+
+  migrateLegacyInitialParty(nextSaveData);
+
+  const clearedBattles = saveArrayField(
+    rawData.cleared_battles ?? rawData.clearedBattles ?? rawData.cleared_rank_battle_ids ?? rawData.clearedRankBattleIds,
+    "cleared_battles",
+  );
+  if (!clearedBattles.ok) return clearedBattles;
+
+  return {
+    ok: true,
+    saveData: nextSaveData,
+    clearedRankBattleIds: new Set(
+      clearedBattles.value
+        .map((rankBattleId) => safeText(rankBattleId))
+        .filter(Boolean),
+    ),
+  };
+}
+
+function saveArrayField(value, fieldName) {
+  if (value == null) return { ok: true, value: [] };
+  if (!Array.isArray(value)) {
+    return { ok: false, error: `${fieldName}の形式が正しくありません。` };
+  }
+  return { ok: true, value };
+}
+
+function normalizeOwnedMonsterEquipment(value) {
+  const equipment = value && typeof value === "object" && !Array.isArray(value) ? value : {};
+  return {
+    accessory: safeText(equipment.accessory),
+  };
+}
+
+function findSaveStorageSource(storageKey) {
+  const raw = readStorageValue(storageKey);
+  if (raw) return { key: storageKey, raw, legacy: false };
+
+  return { key: storageKey, raw: null, legacy: false };
+}
+
+function readStorageValue(key) {
+  try {
+    return window.localStorage?.getItem(key) || "";
+  } catch {
+    return "";
+  }
+}
+
+function setStorageValue(key, value) {
+  window.localStorage?.setItem(key, value);
+}
+
+function refreshProgressViews() {
+  syncSelectedIdsFromOwnedMonsters();
+  renderSetup();
+  updateStoryRankBattleButtons();
+  if (state.shop.open) renderBusinessShop();
+  if (els.myHousePanel && !els.myHousePanel.classList.contains("is-hidden")) {
+    ensureMyHouseSelection();
+    renderMyHouse();
+  }
+}
+
+function showSaveStatus(message, { isError = false } = {}) {
+  if (!els.myHouseSaveStatus) {
+    if (isError) console.warn(message);
+    return;
+  }
+
+  els.myHouseSaveStatus.textContent = message;
+  els.myHouseSaveStatus.classList.toggle("is-error", isError);
+  window.clearTimeout(saveStatusTimer);
+  if (!isError) {
+    saveStatusTimer = window.setTimeout(() => {
+      els.myHouseSaveStatus.textContent = "";
+      els.myHouseSaveStatus.classList.remove("is-error");
+    }, 3200);
+  }
+}
+
+function showShopMessage(message, { isError = false } = {}) {
+  if (!els.businessShopMessage) {
+    if (isError) console.warn(message);
+    return;
+  }
+
+  els.businessShopMessage.textContent = message;
+  els.businessShopMessage.classList.toggle("is-error", isError);
+  window.clearTimeout(shopMessageTimer);
+  if (!isError) {
+    shopMessageTimer = window.setTimeout(() => {
+      els.businessShopMessage.textContent = "";
+      els.businessShopMessage.classList.remove("is-error");
+    }, 3200);
+  }
 }
 
 function migrateLegacyInitialParty(saveData) {
   if (saveData.initialPartyVersion >= INITIAL_PARTY_VERSION) return;
-
-  const ownedCharacterIds = saveData.ownedMonsters.map((entry) => entry.characterId);
-  if (sameCharacterIdSet(ownedCharacterIds, LEGACY_INITIAL_PLAYER_CHARACTER_IDS)) {
-    saveData.ownedMonsters = initialPlayerCharacterIds().map((characterId, index) => ({
-      ownedId: `owned_${String(index + 1).padStart(3, "0")}`,
-      characterId,
-    }));
-    saveData.nextOwnedMonsterNumber = Math.max(saveData.nextOwnedMonsterNumber, saveData.ownedMonsters.length + 1);
-    saveData.initialPartyVersion = INITIAL_PARTY_VERSION;
-    return;
-  }
-
   saveData.initialPartyVersion = INITIAL_PARTY_VERSION;
 }
 
-function sameCharacterIdSet(leftIds, rightIds) {
-  if (leftIds.length !== rightIds.length) return false;
-  const left = [...leftIds].map((id) => safeText(id)).sort();
-  const right = [...rightIds].map((id) => safeText(id)).sort();
-  return left.every((id, index) => id === right[index]);
-}
-
-function initializeSaveDataParty() {
-  state.saveData.ownedMonsters = state.saveData.ownedMonsters.filter((entry) =>
-    state.characterMap.has(entry.characterId),
-  );
+function initializeSaveDataParty({ persist = false } = {}) {
+  state.saveData.ownedMonsters = state.saveData.ownedMonsters
+    .filter((entry) => state.characterMap.has(entry.characterId))
+    .map((entry) => ({
+      ...entry,
+      equipment: normalizeOwnedMonsterEquipment(entry.equipment),
+    }));
 
   if (!state.saveData.ownedMonsters.length) {
     state.saveData.ownedMonsters = initialPlayerCharacterIds().map((characterId) =>
@@ -2175,13 +2771,14 @@ function initializeSaveDataParty() {
   }
 
   syncSelectedIdsFromOwnedMonsters();
-  saveGameData();
+  if (persist) saveGameData();
 }
 
 function createOwnedMonster(characterId) {
   return {
     ownedId: nextOwnedMonsterId(),
     characterId,
+    equipment: normalizeOwnedMonsterEquipment(),
   };
 }
 
@@ -2438,6 +3035,7 @@ function startBattle(options = {}) {
   state.battleWinner = null;
   state.battleAnimation = null;
   state.exchange = createExchangeState();
+  state.battleInspectSide = "enemy";
   state.story.currentRankBattleId = currentBattleId;
   state.dex = {
     open: false,
@@ -2513,6 +3111,8 @@ function renderBattle() {
   const enemy = activeEnemy();
   const exchangeVisible = state.gameOver && state.battleWinner === "player";
   const playerPendingMove = Boolean(pendingSkillFor(player));
+  const inspectSide = state.battleInspectSide === "player" ? "player" : "enemy";
+  const inspectFighter = inspectSide === "player" ? player : enemy;
 
   els.enemyHud.innerHTML = renderHud(enemy, state.enemyTeam, state.enemyActiveIndex, "相手", "enemy");
   els.playerHud.innerHTML = renderHud(player, state.playerTeam, state.playerActiveIndex, "自分", "player");
@@ -2546,7 +3146,7 @@ function renderBattle() {
 
   renderMoveGrid(player);
   renderSwitchGrid();
-  renderEnemyInfoPanel(enemy);
+  renderEnemyInfoPanel(inspectFighter, inspectSide);
   renderExchangePanel();
 }
 
@@ -2659,9 +3259,18 @@ function bindSpriteStatusClicks() {
 function showFighterStatus(side) {
   const fighter = activeBySide(side);
   if (!fighter) return;
+  if (state.story.currentRankBattleId) {
+    if (state.busy || state.gameOver || state.pendingSwitchSide) return;
+    state.battleInspectSide = side === "player" ? "player" : "enemy";
+    state.commandMode = "enemyInfo";
+    renderBattle();
+    return;
+  }
+
   const owner = side === "player" ? "自分" : "相手";
   if (side === "enemy") {
     if (state.busy || state.gameOver || state.pendingSwitchSide) return;
+    state.battleInspectSide = "enemy";
     state.commandMode = "enemyInfo";
     renderBattle();
     return;
@@ -2672,17 +3281,45 @@ function showFighterStatus(side) {
   );
 }
 
-function renderEnemyInfoPanel(enemy) {
+function renderEnemyInfoPanel(enemy, inspectSide = "enemy") {
   if (!els.enemyInfoPanel) return;
   if (!enemy) {
     els.enemyInfoPanel.innerHTML = "";
     return;
   }
 
+  const isStoryBattle = Boolean(state.story.currentRankBattleId);
+  const canViewDetails = !isStoryBattle || canViewStoryBattleEncyclopedia(enemy.id);
+  const inspectTitle = inspectSide === "player" ? "自分情報" : "相手情報";
+
+  if (!canViewDetails) {
+    els.enemyInfoPanel.innerHTML = `
+      <div class="battle-inspect-header">
+        <div>
+          <div class="detail-title">${escapeHtml(inspectTitle)}</div>
+          <div class="detail-subtitle">？？？？？</div>
+        </div>
+        <button class="small-button battle-inspect-back" type="button">戻る</button>
+      </div>
+      <div class="battle-inspect-body battle-inspect-locked">
+        <div class="detail-image-frame battle-inspect-image-frame">
+          <img class="detail-image" src="${escapeHtml(enemy.base.imageSrc)}" alt="？？？？？" />
+        </div>
+        <div class="dex-data-row battle-inspect-row">
+          <span>能力値</span>
+          <strong>？？？</strong>
+        </div>
+        <div class="command-note">対応する図鑑を購入すると情報を確認できます</div>
+      </div>
+    `;
+    bindBattleInspectBackButton();
+    return;
+  }
+
   els.enemyInfoPanel.innerHTML = `
     <div class="battle-inspect-header">
       <div>
-        <div class="detail-title">相手情報</div>
+        <div class="detail-title">${escapeHtml(inspectTitle)}</div>
         <div class="detail-subtitle">${escapeHtml(enemy.name)}</div>
       </div>
       <button class="small-button battle-inspect-back" type="button">戻る</button>
@@ -2699,7 +3336,11 @@ function renderEnemyInfoPanel(enemy) {
     </div>
   `;
 
-  els.enemyInfoPanel.querySelector(".battle-inspect-back").addEventListener("click", () => {
+  bindBattleInspectBackButton();
+}
+
+function bindBattleInspectBackButton() {
+  els.enemyInfoPanel.querySelector(".battle-inspect-back")?.addEventListener("click", () => {
     state.commandMode = "fight";
     renderBattle();
   });
