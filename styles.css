@@ -3196,11 +3196,24 @@ button {
   text-align: left;
 }
 
+.my-house-monster-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: stretch;
+}
+
 .my-house-monster-card {
   display: grid;
   grid-template-columns: 82px minmax(0, 1fr);
   gap: 10px;
   align-items: center;
+}
+
+.my-house-first-button {
+  min-width: 86px;
+  padding-inline: 10px;
+  white-space: nowrap;
 }
 
 .my-house-monster-card.is-selected,
@@ -3490,6 +3503,10 @@ button {
 
   .my-house-monster-card {
     grid-template-columns: 72px minmax(0, 1fr);
+  }
+
+  .my-house-monster-row {
+    grid-template-columns: 1fr;
   }
 
   .my-house-monster-image-frame {

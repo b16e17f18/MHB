@@ -608,6 +608,13 @@ function renderMyHouse() {
     });
   }
 
+  for (const button of els.myHouseMonsterList.querySelectorAll("[data-my-house-move-first]")) {
+    button.addEventListener("click", () => {
+      if (button.disabled) return;
+      moveOwnedMonsterToFront(button.dataset.myHouseMoveFirst);
+    });
+  }
+
   for (const button of els.myHouseBookList.querySelectorAll("[data-my-house-book-id]")) {
     button.addEventListener("click", () => {
       state.myHouse.selectedBookId = button.dataset.myHouseBookId;
@@ -713,25 +720,49 @@ function canViewStoryBattleEncyclopedia(characterId) {
 function renderMyHouseMonsterCard(entry) {
   const character = entry.character;
   const selected = state.myHouse.detailMode === "owned" && entry.ownedId === state.myHouse.selectedOwnedId;
+  const isFirst = state.saveData.ownedMonsters[0]?.ownedId === entry.ownedId;
   return `
-    <button class="my-house-monster-card ${selected ? "is-selected" : ""}" type="button" data-my-house-owned-id="${escapeHtml(entry.ownedId)}">
-      <span class="my-house-monster-image-frame">
-        <img class="my-house-monster-image" src="${escapeHtml(character.imageSrc)}" alt="${escapeHtml(character.name)}" />
-      </span>
-      <span class="my-house-monster-info">
-        <strong class="my-house-monster-name">${escapeHtml(character.name)}</strong>
-        <span class="my-house-monster-meta">${elementPill(character.element)} <span>slot ${slotMarks(character.slot)}</span></span>
-        <span class="my-house-mini-stats">
-          <span>HP ${escapeHtml(character.hp)}</span>
-          <span>攻 ${escapeHtml(character.phy_atk)}</span>
-          <span>防 ${escapeHtml(character.phy_def)}</span>
-          <span>特攻 ${escapeHtml(character.sp_atk)}</span>
-          <span>特防 ${escapeHtml(character.sp_def)}</span>
-          <span>速 ${escapeHtml(character.speed)}</span>
+    <div class="my-house-monster-row">
+      <button class="my-house-monster-card ${selected ? "is-selected" : ""}" type="button" data-my-house-owned-id="${escapeHtml(entry.ownedId)}">
+        <span class="my-house-monster-image-frame">
+          <img class="my-house-monster-image" src="${escapeHtml(character.imageSrc)}" alt="${escapeHtml(character.name)}" />
         </span>
-      </span>
-    </button>
+        <span class="my-house-monster-info">
+          <strong class="my-house-monster-name">${escapeHtml(character.name)}</strong>
+          <span class="my-house-monster-meta">${elementPill(character.element)} <span>slot ${slotMarks(character.slot)}</span></span>
+          <span class="my-house-mini-stats">
+            <span>HP ${escapeHtml(character.hp)}</span>
+            <span>攻 ${escapeHtml(character.phy_atk)}</span>
+            <span>防 ${escapeHtml(character.phy_def)}</span>
+            <span>特攻 ${escapeHtml(character.sp_atk)}</span>
+            <span>特防 ${escapeHtml(character.sp_def)}</span>
+            <span>速 ${escapeHtml(character.speed)}</span>
+          </span>
+        </span>
+      </button>
+      <button class="small-button my-house-first-button" type="button" data-my-house-move-first="${escapeHtml(entry.ownedId)}" ${isFirst ? "disabled" : ""}>
+        先頭にする
+      </button>
+    </div>
   `;
+}
+
+function moveOwnedMonsterToFront(ownedId) {
+  const index = state.saveData.ownedMonsters.findIndex((entry) => entry.ownedId === ownedId);
+  if (index <= 0) return;
+
+  const [ownedMonster] = state.saveData.ownedMonsters.splice(index, 1);
+  state.saveData.ownedMonsters.unshift(ownedMonster);
+  state.myHouse.selectedOwnedId = ownedMonster.ownedId;
+  state.myHouse.detailMode = "owned";
+  state.myHouse.accessoryEditorOwnedId = null;
+  syncSelectedIdsFromOwnedMonsters();
+  saveGameData();
+  renderSetup();
+  renderMyHouse();
+
+  const characterName = state.characterMap.get(ownedMonster.characterId)?.name || "モンスター";
+  showSaveStatus(`${characterName}を先頭にしました。手動セーブで保存できます。`);
 }
 
 function renderMyHouseMonsterDetail(character, ownedMonster = null) {
@@ -1155,7 +1186,7 @@ function renderShopItem(item) {
     book?.description ||
     (monster ? `${monster.name}を仲間にします。` : "") ||
     (equipment ? equipment.text || accessoryRequirementText(equipment) : "");
-  const stockLabel = isEquipmentItem ? `所持数 ${ownedEquipmentCount(item.content_id)}` : `在庫 ${stock}`;
+  const stockLabel = `在庫 ${stock}`;
 
   return `
     <article class="shop-item">
