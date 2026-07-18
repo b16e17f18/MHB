@@ -63,6 +63,7 @@ const INITIAL_STORY_RANK_BATTLE_IDS = new Set(["battle_f_1"]);
 const MANUAL_SAVE_STORAGE_KEYS = ["mhb_save_1", "mhb_save_2", "mhb_save_3"];
 const INITIAL_MONEY = 1500;
 const BUSINESS_SHOP_ID = "business";
+const BUSINESS2_SHOP_ID = "business2";
 const INITIAL_PLAYER_CHARACTER_IDS = ["character_001", "character_004"];
 const INITIAL_PARTY_VERSION = 1;
 const EQUIPMENT_TYPE_ACCESSORY = "accessory";
@@ -220,6 +221,9 @@ const state = {
     accessoryEditorOwnedId: null,
     detailMode: "owned",
   },
+  myParty: {
+    selectedOwnedId: null,
+  },
   selectedIds: [],
   playerTeam: [],
   enemyTeam: [],
@@ -295,6 +299,7 @@ function createSaveData() {
 function createShopState() {
   return {
     open: false,
+    currentShopId: BUSINESS_SHOP_ID,
     exchangeEntryId: null,
     offerOwnedIds: [],
   };
@@ -309,10 +314,15 @@ document.addEventListener("DOMContentLoaded", () => {
     storyModeButton: document.querySelector("#storyModeButton"),
     battleModeButton: document.querySelector("#battleModeButton"),
     titleMessage: document.querySelector("#titleMessage"),
+    storyTravelStage: document.querySelector("#storyTravelStage"),
+    travelBackButton: document.querySelector("#travelBackButton"),
+    travelMyHouseButton: document.querySelector("#travelMyHouseButton"),
+    travelBusinessButton: document.querySelector("#travelBusinessButton"),
+    travelBusiness2Button: document.querySelector("#travelBusiness2Button"),
+    travelMainButton: document.querySelector("#travelMainButton"),
     storyBackButton: document.querySelector("#storyBackButton"),
     storyMainStage: document.querySelector("#storyMainStage"),
-    storyBusinessButton: document.querySelector("#storyBusinessButton"),
-    storyMyHouseButton: document.querySelector("#storyMyHouseButton"),
+    storyMyPartyButton: document.querySelector("#storyMyPartyButton"),
     storyRankBattleButtons: document.querySelector("#storyRankBattleButtons"),
     storyBattleConfirmOverlay: document.querySelector("#storyBattleConfirmOverlay"),
     storyBattleConfirmText: document.querySelector("#storyBattleConfirmText"),
@@ -322,13 +332,22 @@ document.addEventListener("DOMContentLoaded", () => {
     storyMap: document.querySelector("#storyMap"),
     storyTiles: document.querySelector("#storyTiles"),
     storyPlayer: document.querySelector("#storyPlayer"),
+    businessScreen: document.querySelector("#businessScreen"),
+    business2Screen: document.querySelector("#business2Screen"),
+    business2BackButton: document.querySelector("#business2BackButton"),
     businessShopPanel: document.querySelector("#businessShopPanel"),
     businessShopBackButton: document.querySelector("#businessShopBackButton"),
+    businessShopTitle: document.querySelector("#businessShopTitle"),
     businessShopMoney: document.querySelector("#businessShopMoney"),
     businessShopSlots: document.querySelector("#businessShopSlots"),
     businessShopMessage: document.querySelector("#businessShopMessage"),
     businessShopItems: document.querySelector("#businessShopItems"),
     businessShopExchangePanel: document.querySelector("#businessShopExchangePanel"),
+    myPartyPanel: document.querySelector("#myPartyPanel"),
+    myPartyBackButton: document.querySelector("#myPartyBackButton"),
+    myPartyMonsterList: document.querySelector("#myPartyMonsterList"),
+    myPartyDetailPanel: document.querySelector("#myPartyDetailPanel"),
+    myHouseScreen: document.querySelector("#myHouseScreen"),
     myHousePanel: document.querySelector("#myHousePanel"),
     myHouseBackButton: document.querySelector("#myHouseBackButton"),
     myHouseMonsterList: document.querySelector("#myHouseMonsterList"),
@@ -374,9 +393,15 @@ document.addEventListener("DOMContentLoaded", () => {
 function bindEvents() {
   els.storyModeButton.addEventListener("click", startStoryMode);
   els.battleModeButton.addEventListener("click", showBattleSetup);
-  els.storyBackButton.addEventListener("click", showTitleView);
-  els.storyBusinessButton?.addEventListener("click", showBusinessShop);
-  els.storyMyHouseButton?.addEventListener("click", showMyHouse);
+  els.travelBackButton?.addEventListener("click", showTitleView);
+  els.travelMyHouseButton?.addEventListener("click", showMyHouse);
+  els.travelBusinessButton?.addEventListener("click", showBusinessShop);
+  els.travelBusiness2Button?.addEventListener("click", showBusiness2);
+  els.travelMainButton?.addEventListener("click", showStoryMain);
+  els.storyBackButton.addEventListener("click", showStoryTravel);
+  els.storyMyPartyButton?.addEventListener("click", showMyParty);
+  els.myPartyBackButton?.addEventListener("click", hideMyParty);
+  els.business2BackButton?.addEventListener("click", hideBusiness2);
   els.businessShopBackButton?.addEventListener("click", hideBusinessShop);
   els.myHouseBackButton?.addEventListener("click", hideMyHouse);
   els.myHouseSaveSlots?.addEventListener("click", (event) => {
@@ -450,14 +475,16 @@ function bindEvents() {
 function showTitleView() {
   state.story.active = false;
   state.shop.open = false;
-  hideBusinessShop();
-  hideMyHouse();
+  hideBusinessShop({ restoreTravel: false });
+  hideMyHouse({ restoreTravel: false });
+  hideBusiness2({ restoreTravel: false });
   clearStoryWalkTimer();
   hideRankBattleConfirm();
   state.story.currentRankBattleId = null;
   els.battleView.classList.add("is-hidden");
   els.setupView.classList.add("is-hidden");
   els.storyView.classList.add("is-hidden");
+  setStoryStage("travel");
   els.titleView.classList.remove("is-hidden");
   clearTitleMessage();
 }
@@ -465,12 +492,14 @@ function showTitleView() {
 function showStoryPreparing() {
   state.story.active = false;
   state.shop.open = false;
-  hideBusinessShop();
-  hideMyHouse();
+  hideBusinessShop({ restoreTravel: false });
+  hideMyHouse({ restoreTravel: false });
+  hideBusiness2({ restoreTravel: false });
   clearStoryWalkTimer();
   els.setupView.classList.add("is-hidden");
   els.battleView.classList.add("is-hidden");
   els.storyView.classList.add("is-hidden");
+  setStoryStage("travel");
   els.titleView.classList.remove("is-hidden");
   els.titleMessage.classList.remove("is-hidden");
 }
@@ -478,14 +507,16 @@ function showStoryPreparing() {
 function showBattleSetup() {
   state.story.active = false;
   state.shop.open = false;
-  hideBusinessShop();
-  hideMyHouse();
+  hideBusinessShop({ restoreTravel: false });
+  hideMyHouse({ restoreTravel: false });
+  hideBusiness2({ restoreTravel: false });
   clearStoryWalkTimer();
   hideRankBattleConfirm();
   state.story.currentRankBattleId = null;
   clearTitleMessage();
   els.titleView.classList.add("is-hidden");
   els.storyView.classList.add("is-hidden");
+  setStoryStage("travel");
   els.battleView.classList.add("is-hidden");
   els.setupView.classList.remove("is-hidden");
   renderSetup();
@@ -498,8 +529,9 @@ function clearTitleMessage() {
 async function startStoryMode() {
   state.story.active = false;
   state.shop.open = false;
-  hideBusinessShop();
-  hideMyHouse();
+  hideBusinessShop({ restoreTravel: false });
+  hideMyHouse({ restoreTravel: false });
+  hideBusiness2({ restoreTravel: false });
   clearStoryWalkTimer();
   hideRankBattleConfirm();
   clearTitleMessage();
@@ -507,8 +539,80 @@ async function startStoryMode() {
   els.setupView.classList.add("is-hidden");
   els.battleView.classList.add("is-hidden");
   els.storyView.classList.remove("is-hidden");
+  showStoryTravel({ focus: true });
+}
+
+function setStoryStage(stage) {
+  els.storyTravelStage?.classList.toggle("is-hidden", stage !== "travel");
+  els.travelBackButton?.classList.toggle("is-hidden", stage !== "travel");
+  els.storyMainStage?.classList.toggle("is-hidden", stage !== "main");
+  els.storyBackButton?.classList.toggle("is-hidden", stage !== "main");
+  els.myPartyPanel?.classList.toggle("is-hidden", stage !== "myParty");
+  els.businessScreen?.classList.toggle("is-hidden", stage !== "business");
+  els.business2Screen?.classList.toggle("is-hidden", stage !== "business2");
+  els.myHouseScreen?.classList.toggle("is-hidden", stage !== "myHouse");
+}
+
+function showStoryFrame() {
+  clearTitleMessage();
+  els.titleView.classList.add("is-hidden");
+  els.setupView.classList.add("is-hidden");
+  els.battleView.classList.add("is-hidden");
+  els.storyView.classList.remove("is-hidden");
+}
+
+function showStoryTravel({ focus = true } = {}) {
+  state.story.active = false;
+  state.shop.open = false;
+  state.shop.exchangeEntryId = null;
+  state.shop.offerOwnedIds = [];
+  clearStoryWalkTimer();
+  hideRankBattleConfirm();
+  els.businessShopPanel?.classList.add("is-hidden");
+  els.myHousePanel?.classList.add("is-hidden");
+  els.myPartyPanel?.classList.add("is-hidden");
+  showStoryFrame();
+  setStoryStage("travel");
+  if (focus) els.travelBackButton?.focus({ preventScroll: true });
+}
+
+function showStoryMain({ focus = true } = {}) {
+  state.story.active = false;
+  state.shop.open = false;
+  state.shop.exchangeEntryId = null;
+  state.shop.offerOwnedIds = [];
+  clearStoryWalkTimer();
+  hideRankBattleConfirm();
+  els.businessShopPanel?.classList.add("is-hidden");
+  els.myHousePanel?.classList.add("is-hidden");
+  els.myPartyPanel?.classList.add("is-hidden");
+  showStoryFrame();
+  setStoryStage("main");
   updateStoryRankBattleButtons();
-  els.storyBackButton.focus({ preventScroll: true });
+  if (focus) els.storyBackButton.focus({ preventScroll: true });
+}
+
+async function showMyParty() {
+  if (gameDataPromise) {
+    await gameDataPromise;
+  }
+
+  state.story.active = false;
+  state.shop.open = false;
+  state.shop.exchangeEntryId = null;
+  state.shop.offerOwnedIds = [];
+  initializeSaveDataParty({ persist: false });
+  ensureMyPartySelection();
+  hideRankBattleConfirm();
+  showStoryFrame();
+  setStoryStage("myParty");
+  renderMyParty();
+  els.myPartyBackButton?.focus({ preventScroll: true });
+}
+
+function hideMyParty() {
+  els.myPartyPanel?.classList.add("is-hidden");
+  showStoryMain();
 }
 
 async function showBusinessShop() {
@@ -516,26 +620,66 @@ async function showBusinessShop() {
     await gameDataPromise;
   }
 
-  hideMyHouse();
+  hideMyHouse({ restoreTravel: false });
+  hideBusiness2({ restoreTravel: false });
   initializeSaveDataParty({ persist: false });
+  attachBusinessShopPanel(els.businessScreen);
   state.shop.open = true;
+  state.shop.currentShopId = BUSINESS_SHOP_ID;
   state.shop.exchangeEntryId = null;
   state.shop.offerOwnedIds = [];
   hideRankBattleConfirm();
-  els.storyMainStage?.classList.add("is-hidden");
-  els.storyBackButton?.classList.add("is-hidden");
+  showStoryFrame();
+  setStoryStage("business");
   els.businessShopPanel?.classList.remove("is-hidden");
   renderBusinessShop();
   els.businessShopBackButton?.focus({ preventScroll: true });
 }
 
-function hideBusinessShop() {
+function hideBusinessShop({ restoreTravel = true } = {}) {
   state.shop.open = false;
   state.shop.exchangeEntryId = null;
   state.shop.offerOwnedIds = [];
   els.businessShopPanel?.classList.add("is-hidden");
-  els.storyMainStage?.classList.remove("is-hidden");
-  els.storyBackButton?.classList.remove("is-hidden");
+  if (restoreTravel) showStoryTravel();
+}
+
+async function showBusiness2() {
+  if (gameDataPromise) {
+    await gameDataPromise;
+  }
+
+  state.story.active = false;
+  hideBusinessShop({ restoreTravel: false });
+  hideMyHouse({ restoreTravel: false });
+  attachBusinessShopPanel(els.business2Screen);
+  initializeSaveDataParty({ persist: false });
+  state.shop.open = true;
+  state.shop.currentShopId = BUSINESS2_SHOP_ID;
+  state.shop.exchangeEntryId = null;
+  state.shop.offerOwnedIds = [];
+  clearStoryWalkTimer();
+  hideRankBattleConfirm();
+  showStoryFrame();
+  setStoryStage("business2");
+  els.businessShopPanel?.classList.remove("is-hidden");
+  renderBusinessShop();
+  els.businessShopBackButton?.focus({ preventScroll: true });
+}
+
+function hideBusiness2({ restoreTravel = true } = {}) {
+  state.shop.open = false;
+  state.shop.exchangeEntryId = null;
+  state.shop.offerOwnedIds = [];
+  els.businessShopPanel?.classList.add("is-hidden");
+  if (restoreTravel) showStoryTravel();
+}
+
+function attachBusinessShopPanel(container) {
+  if (!container || !els.businessShopPanel) return;
+  if (els.businessShopPanel.parentElement !== container) {
+    container.appendChild(els.businessShopPanel);
+  }
 }
 
 async function showMyHouse() {
@@ -543,21 +687,21 @@ async function showMyHouse() {
     await gameDataPromise;
   }
 
-  hideBusinessShop();
+  hideBusinessShop({ restoreTravel: false });
+  hideBusiness2({ restoreTravel: false });
   initializeSaveDataParty({ persist: false });
   ensureMyHouseSelection();
   hideRankBattleConfirm();
-  els.storyMainStage?.classList.add("is-hidden");
-  els.storyBackButton?.classList.add("is-hidden");
+  showStoryFrame();
+  setStoryStage("myHouse");
   els.myHousePanel?.classList.remove("is-hidden");
   renderMyHouse();
   els.myHouseBackButton?.focus({ preventScroll: true });
 }
 
-function hideMyHouse() {
+function hideMyHouse({ restoreTravel = true } = {}) {
   els.myHousePanel?.classList.add("is-hidden");
-  els.storyMainStage?.classList.remove("is-hidden");
-  els.storyBackButton?.classList.remove("is-hidden");
+  if (restoreTravel) showStoryTravel();
 }
 
 function renderMyHouse() {
@@ -654,6 +798,59 @@ function renderMyHouse() {
   }
 }
 
+function renderMyParty() {
+  if (!els.myPartyPanel) return;
+
+  ensureMyPartySelection();
+
+  const monsterEntries = myHouseMonsterEntries();
+  const selectedMonster = monsterEntries.find((entry) => entry.ownedId === state.myParty.selectedOwnedId);
+
+  els.myPartyMonsterList.innerHTML = monsterEntries.length
+    ? monsterEntries.map((entry) => renderMyPartyMonsterCard(entry)).join("")
+    : `<div class="shop-empty">手持ちモンスターはいません。</div>`;
+
+  els.myPartyDetailPanel.innerHTML = selectedMonster
+    ? renderMyHouseMonsterDetail(selectedMonster.character, selectedMonster.ownedMonster)
+    : `<div class="my-house-book-empty">モンスターを選択してください。</div>`;
+
+  for (const button of els.myPartyMonsterList.querySelectorAll("[data-my-party-owned-id]")) {
+    button.addEventListener("click", () => {
+      state.myParty.selectedOwnedId = button.dataset.myPartyOwnedId;
+      state.myHouse.selectedOwnedId = state.myParty.selectedOwnedId;
+      state.myHouse.detailMode = "owned";
+      if (state.myHouse.accessoryEditorOwnedId !== state.myParty.selectedOwnedId) {
+        state.myHouse.accessoryEditorOwnedId = null;
+      }
+      renderMyParty();
+    });
+  }
+
+  for (const button of els.myPartyMonsterList.querySelectorAll("[data-my-house-move-first]")) {
+    button.addEventListener("click", () => {
+      if (button.disabled) return;
+      moveOwnedMonsterToFront(button.dataset.myHouseMoveFirst);
+    });
+  }
+
+  for (const button of els.myPartyDetailPanel.querySelectorAll("[data-my-house-accessory-change]")) {
+    button.addEventListener("click", () => {
+      state.myHouse.accessoryEditorOwnedId =
+        state.myHouse.accessoryEditorOwnedId === button.dataset.myHouseAccessoryChange
+          ? null
+          : button.dataset.myHouseAccessoryChange;
+      renderMyParty();
+    });
+  }
+
+  for (const button of els.myPartyDetailPanel.querySelectorAll("[data-my-house-accessory-id]")) {
+    button.addEventListener("click", () => {
+      if (button.disabled) return;
+      updateOwnedMonsterAccessory(button.dataset.myHouseOwnedId, button.dataset.myHouseAccessoryId || "");
+    });
+  }
+}
+
 function ensureMyHouseSelection() {
   const monsterEntries = myHouseMonsterEntries();
   if (!monsterEntries.some((entry) => entry.ownedId === state.myHouse.selectedOwnedId)) {
@@ -674,6 +871,15 @@ function ensureMyHouseSelection() {
   if (state.myHouse.detailMode === "book" && !state.myHouse.selectedBookCharacterId) {
     state.myHouse.detailMode = state.myHouse.selectedOwnedId ? "owned" : "book";
   }
+}
+
+function ensureMyPartySelection() {
+  const monsterEntries = myHouseMonsterEntries();
+  if (!monsterEntries.some((entry) => entry.ownedId === state.myParty.selectedOwnedId)) {
+    state.myParty.selectedOwnedId = monsterEntries[0]?.ownedId ?? null;
+  }
+  state.myHouse.selectedOwnedId = state.myParty.selectedOwnedId;
+  state.myHouse.detailMode = "owned";
 }
 
 function myHouseMonsterEntries() {
@@ -747,6 +953,11 @@ function renderMyHouseMonsterCard(entry) {
   `;
 }
 
+function renderMyPartyMonsterCard(entry) {
+  return renderMyHouseMonsterCard(entry)
+    .replace(/data-my-house-owned-id/g, "data-my-party-owned-id");
+}
+
 function moveOwnedMonsterToFront(ownedId) {
   const index = state.saveData.ownedMonsters.findIndex((entry) => entry.ownedId === ownedId);
   if (index <= 0) return;
@@ -754,12 +965,14 @@ function moveOwnedMonsterToFront(ownedId) {
   const [ownedMonster] = state.saveData.ownedMonsters.splice(index, 1);
   state.saveData.ownedMonsters.unshift(ownedMonster);
   state.myHouse.selectedOwnedId = ownedMonster.ownedId;
+  state.myParty.selectedOwnedId = ownedMonster.ownedId;
   state.myHouse.detailMode = "owned";
   state.myHouse.accessoryEditorOwnedId = null;
   syncSelectedIdsFromOwnedMonsters();
   saveGameData();
   renderSetup();
-  renderMyHouse();
+  if (els.myHousePanel && !els.myHousePanel.classList.contains("is-hidden")) renderMyHouse();
+  if (els.myPartyPanel && !els.myPartyPanel.classList.contains("is-hidden")) renderMyParty();
 
   const characterName = state.characterMap.get(ownedMonster.characterId)?.name || "モンスター";
   showSaveStatus(`${characterName}を先頭にしました。手動セーブで保存できます。`);
@@ -897,7 +1110,8 @@ function updateOwnedMonsterAccessory(ownedId, accessoryId) {
   ownedMonster.equipment.accessory = nextAccessoryId;
   state.myHouse.accessoryEditorOwnedId = ownedId;
   saveGameData();
-  renderMyHouse();
+  if (els.myHousePanel && !els.myHousePanel.classList.contains("is-hidden")) renderMyHouse();
+  if (els.myPartyPanel && !els.myPartyPanel.classList.contains("is-hidden")) renderMyParty();
 }
 
 function availableAccessoryCount(equipmentId, selectedOwnedId = "") {
@@ -1135,10 +1349,14 @@ function formatSaveTimestamp(value) {
 function renderBusinessShop() {
   if (!els.businessShopPanel) return;
 
+  const shopId = currentShopId();
+  if (els.businessShopTitle) {
+    els.businessShopTitle.textContent = shopId === BUSINESS2_SHOP_ID ? "Business2" : "Business";
+  }
   els.businessShopMoney.textContent = `${state.saveData.money}`;
   els.businessShopSlots.textContent = `${ownedPartySlotTotal()} / ${TEAM_SLOT_LIMIT}`;
 
-  const items = availableShopItems(BUSINESS_SHOP_ID);
+  const items = availableShopItems(shopId);
   els.businessShopItems.innerHTML = items.length
     ? items.map(renderShopItem).join("")
     : `<div class="shop-empty">現在購入できる商品はありません。</div>`;
@@ -1148,6 +1366,10 @@ function renderBusinessShop() {
   }
 
   renderShopExchangePanel();
+}
+
+function currentShopId() {
+  return safeText(state.shop.currentShopId) || BUSINESS_SHOP_ID;
 }
 
 function availableShopItems(shopId) {
@@ -1244,7 +1466,7 @@ function setShopStock(item, stock) {
 }
 
 function handleShopPurchase(shopEntryId) {
-  const item = availableShopItems(BUSINESS_SHOP_ID).find((entry) => entry.shop_entry_id === shopEntryId);
+  const item = availableShopItems(currentShopId()).find((entry) => entry.shop_entry_id === shopEntryId);
   if (!item) return;
   const disabledReason = shopDisabledReason(item);
   if (disabledReason) {
@@ -1315,7 +1537,7 @@ function beginMonsterPurchase(item) {
 function renderShopExchangePanel() {
   if (!els.businessShopExchangePanel) return;
 
-  const item = availableShopItems(BUSINESS_SHOP_ID).find(
+  const item = availableShopItems(currentShopId()).find(
     (entry) => entry.shop_entry_id === state.shop.exchangeEntryId,
   );
   const monster = item ? state.characterMap.get(item.content_id) : null;
@@ -1586,8 +1808,9 @@ function clearStoryWalkTimer() {
 function returnToSetup() {
   state.story.active = false;
   state.shop.open = false;
-  hideBusinessShop();
-  hideMyHouse();
+  hideBusinessShop({ restoreTravel: false });
+  hideMyHouse({ restoreTravel: false });
+  hideBusiness2({ restoreTravel: false });
   clearStoryWalkTimer();
   els.titleView.classList.add("is-hidden");
   els.storyView.classList.add("is-hidden");
@@ -4618,12 +4841,7 @@ function finalizeStoryBattleVictory(rankBattleId) {
   state.commandMode = "fight";
   saveGameData();
   hideRankBattleConfirm();
-  updateStoryRankBattleButtons();
-  els.titleView.classList.add("is-hidden");
-  els.setupView.classList.add("is-hidden");
-  els.battleView.classList.add("is-hidden");
-  els.storyView.classList.remove("is-hidden");
-  els.storyBackButton.focus({ preventScroll: true });
+  showStoryMain();
 }
 
 function rankBattleRewardMoney(rankBattleId) {
