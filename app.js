@@ -64,6 +64,9 @@ const MANUAL_SAVE_STORAGE_KEYS = ["mhb_save_1", "mhb_save_2", "mhb_save_3"];
 const INITIAL_MONEY = 1500;
 const BUSINESS_SHOP_ID = "business";
 const BUSINESS2_SHOP_ID = "business2";
+const SHOP_ITEM_FILTER_BOOK = "book";
+const SHOP_ITEM_FILTER_MONSTER = "monster";
+const SHOP_ITEM_FILTER_EQUIPMENT = "equipment";
 const INITIAL_PLAYER_CHARACTER_IDS = ["character_001", "character_004"];
 const INITIAL_PARTY_VERSION = 1;
 const EQUIPMENT_TYPE_ACCESSORY = "accessory";
@@ -220,6 +223,7 @@ const state = {
     selectedOwnedId: null,
     accessoryEditorOwnedId: null,
     detailMode: "owned",
+    activeSection: null,
   },
   myParty: {
     selectedOwnedId: null,
@@ -300,6 +304,8 @@ function createShopState() {
   return {
     open: false,
     currentShopId: BUSINESS_SHOP_ID,
+    itemFilter: "",
+    confirmEntryId: null,
     exchangeEntryId: null,
     offerOwnedIds: [],
   };
@@ -333,8 +339,12 @@ document.addEventListener("DOMContentLoaded", () => {
     storyTiles: document.querySelector("#storyTiles"),
     storyPlayer: document.querySelector("#storyPlayer"),
     businessScreen: document.querySelector("#businessScreen"),
+    businessBackButton: document.querySelector("#businessBackButton"),
+    businessBookButton: document.querySelector("#businessBookButton"),
+    businessMonsterButton: document.querySelector("#businessMonsterButton"),
     business2Screen: document.querySelector("#business2Screen"),
     business2BackButton: document.querySelector("#business2BackButton"),
+    business2EquipmentButton: document.querySelector("#business2EquipmentButton"),
     businessShopPanel: document.querySelector("#businessShopPanel"),
     businessShopBackButton: document.querySelector("#businessShopBackButton"),
     businessShopTitle: document.querySelector("#businessShopTitle"),
@@ -348,6 +358,10 @@ document.addEventListener("DOMContentLoaded", () => {
     myPartyMonsterList: document.querySelector("#myPartyMonsterList"),
     myPartyDetailPanel: document.querySelector("#myPartyDetailPanel"),
     myHouseScreen: document.querySelector("#myHouseScreen"),
+    myHouseScreenBackButton: document.querySelector("#myHouseScreenBackButton"),
+    myHouseSaveLoadButton: document.querySelector("#myHouseSaveLoadButton"),
+    myHouseBookButton: document.querySelector("#myHouseBookButton"),
+    myHousePartyButton: document.querySelector("#myHousePartyButton"),
     myHousePanel: document.querySelector("#myHousePanel"),
     myHouseBackButton: document.querySelector("#myHouseBackButton"),
     myHouseMonsterList: document.querySelector("#myHouseMonsterList"),
@@ -401,9 +415,18 @@ function bindEvents() {
   els.storyBackButton.addEventListener("click", showStoryTravel);
   els.storyMyPartyButton?.addEventListener("click", showMyParty);
   els.myPartyBackButton?.addEventListener("click", hideMyParty);
+  els.storyMainStage?.addEventListener("click", handleStoryMainStageClick);
+  els.businessBackButton?.addEventListener("click", hideBusinessShop);
+  els.businessBookButton?.addEventListener("click", () => openBusinessShop(SHOP_ITEM_FILTER_BOOK));
+  els.businessMonsterButton?.addEventListener("click", () => openBusinessShop(SHOP_ITEM_FILTER_MONSTER));
   els.business2BackButton?.addEventListener("click", hideBusiness2);
-  els.businessShopBackButton?.addEventListener("click", hideBusinessShop);
-  els.myHouseBackButton?.addEventListener("click", hideMyHouse);
+  els.business2EquipmentButton?.addEventListener("click", openBusiness2Shop);
+  els.businessShopBackButton?.addEventListener("click", closeBusinessShopPanel);
+  els.myHouseScreenBackButton?.addEventListener("click", hideMyHouse);
+  els.myHouseSaveLoadButton?.addEventListener("click", () => showMyHouseSection("save"));
+  els.myHouseBookButton?.addEventListener("click", () => showMyHouseSection("books"));
+  els.myHousePartyButton?.addEventListener("click", () => showMyHouseSection("party"));
+  els.myHouseBackButton?.addEventListener("click", hideMyHousePanel);
   els.myHouseSaveSlots?.addEventListener("click", (event) => {
     const button = event.target.closest("[data-manual-save-slot]");
     if (!button || !els.myHouseSaveSlots.contains(button)) return;
@@ -564,6 +587,7 @@ function showStoryFrame() {
 function showStoryTravel({ focus = true } = {}) {
   state.story.active = false;
   state.shop.open = false;
+  state.shop.confirmEntryId = null;
   state.shop.exchangeEntryId = null;
   state.shop.offerOwnedIds = [];
   clearStoryWalkTimer();
@@ -579,6 +603,7 @@ function showStoryTravel({ focus = true } = {}) {
 function showStoryMain({ focus = true } = {}) {
   state.story.active = false;
   state.shop.open = false;
+  state.shop.confirmEntryId = null;
   state.shop.exchangeEntryId = null;
   state.shop.offerOwnedIds = [];
   clearStoryWalkTimer();
@@ -599,6 +624,7 @@ async function showMyParty() {
 
   state.story.active = false;
   state.shop.open = false;
+  state.shop.confirmEntryId = null;
   state.shop.exchangeEntryId = null;
   state.shop.offerOwnedIds = [];
   initializeSaveDataParty({ persist: false });
@@ -620,17 +646,36 @@ async function showBusinessShop() {
     await gameDataPromise;
   }
 
+  state.story.active = false;
   hideMyHouse({ restoreTravel: false });
   hideBusiness2({ restoreTravel: false });
   initializeSaveDataParty({ persist: false });
   attachBusinessShopPanel(els.businessScreen);
-  state.shop.open = true;
+  state.shop.open = false;
   state.shop.currentShopId = BUSINESS_SHOP_ID;
+  state.shop.itemFilter = "";
+  state.shop.confirmEntryId = null;
   state.shop.exchangeEntryId = null;
   state.shop.offerOwnedIds = [];
   hideRankBattleConfirm();
   showStoryFrame();
   setStoryStage("business");
+  els.businessShopPanel?.classList.add("is-hidden");
+  els.businessBackButton?.focus({ preventScroll: true });
+}
+
+async function openBusinessShop(itemFilter) {
+  if (gameDataPromise) {
+    await gameDataPromise;
+  }
+
+  attachBusinessShopPanel(els.businessScreen);
+  state.shop.open = true;
+  state.shop.currentShopId = BUSINESS_SHOP_ID;
+  state.shop.itemFilter = itemFilter;
+  state.shop.confirmEntryId = null;
+  state.shop.exchangeEntryId = null;
+  state.shop.offerOwnedIds = [];
   els.businessShopPanel?.classList.remove("is-hidden");
   renderBusinessShop();
   els.businessShopBackButton?.focus({ preventScroll: true });
@@ -638,6 +683,8 @@ async function showBusinessShop() {
 
 function hideBusinessShop({ restoreTravel = true } = {}) {
   state.shop.open = false;
+  state.shop.itemFilter = "";
+  state.shop.confirmEntryId = null;
   state.shop.exchangeEntryId = null;
   state.shop.offerOwnedIds = [];
   els.businessShopPanel?.classList.add("is-hidden");
@@ -654,14 +701,32 @@ async function showBusiness2() {
   hideMyHouse({ restoreTravel: false });
   attachBusinessShopPanel(els.business2Screen);
   initializeSaveDataParty({ persist: false });
-  state.shop.open = true;
+  state.shop.open = false;
   state.shop.currentShopId = BUSINESS2_SHOP_ID;
+  state.shop.itemFilter = SHOP_ITEM_FILTER_EQUIPMENT;
+  state.shop.confirmEntryId = null;
   state.shop.exchangeEntryId = null;
   state.shop.offerOwnedIds = [];
   clearStoryWalkTimer();
   hideRankBattleConfirm();
   showStoryFrame();
   setStoryStage("business2");
+  els.businessShopPanel?.classList.add("is-hidden");
+  els.business2BackButton?.focus({ preventScroll: true });
+}
+
+async function openBusiness2Shop() {
+  if (gameDataPromise) {
+    await gameDataPromise;
+  }
+
+  attachBusinessShopPanel(els.business2Screen);
+  state.shop.open = true;
+  state.shop.currentShopId = BUSINESS2_SHOP_ID;
+  state.shop.itemFilter = SHOP_ITEM_FILTER_EQUIPMENT;
+  state.shop.confirmEntryId = null;
+  state.shop.exchangeEntryId = null;
+  state.shop.offerOwnedIds = [];
   els.businessShopPanel?.classList.remove("is-hidden");
   renderBusinessShop();
   els.businessShopBackButton?.focus({ preventScroll: true });
@@ -669,10 +734,26 @@ async function showBusiness2() {
 
 function hideBusiness2({ restoreTravel = true } = {}) {
   state.shop.open = false;
+  state.shop.itemFilter = "";
+  state.shop.confirmEntryId = null;
   state.shop.exchangeEntryId = null;
   state.shop.offerOwnedIds = [];
   els.businessShopPanel?.classList.add("is-hidden");
   if (restoreTravel) showStoryTravel();
+}
+
+function closeBusinessShopPanel() {
+  const shopId = currentShopId();
+  state.shop.open = false;
+  state.shop.confirmEntryId = null;
+  state.shop.exchangeEntryId = null;
+  state.shop.offerOwnedIds = [];
+  els.businessShopPanel?.classList.add("is-hidden");
+  if (shopId === BUSINESS2_SHOP_ID) {
+    els.business2BackButton?.focus({ preventScroll: true });
+  } else {
+    els.businessBackButton?.focus({ preventScroll: true });
+  }
 }
 
 function attachBusinessShopPanel(container) {
@@ -691,23 +772,54 @@ async function showMyHouse() {
   hideBusiness2({ restoreTravel: false });
   initializeSaveDataParty({ persist: false });
   ensureMyHouseSelection();
+  state.myHouse.activeSection = null;
   hideRankBattleConfirm();
   showStoryFrame();
   setStoryStage("myHouse");
-  els.myHousePanel?.classList.remove("is-hidden");
-  renderMyHouse();
-  els.myHouseBackButton?.focus({ preventScroll: true });
+  hideMyHousePanel({ focus: false });
+  els.myHouseScreenBackButton?.focus({ preventScroll: true });
 }
 
 function hideMyHouse({ restoreTravel = true } = {}) {
+  state.myHouse.activeSection = null;
   els.myHousePanel?.classList.add("is-hidden");
   if (restoreTravel) showStoryTravel();
+}
+
+function hideMyHousePanel({ focus = true } = {}) {
+  state.myHouse.activeSection = null;
+  state.myHouse.accessoryEditorOwnedId = null;
+  els.myHousePanel?.classList.add("is-hidden");
+  if (focus) els.myHouseScreenBackButton?.focus({ preventScroll: true });
+}
+
+function showMyHouseSection(section) {
+  const nextSection = ["save", "books", "party"].includes(section) ? section : "party";
+  state.myHouse.activeSection = nextSection;
+  if (nextSection === "books") {
+    state.myHouse.detailMode = "book";
+  } else if (nextSection === "party") {
+    state.myHouse.detailMode = "owned";
+  }
+  ensureMyHouseSelection();
+  els.myHousePanel?.classList.remove("is-hidden");
+  renderMyHouse();
+  els.myHouseBackButton?.focus({ preventScroll: true });
 }
 
 function renderMyHouse() {
   if (!els.myHousePanel) return;
 
   ensureMyHouseSelection();
+  const activeSection = state.myHouse.activeSection || "party";
+  if (activeSection === "books") {
+    state.myHouse.detailMode = "book";
+  } else if (activeSection === "party") {
+    state.myHouse.detailMode = "owned";
+  }
+  els.myHousePanel.classList.toggle("my-house-mode-save", activeSection === "save");
+  els.myHousePanel.classList.toggle("my-house-mode-books", activeSection === "books");
+  els.myHousePanel.classList.toggle("my-house-mode-party", activeSection === "party");
 
   const monsterEntries = myHouseMonsterEntries();
   const ownedBooks = myHouseOwnedBooks();
@@ -1350,9 +1462,11 @@ function renderBusinessShop() {
   if (!els.businessShopPanel) return;
 
   const shopId = currentShopId();
+  const shopTitle = businessShopTitle(shopId, currentShopItemFilter());
   if (els.businessShopTitle) {
-    els.businessShopTitle.textContent = shopId === BUSINESS2_SHOP_ID ? "Business2" : "Business";
+    els.businessShopTitle.textContent = shopTitle;
   }
+  els.businessShopPanel.setAttribute("aria-label", shopTitle);
   els.businessShopMoney.textContent = `${state.saveData.money}`;
   els.businessShopSlots.textContent = `${ownedPartySlotTotal()} / ${TEAM_SLOT_LIMIT}`;
 
@@ -1372,14 +1486,32 @@ function currentShopId() {
   return safeText(state.shop.currentShopId) || BUSINESS_SHOP_ID;
 }
 
+function currentShopItemFilter() {
+  return safeText(state.shop.itemFilter);
+}
+
+function businessShopTitle(shopId, itemFilter) {
+  if (shopId === BUSINESS2_SHOP_ID) return "工房";
+  if (itemFilter === SHOP_ITEM_FILTER_BOOK) return "図鑑の購入";
+  return "モンスター取引所";
+}
+
 function availableShopItems(shopId) {
+  const itemFilter = currentShopItemFilter();
   return state.shopItems
     .filter((item) => item.shop_id === shopId)
     .filter((item) => item.item_type && item.content_id)
     .filter((item) => item.item_type === "book" || item.item_type === "monster" || EQUIPMENT_ITEM_TYPES.has(item.item_type))
+    .filter((item) => shopItemMatchesFilter(item, itemFilter))
     .filter((item) => shopContentExists(item))
     .filter((item) => shopUnlockMet(item.unlock_condition))
     .sort((a, b) => a.display_order - b.display_order);
+}
+
+function shopItemMatchesFilter(item, itemFilter) {
+  if (!itemFilter) return true;
+  if (itemFilter === SHOP_ITEM_FILTER_EQUIPMENT) return EQUIPMENT_ITEM_TYPES.has(item.item_type);
+  return item.item_type === itemFilter;
 }
 
 function shopContentExists(item) {
@@ -1475,16 +1607,14 @@ function handleShopPurchase(shopEntryId) {
   }
 
   if (item.item_type === "book") {
+    state.shop.confirmEntryId = null;
+    state.shop.exchangeEntryId = null;
+    state.shop.offerOwnedIds = [];
     purchaseBook(item);
     return;
   }
 
-  if (EQUIPMENT_ITEM_TYPES.has(item.item_type)) {
-    purchaseEquipment(item);
-    return;
-  }
-
-  beginMonsterPurchase(item);
+  beginShopPurchaseConfirm(item);
 }
 
 function purchaseBook(item) {
@@ -1496,6 +1626,28 @@ function purchaseBook(item) {
   saveGameData();
   showShopMessage(`${shopItemName(item)}を購入しました。`);
   renderBusinessShop();
+}
+
+function beginShopPurchaseConfirm(item) {
+  if (!item || (item.item_type !== "monster" && !EQUIPMENT_ITEM_TYPES.has(item.item_type))) return;
+  state.shop.confirmEntryId = item.shop_entry_id;
+  state.shop.exchangeEntryId = null;
+  state.shop.offerOwnedIds = [];
+  renderBusinessShop();
+}
+
+function confirmShopPurchase(item) {
+  if (!item) return;
+  state.shop.confirmEntryId = null;
+  state.shop.exchangeEntryId = null;
+  state.shop.offerOwnedIds = [];
+
+  if (EQUIPMENT_ITEM_TYPES.has(item.item_type)) {
+    purchaseEquipment(item);
+    return;
+  }
+
+  beginMonsterPurchase(item);
 }
 
 function purchaseEquipment(item) {
@@ -1516,6 +1668,7 @@ function purchaseEquipment(item) {
   state.saveData.purchasedShopEntries.add(item.shop_entry_id);
   saveGameData();
   showShopMessage(`${equipment.name}を購入しました。`);
+  state.shop.confirmEntryId = null;
   if (els.myHousePanel && !els.myHousePanel.classList.contains("is-hidden")) renderMyHouse();
   renderBusinessShop();
 }
@@ -1525,17 +1678,101 @@ function beginMonsterPurchase(item) {
   if (!monster || shopDisabledReason(item)) return;
 
   if (ownedPartySlotTotal() + monster.slot <= TEAM_SLOT_LIMIT) {
+    state.shop.confirmEntryId = null;
     completeMonsterPurchase(item, []);
     return;
   }
 
+  state.shop.confirmEntryId = null;
   state.shop.exchangeEntryId = item.shop_entry_id;
   state.shop.offerOwnedIds = [];
   renderBusinessShop();
 }
 
+function renderShopPurchaseConfirm(item) {
+  const name = shopItemName(item);
+  const disabledReason = shopDisabledReason(item);
+  const isMonster = item.item_type === "monster";
+  const isEquipmentItem = EQUIPMENT_ITEM_TYPES.has(item.item_type);
+  const monster = isMonster ? state.characterMap.get(item.content_id) : null;
+  const equipment = isEquipmentItem ? state.equipmentMap.get(item.content_id) : null;
+  const note = isMonster && monster && ownedPartySlotTotal() + monster.slot > TEAM_SLOT_LIMIT
+    ? "slot上限を超えるため、購入後に手放すモンスターを選びます。"
+    : "購入してよろしいですか？";
+
+  return `
+    <div class="shop-exchange-header">
+      <div>
+        <div class="shop-exchange-title">${escapeHtml(name)}を購入しますか？</div>
+        <div class="shop-exchange-note">${escapeHtml(note)}</div>
+      </div>
+      <button class="small-button shop-confirm-cancel" type="button" data-shop-confirm-action="cancel">キャンセル</button>
+    </div>
+    <div class="shop-exchange-summary">
+      <span>価格 ${escapeHtml(item.price)}z</span>
+      <span>所持金 ${escapeHtml(state.saveData.money)}z</span>
+      <span>在庫 ${escapeHtml(currentShopStock(item))}</span>
+    </div>
+    ${monster ? renderShopMonsterConfirmDetail(monster) : ""}
+    ${equipment ? renderShopEquipmentConfirmDetail(equipment) : ""}
+    <div class="shop-confirm-actions">
+      <button class="primary-button shop-confirm-button" type="button" data-shop-confirm-action="confirm" ${disabledReason ? "disabled" : ""}>
+        ${disabledReason ? escapeHtml(disabledReason) : "購入する"}
+      </button>
+    </div>
+  `;
+}
+
+function renderShopMonsterConfirmDetail(monster) {
+  return `
+    <div class="shop-confirm-detail">
+      <div class="shop-confirm-detail-title">${escapeHtml(monster.name)}のステータス</div>
+      <div class="shop-confirm-monster-topline">
+        ${elementPill(monster.element)}
+        <span>slot ${slotMarks(monster.slot)}</span>
+      </div>
+      <div class="shop-confirm-stat-grid">
+        <span>HP <strong>${escapeHtml(monster.hp)}</strong></span>
+        <span>物理攻撃 <strong>${escapeHtml(monster.phy_atk)}</strong></span>
+        <span>物理防御 <strong>${escapeHtml(monster.phy_def)}</strong></span>
+        <span>特殊攻撃 <strong>${escapeHtml(monster.sp_atk)}</strong></span>
+        <span>特殊防御 <strong>${escapeHtml(monster.sp_def)}</strong></span>
+        <span>素早さ <strong>${escapeHtml(monster.speed)}</strong></span>
+      </div>
+    </div>
+  `;
+}
+
+function renderShopEquipmentConfirmDetail(equipment) {
+  return `
+    <div class="shop-confirm-detail">
+      <div class="shop-confirm-detail-title">${escapeHtml(equipment.name)}の効果</div>
+      ${equipment.text ? `<div class="shop-confirm-description">${escapeHtml(equipment.text)}</div>` : ""}
+      <div class="shop-confirm-description">${escapeHtml(accessoryRequirementText(equipment))}</div>
+      ${renderEquipmentBonusList(equipment)}
+    </div>
+  `;
+}
+
 function renderShopExchangePanel() {
   if (!els.businessShopExchangePanel) return;
+
+  const confirmItem = availableShopItems(currentShopId()).find(
+    (entry) => entry.shop_entry_id === state.shop.confirmEntryId,
+  );
+  if (confirmItem) {
+    els.businessShopExchangePanel.classList.remove("is-hidden");
+    els.businessShopExchangePanel.innerHTML = renderShopPurchaseConfirm(confirmItem);
+    els.businessShopExchangePanel.querySelector("[data-shop-confirm-action='cancel']")?.addEventListener("click", () => {
+      state.shop.confirmEntryId = null;
+      renderBusinessShop();
+    });
+    els.businessShopExchangePanel.querySelector("[data-shop-confirm-action='confirm']")?.addEventListener("click", () => {
+      confirmShopPurchase(confirmItem);
+    });
+    return;
+  }
+  state.shop.confirmEntryId = null;
 
   const item = availableShopItems(currentShopId()).find(
     (entry) => entry.shop_entry_id === state.shop.exchangeEntryId,
@@ -1645,6 +1882,7 @@ function completeMonsterPurchase(item, offerOwnedIds) {
   );
   state.saveData.ownedMonsters.push(createOwnedMonster(monster.character_id));
   syncSelectedIdsFromOwnedMonsters();
+  state.shop.confirmEntryId = null;
   state.shop.exchangeEntryId = null;
   state.shop.offerOwnedIds = [];
   saveGameData();
@@ -3190,7 +3428,10 @@ async function showRankBattleConfirm(rankBattleId) {
 
   state.story.pendingRankBattleId = rankBattleId;
   const opponentName = rankBattleDisplayName(rankBattleId);
-  els.storyBattleConfirmText.textContent = `${opponentName}と対戦を開始しますか？`;
+  els.storyBattleConfirmText.innerHTML = `
+    <div>${escapeHtml(opponentName)}と対戦を開始しますか？</div>
+    <div class="story-confirm-reward">勝利報酬 ${escapeHtml(rankBattleRewardMoney(rankBattleId))}z</div>
+  `;
   els.storyBattleOpponentList.innerHTML = renderStoryOpponentCharacterNames(rankBattleId);
   els.storyBattleConfirmOverlay.classList.remove("is-hidden");
   els.storyBattleConfirmYesButton.focus({ preventScroll: true });
@@ -3255,7 +3496,7 @@ function isStoryRankBattleUnlocked(rankBattleId) {
 }
 
 function isStoryRankBattleDisabled(rankBattleId) {
-  return state.story.disabledRankBattleIds.has(rankBattleId) || !isStoryRankBattleUnlocked(rankBattleId);
+  return !isStoryRankBattleUnlocked(rankBattleId);
 }
 
 function updateStoryRankBattleButtons() {
@@ -3299,6 +3540,33 @@ function renderStoryRankBattleButton(rankBattle) {
   `;
 }
 
+function handleStoryMainStageClick(event) {
+  if (event.target.closest("button")) return;
+  const rankBattleId = storyRankBattleIdAtPoint(event.clientX, event.clientY);
+  if (!rankBattleId || isStoryRankBattleDisabled(rankBattleId)) return;
+  event.preventDefault();
+  showRankBattleConfirm(rankBattleId);
+}
+
+function storyRankBattleIdAtPoint(clientX, clientY) {
+  if (!els.storyMainStage) return "";
+  const stageRect = els.storyMainStage.getBoundingClientRect();
+  if (!stageRect.width || !stageRect.height) return "";
+  const xPercent = ((clientX - stageRect.left) / stageRect.width) * 100;
+  const yPercent = ((clientY - stageRect.top) / stageRect.height) * 100;
+
+  const hit = storyRankBattles().find((rankBattle) => {
+    const area = STORY_RANK_BUTTON_AREAS[rankBattle.rank];
+    if (!area) return false;
+    return xPercent >= area.left &&
+      xPercent <= area.left + area.width &&
+      yPercent >= area.top &&
+      yPercent <= area.top + area.height;
+  });
+
+  return hit?.rank_battle_id || "";
+}
+
 function findStoryRankBattleButton(rankBattleId) {
   if (!els.storyRankBattleButtons || !rankBattleId) return null;
   return [...els.storyRankBattleButtons.querySelectorAll("[data-rank-battle-id]")]
@@ -3309,9 +3577,9 @@ function updateStoryRankBattleButton(button, rankBattleId) {
   if (!button) return;
   const cleared = isStoryRankBattleCleared(rankBattleId);
   const locked = !isStoryRankBattleUnlocked(rankBattleId);
-  const disabled = cleared || locked;
+  const disabled = locked;
   button.disabled = disabled;
-  button.classList.toggle("is-cleared", cleared);
+  button.classList.toggle("is-rank-cleared", cleared);
   button.classList.toggle("is-locked", locked);
   button.setAttribute("aria-disabled", `${disabled}`);
   const stateLabel = button.querySelector(".story-rank-state");
@@ -3331,10 +3599,10 @@ async function startRankBattle(rankBattleId) {
 
   if (!enemyCharacterIds.length) return;
 
+  initializeSaveDataParty({ persist: false });
+  renderSetup();
   if (selectedSlotTotal() <= 0 || selectedSlotTotal() > TEAM_SLOT_LIMIT) {
-    loadSaveData();
-    initializeSaveDataParty();
-    renderSetup();
+    return;
   }
 
   startBattle({ enemyCharacterIds, storyRankBattleId: rankBattleId });

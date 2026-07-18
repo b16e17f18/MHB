@@ -2889,10 +2889,14 @@ button {
   outline-offset: 2px;
 }
 
-.story-rank-button:disabled,
-.story-rank-button.is-cleared {
+.story-rank-button:disabled {
   cursor: not-allowed;
   pointer-events: none;
+}
+
+.story-rank-button.is-rank-cleared {
+  cursor: pointer;
+  pointer-events: auto;
 }
 
 .story-rank-battle-button {
@@ -2900,7 +2904,7 @@ button {
 }
 
 .story-rank-battle-button.is-locked::before,
-.story-rank-battle-button.is-cleared::before {
+.story-rank-battle-button.is-rank-cleared::before {
   content: "";
   position: absolute;
   inset: 0;
@@ -2929,7 +2933,7 @@ button {
   color: #fff;
 }
 
-.story-rank-battle-button.is-cleared .story-rank-state {
+.story-rank-battle-button.is-rank-cleared .story-rank-state {
   background: #f8e047;
   color: #141414;
 }
@@ -2989,6 +2993,43 @@ button {
   width: 91.5%;
   max-height: 42%;
   padding: 12px;
+}
+
+.business-hotspot {
+  z-index: 4;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  appearance: none;
+  -webkit-appearance: none;
+  background: transparent;
+  box-shadow: none;
+}
+
+.business-hotspot:not(:hover):not(:focus-visible) {
+  outline: 0;
+  background: transparent;
+}
+
+.business-book-button {
+  left: 14.6%;
+  top: 34.6%;
+  width: 27.7%;
+  height: 25.5%;
+}
+
+.business-monster-button {
+  left: 46%;
+  top: 34.9%;
+  width: 15.7%;
+  height: 25.5%;
+}
+
+.business2-equipment-button {
+  left: 50.3%;
+  top: 23.3%;
+  width: 43%;
+  height: 61.6%;
 }
 
 .my-party-panel {
@@ -3175,6 +3216,68 @@ button {
   background: #78350f;
 }
 
+.shop-confirm-detail {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+  padding: 12px;
+  border: 3px solid #ffffff;
+  border-radius: 8px;
+  background: #fffdf7;
+  color: #111111;
+}
+
+.shop-confirm-detail-title {
+  font-size: 0.98rem;
+  font-weight: 900;
+}
+
+.shop-confirm-monster-topline {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  font-size: 0.86rem;
+  font-weight: 900;
+}
+
+.shop-confirm-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.shop-confirm-stat-grid span {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+  padding: 5px 7px;
+  border: 2px solid #111111;
+  border-radius: 6px;
+  background: #e5e7eb;
+  font-size: 0.82rem;
+  font-weight: 900;
+}
+
+.shop-confirm-description {
+  color: #374151;
+  font-size: 0.86rem;
+  font-weight: 800;
+  line-height: 1.4;
+}
+
+.shop-confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 12px;
+}
+
+.shop-confirm-button {
+  min-width: 132px;
+  min-height: 44px;
+}
+
 .my-house-panel {
   width: min(100%, 940px);
   max-height: min(84vh, 720px);
@@ -3194,6 +3297,54 @@ button {
   width: 88%;
   max-height: 88%;
   background: rgba(255, 253, 247, 0.94);
+}
+
+.my-house-hotspot {
+  z-index: 4;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  appearance: none;
+  -webkit-appearance: none;
+  background: transparent;
+  box-shadow: none;
+}
+
+.my-house-hotspot:not(:hover):not(:focus-visible) {
+  outline: 0;
+  background: transparent;
+}
+
+.my-house-save-load-button {
+  left: 13.3%;
+  top: 14.2%;
+  width: 21.5%;
+  height: 35.8%;
+}
+
+.my-house-books-hotspot-button {
+  left: 48.8%;
+  top: 14.1%;
+  width: 37.2%;
+  height: 36.4%;
+}
+
+.my-house-party-button {
+  left: 48.7%;
+  top: 56.1%;
+  width: 37.8%;
+  height: 42.7%;
+}
+
+.my-house-panel.my-house-mode-save .my-house-layout,
+.my-house-panel.my-house-mode-save .my-house-party-section,
+.my-house-panel.my-house-mode-save .my-house-book-section,
+.my-house-panel.my-house-mode-save .my-house-detail-panel,
+.my-house-panel.my-house-mode-books .my-house-save-panel,
+.my-house-panel.my-house-mode-books .my-house-party-section,
+.my-house-panel.my-house-mode-party .my-house-save-panel,
+.my-house-panel.my-house-mode-party .my-house-book-section {
+  display: none;
 }
 
 .my-house-header {
@@ -3278,6 +3429,14 @@ button {
   grid-template-columns: minmax(250px, 1fr) minmax(250px, 1fr);
   gap: 12px;
   align-items: start;
+}
+
+.my-house-panel.my-house-mode-party .my-house-layout {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.my-house-panel.my-house-mode-party .my-house-party-section {
+  grid-column: 1 / -1;
 }
 
 .my-house-section,
@@ -3392,6 +3551,10 @@ button {
   color: #111827;
   font-size: 0.72rem;
   font-weight: 800;
+}
+
+.my-house-panel.my-house-mode-party .my-house-mini-stats {
+  grid-template-columns: repeat(6, minmax(58px, 1fr));
 }
 
 .my-house-mini-stats span {
@@ -3612,6 +3775,10 @@ button {
     grid-template-columns: 1fr;
   }
 
+  .shop-confirm-stat-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .my-house-layout,
   .my-party-layout,
   .my-house-detail-body {
@@ -3670,6 +3837,18 @@ button {
   font-weight: 900;
   line-height: 1.45;
   text-align: center;
+}
+
+.story-confirm-reward {
+  display: inline-block;
+  margin-top: 10px;
+  padding: 5px 12px;
+  border: 3px solid #111111;
+  border-radius: 6px;
+  background: #facc15;
+  color: #111111;
+  font-size: 1rem;
+  line-height: 1.25;
 }
 
 .story-confirm-actions {

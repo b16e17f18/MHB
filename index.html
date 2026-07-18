@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>MonsterHunterBreeder</title>
-    <link rel="stylesheet" href="./styles.css?v=20260718-my-party-stack" />
+    <link rel="stylesheet" href="./styles.css?v=20260718-rank-hitbox-fix" />
   </head>
   <body>
     <main class="app-shell">
@@ -22,8 +22,8 @@
           <div id="storyTravelStage" class="story-location-stage">
             <img class="story-location-image" src="./assets/移動画面.png" alt="移動画面" />
             <button id="travelMyHouseButton" class="story-location-button travel-my-house-button" type="button" aria-label="My House"></button>
-            <button id="travelBusinessButton" class="story-location-button travel-business-button" type="button" aria-label="Business"></button>
-            <button id="travelBusiness2Button" class="story-location-button travel-business2-button" type="button" aria-label="Business2"></button>
+            <button id="travelBusinessButton" class="story-location-button travel-business-button" type="button" aria-label="モンスター取引所"></button>
+            <button id="travelBusiness2Button" class="story-location-button travel-business2-button" type="button" aria-label="工房"></button>
             <button id="travelMainButton" class="story-location-button travel-main-button" type="button" aria-label="メイン画面"></button>
           </div>
           <button id="travelBackButton" class="small-button story-back-button" type="button">タイトルへ戻る</button>
@@ -53,17 +53,20 @@
           </section>
 
           <div id="businessScreen" class="story-location-stage story-room-stage is-hidden">
-            <img class="story-location-image" src="./assets/business.png" alt="Business" />
-            <section id="businessShopPanel" class="business-shop-panel is-hidden" aria-label="Business">
+            <img class="story-location-image" src="./assets/business.png" alt="モンスター取引所" />
+            <button id="businessBackButton" class="small-button story-room-back-button" type="button">移動画面へ戻る</button>
+            <button id="businessBookButton" class="story-location-button business-hotspot business-book-button" type="button" aria-label="図鑑の購入"></button>
+            <button id="businessMonsterButton" class="story-location-button business-hotspot business-monster-button" type="button" aria-label="モンスターの取引"></button>
+            <section id="businessShopPanel" class="business-shop-panel is-hidden" aria-label="モンスター取引所">
               <div class="business-shop-header">
                 <div>
-                  <div id="businessShopTitle" class="business-shop-title">Business</div>
+                  <div id="businessShopTitle" class="business-shop-title">モンスター取引所</div>
                   <div class="business-shop-status">
                     <span>所持金 <strong id="businessShopMoney">0</strong>z</span>
                     <span>使用slot <strong id="businessShopSlots">0 / 5</strong></span>
                   </div>
                 </div>
-                <button id="businessShopBackButton" class="small-button" type="button">移動画面へ戻る</button>
+                <button id="businessShopBackButton" class="small-button" type="button">戻る</button>
               </div>
               <div id="businessShopMessage" class="business-shop-message" aria-live="polite"></div>
               <div id="businessShopItems" class="business-shop-items"></div>
@@ -72,21 +75,26 @@
           </div>
 
           <div id="business2Screen" class="story-location-stage story-room-stage is-hidden">
-            <img class="story-location-image" src="./assets/business2.png" alt="Business2" />
+            <img class="story-location-image" src="./assets/business2.png" alt="工房" />
             <button id="business2BackButton" class="small-button story-room-back-button" type="button">移動画面へ戻る</button>
+            <button id="business2EquipmentButton" class="story-location-button business-hotspot business2-equipment-button" type="button" aria-label="装備アイテム購入"></button>
           </div>
 
           <div id="myHouseScreen" class="story-location-stage story-room-stage is-hidden">
             <img class="story-location-image" src="./assets/MyHouse.png" alt="My House" />
+            <button id="myHouseScreenBackButton" class="small-button story-room-back-button" type="button">移動画面へ戻る</button>
+            <button id="myHouseSaveLoadButton" class="story-location-button my-house-hotspot my-house-save-load-button" type="button" aria-label="セーブとロード"></button>
+            <button id="myHouseBookButton" class="story-location-button my-house-hotspot my-house-books-hotspot-button" type="button" aria-label="図鑑"></button>
+            <button id="myHousePartyButton" class="story-location-button my-house-hotspot my-house-party-button" type="button" aria-label="所持モンスターと装備"></button>
             <section id="myHousePanel" class="my-house-panel is-hidden" aria-label="My House">
               <div class="my-house-header">
                 <div>
                   <div class="my-house-title">My House</div>
                   <div class="my-house-subtitle">手持ちモンスター / 購入済み図鑑</div>
                 </div>
-                <button id="myHouseBackButton" class="small-button" type="button">移動画面へ戻る</button>
+                <button id="myHouseBackButton" class="small-button" type="button">My Houseへ戻る</button>
               </div>
-              <section class="my-house-save-panel" aria-label="セーブとロード">
+              <section class="my-house-save-panel my-house-save-section" aria-label="セーブとロード">
                 <div class="my-house-save-column">
                   <div class="my-house-section-title">セーブ</div>
                   <div id="myHouseSaveSlots" class="my-house-save-slots"></div>
@@ -98,11 +106,11 @@
                 <div id="myHouseSaveStatus" class="my-house-save-status" aria-live="polite"></div>
               </section>
               <div class="my-house-layout">
-                <section class="my-house-section">
+                <section class="my-house-section my-house-party-section">
                   <div class="my-house-section-title">手持ちモンスター</div>
                   <div id="myHouseMonsterList" class="my-house-monster-list"></div>
                 </section>
-                <section class="my-house-section">
+                <section class="my-house-section my-house-book-section">
                   <div class="my-house-section-title">購入済み図鑑</div>
                   <div id="myHouseBookList" class="my-house-book-list"></div>
                   <div id="myHouseBookContent" class="my-house-book-content"></div>
@@ -205,6 +213,6 @@
     </main>
 
     <script src="./data-inline.js?v=20260709-utf8-clean"></script>
-    <script src="./app.js?v=20260718-my-party"></script>
+    <script src="./app.js?v=20260718-rank-hitbox-fix"></script>
   </body>
 </html>
