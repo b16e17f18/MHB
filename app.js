@@ -10,6 +10,7 @@ const DATA_PATHS = {
   shopItems: "./data/shop_item.csv",
   encyclopediaBooks: "./data/encyclopedia_book.csv",
   equipment: "./data/equipment.csv",
+  species: "./data/species.csv",
 };
 
 const STORY_MAP_PATHS = [
@@ -209,6 +210,7 @@ const state = {
   encyclopediaBooks: new Map(),
   equipment: [],
   equipmentMap: new Map(),
+  speciesMap: new Map(),
   saveData: createSaveData(),
   shop: createShopState(),
   myHouse: {
@@ -737,6 +739,8 @@ function renderMyHouseMonsterDetail(character, ownedMonster = null) {
 }
 
 function renderMyHouseCompleteMonsterDetail(character, ownedMonster = null) {
+  const equippedAccessory = ownedMonster ? equippedAccessoryForOwnedMonster(ownedMonster, character) : null;
+  const displayedCharacter = applyEquipmentBonusesToCharacter(character, equippedAccessory);
   return `
     <div class="my-house-detail-header">
       <div>
@@ -758,12 +762,12 @@ function renderMyHouseCompleteMonsterDetail(character, ownedMonster = null) {
         ${ownedMonster ? renderOwnedMonsterAccessorySection(ownedMonster, character) : ""}
       </div>
       <div class="detail-stats my-house-detail-stats">
-        ${detailStat("HP", character.hp, "hp")}
-        ${detailStat("物理攻撃", character.phy_atk, "phy_atk")}
-        ${detailStat("物理防御", character.phy_def, "phy_def")}
-        ${detailStat("特殊攻撃", character.sp_atk, "sp_atk")}
-        ${detailStat("特殊防御", character.sp_def, "sp_def")}
-        ${detailStat("素早さ", character.speed, "speed")}
+        ${detailStat("HP", displayedCharacter.hp, "hp")}
+        ${detailStat("物理攻撃", displayedCharacter.phy_atk, "phy_atk")}
+        ${detailStat("物理防御", displayedCharacter.phy_def, "phy_def")}
+        ${detailStat("特殊攻撃", displayedCharacter.sp_atk, "sp_atk")}
+        ${detailStat("特殊防御", displayedCharacter.sp_def, "sp_def")}
+        ${detailStat("素早さ", displayedCharacter.speed, "speed")}
         ${detailStat("回復力", character.regen_value, "regen_value")}
       </div>
       <div class="detail-skills">
@@ -793,6 +797,7 @@ function renderOwnedMonsterAccessorySection(ownedMonster, character) {
           <div class="my-house-accessory-label">アクセサリー</div>
           <strong>${escapeHtml(equipment?.name || "装備なし")}</strong>
           ${equipment ? renderEquipmentBonusList(equipment) : ""}
+          ${equipment?.text ? `<span class="accessory-description">${escapeHtml(equipment.text)}</span>` : ""}
         </div>
         <button class="small-button" type="button" data-my-house-accessory-change="${escapeHtml(ownedMonster.ownedId)}">変更</button>
       </div>
@@ -905,7 +910,8 @@ function accessoryEquipStatus(equipment, character) {
 }
 
 function speciesLabel(speciesId) {
-  return SPECIES_LABELS[safeText(speciesId)] || safeText(speciesId);
+  const id = safeText(speciesId);
+  return state.speciesMap.get(id)?.name || SPECIES_LABELS[id] || id;
 }
 
 function accessoryRequirementText(equipment) {
@@ -946,6 +952,31 @@ function equipmentBonusEntries(equipment) {
   ]
     .map(([label, value]) => ({ label, value: number(value) }))
     .filter((entry) => entry.value !== 0);
+}
+
+function equippedAccessoryForOwnedMonster(ownedMonster, character) {
+  const accessoryId = safeText(ownedMonster?.equipment?.accessory);
+  if (!accessoryId) return null;
+  const equipment = state.equipmentMap.get(accessoryId);
+  if (!isAccessoryEquipment(equipment)) return null;
+  return accessoryEquipStatus(equipment, character).canEquip ? equipment : null;
+}
+
+function applyEquipmentBonusesToCharacter(character, equipment) {
+  if (!character || !isAccessoryEquipment(equipment)) return character;
+  return {
+    ...character,
+    hp: adjustedEquipmentStat(character.hp, equipment.hp_bonus),
+    phy_atk: adjustedEquipmentStat(character.phy_atk, equipment.atk_bonus),
+    phy_def: adjustedEquipmentStat(character.phy_def, equipment.def_bonus),
+    sp_atk: adjustedEquipmentStat(character.sp_atk, equipment.sp_atk_bonus),
+    sp_def: adjustedEquipmentStat(character.sp_def, equipment.sp_def_bonus),
+    speed: adjustedEquipmentStat(character.speed, equipment.speed_bonus),
+  };
+}
+
+function adjustedEquipmentStat(baseValue, bonusValue) {
+  return Math.max(1, Math.round(number(baseValue, 1) + number(bonusValue)));
 }
 
 function isAccessoryEquipment(equipment) {
@@ -1123,7 +1154,7 @@ function renderShopItem(item) {
   const description =
     book?.description ||
     (monster ? `${monster.name}を仲間にします。` : "") ||
-    (equipment ? accessoryRequirementText(equipment) : "");
+    (equipment ? equipment.text || accessoryRequirementText(equipment) : "");
   const stockLabel = isEquipmentItem ? `所持数 ${ownedEquipmentCount(item.content_id)}` : `在庫 ${stock}`;
 
   return `
@@ -1563,6 +1594,7 @@ async function loadGameData() {
       shopItemText,
       encyclopediaBookText,
       equipmentText,
+      speciesText,
     ] = await Promise.all([
       loadCsvText("characters", DATA_PATHS.characters),
       loadCsvText("skills", DATA_PATHS.skills),
@@ -1575,6 +1607,7 @@ async function loadGameData() {
       loadOptionalCsvText("shopItems", DATA_PATHS.shopItems),
       loadOptionalCsvText("encyclopediaBooks", DATA_PATHS.encyclopediaBooks),
       loadOptionalCsvText("equipment", DATA_PATHS.equipment),
+      loadOptionalCsvText("species", DATA_PATHS.species),
     ]);
 
     state.characters = rowsFromCsv(characterText)
@@ -1643,6 +1676,13 @@ async function loadGameData() {
     state.equipmentMap = new Map(
       state.equipment.map((equipment) => [equipment.equipment_id, equipment]),
     );
+
+    state.speciesMap.clear();
+    for (const species of rowsFromCsv(speciesText).map(normalizeSpecies)) {
+      if (species.species_id) {
+        state.speciesMap.set(species.species_id, species);
+      }
+    }
 
     state.animations.clear();
     state.animationDefinitions.clear();
@@ -1958,6 +1998,13 @@ function normalizeEquipment(row) {
     speed_bonus: number(row.speed_bonus),
     species_id: safeText(row.species_id),
     character_id: safeText(row.character_id),
+  };
+}
+
+function normalizeSpecies(row) {
+  return {
+    species_id: safeText(row.species_id),
+    name: safeText(row.name),
   };
 }
 
@@ -3045,18 +3092,18 @@ function startBattle(options = {}) {
   const enemyPool = state.characters.filter(
     (character) => !state.selectedIds.includes(character.character_id),
   );
-  const playerCharacters = state.selectedIds
-    .map((id) => state.characterMap.get(id))
-    .filter(Boolean);
+  const playerFighterSources = selectedBattleFighterSources();
   const enemyCharacters = Array.isArray(options.enemyCharacterIds)
     ? options.enemyCharacterIds
         .map((id) => state.characterMap.get(id))
         .filter(Boolean)
     : buildSlotTeam(enemyPool.length ? enemyPool : state.characters, TEAM_SLOT_LIMIT, true);
 
-  if (!enemyCharacters.length) return;
+  if (!playerFighterSources.length || !enemyCharacters.length) return;
 
-  state.playerTeam = playerCharacters.map(createFighter);
+  state.playerTeam = playerFighterSources.map((source) =>
+    createFighter(source.character, { ownedMonster: source.ownedMonster }),
+  );
   state.enemyTeam = enemyCharacters.map(createFighter);
   state.playerActiveIndex = 0;
   state.enemyActiveIndex = 0;
@@ -3093,13 +3140,31 @@ function startBattle(options = {}) {
   showBattleMessage(state.log.at(-1));
 }
 
-function createFighter(character) {
+function selectedBattleFighterSources() {
+  const remainingOwnedMonsters = [...state.saveData.ownedMonsters];
+  return state.selectedIds
+    .map((characterId) => {
+      const character = state.characterMap.get(characterId);
+      if (!character) return null;
+      const ownedIndex = remainingOwnedMonsters.findIndex((entry) => entry.characterId === characterId);
+      const ownedMonster = ownedIndex >= 0 ? remainingOwnedMonsters.splice(ownedIndex, 1)[0] : null;
+      return { character, ownedMonster };
+    })
+    .filter(Boolean);
+}
+
+function createFighter(character, options = {}) {
+  const equipment = equippedAccessoryForOwnedMonster(options.ownedMonster, character);
+  const battleBase = applyEquipmentBonusesToCharacter(character, equipment);
   return {
     id: character.character_id,
     name: character.name,
-    base: character,
-    maxHp: character.hp,
-    hp: character.hp,
+    ownedId: safeText(options.ownedMonster?.ownedId),
+    equipment,
+    base: battleBase,
+    originalBase: character,
+    maxHp: battleBase.hp,
+    hp: battleBase.hp,
     maxEnergy: 7,
     energy: START_ENERGY,
     fainted: false,
@@ -3794,11 +3859,11 @@ function completeVictoryExchange() {
   const offeredIndexSet = new Set(exchangePlayerIndices());
   state.playerTeam = [
     ...state.playerTeam.filter((_, index) => !offeredIndexSet.has(index)),
-    createFighter(enemyMember.base),
+    createFighter(enemyMember.originalBase || enemyMember.base),
   ];
   state.enemyTeam = [
     ...state.enemyTeam.filter((_, index) => index !== state.exchange.enemyIndex),
-    ...playerMembers.map((member) => createFighter(member.base)),
+    ...playerMembers.map((member) => createFighter(member.originalBase || member.base)),
   ];
   state.playerActiveIndex = Math.min(state.playerActiveIndex, Math.max(0, state.playerTeam.length - 1));
   state.enemyActiveIndex = Math.min(state.enemyActiveIndex, Math.max(0, state.enemyTeam.length - 1));
