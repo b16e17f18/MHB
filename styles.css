@@ -128,6 +128,40 @@ button:disabled {
   min-height: 232px;
 }
 
+.setup-mode-tabs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.setup-mode-button {
+  min-height: 38px;
+  border: 3px solid var(--line);
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 0 3px 0 #b8c0cb;
+  font-weight: 900;
+}
+
+.setup-mode-button.is-active {
+  background: var(--accent);
+  box-shadow: inset 0 0 0 3px var(--accent-strong), 0 3px 0 #b8c0cb;
+}
+
+.setup-party-slots {
+  display: grid;
+  gap: 8px;
+  padding: 8px;
+  border: 3px solid transparent;
+  border-radius: 8px;
+}
+
+.setup-party-slots.is-active {
+  border-color: var(--accent-strong);
+  background: #fff7d7;
+}
+
 .selected-slot {
   min-height: 68px;
   padding: 10px;
@@ -137,12 +171,17 @@ button:disabled {
 }
 
 .team-slot-summary {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
   min-height: 34px;
   padding: 7px 10px;
   border: 3px solid var(--line);
   background: #ffffff;
   font-weight: 900;
-  text-align: center;
+  text-align: left;
 }
 
 .selected-slot.is-filled {
@@ -172,6 +211,13 @@ button:disabled {
 .card-slot-meta {
   color: var(--muted);
   font-size: 0.78rem;
+  font-weight: 900;
+}
+
+.card-side-note {
+  margin-top: 4px;
+  color: var(--accent-strong);
+  font-size: 0.72rem;
   font-weight: 900;
 }
 
@@ -892,6 +938,8 @@ body {
 .roster-panel,
 .battle-card,
 .panel-title,
+.setup-mode-button,
+.setup-party-slots,
 .selected-slot,
 .small-button,
 .primary-button,
@@ -910,6 +958,7 @@ body {
 .roster-panel,
 .battle-card,
 .selected-slot,
+.setup-mode-button,
 .character-card,
 .hud,
 .battle-log,
@@ -919,6 +968,7 @@ body {
 
 .brand-mark,
 .panel-title,
+.setup-mode-button.is-active,
 .tab-button.is-active,
 .exchange-title {
   color: #111111;

@@ -145,7 +145,11 @@
 
         <div class="setup-layout">
           <aside class="team-panel">
-            <div class="panel-title">自分チーム</div>
+            <div id="setupPanelTitle" class="panel-title">自分チーム</div>
+            <div class="setup-mode-tabs" role="tablist" aria-label="選択するチーム">
+              <button id="setupPlayerModeButton" class="setup-mode-button is-active" type="button" aria-pressed="true">自分</button>
+              <button id="setupEnemyModeButton" class="setup-mode-button" type="button" aria-pressed="false">相手</button>
+            </div>
             <div id="selectedSlots" class="selected-slots"></div>
             <div class="setup-actions">
               <button id="randomTeamButton" class="small-button" type="button">おまかせ</button>

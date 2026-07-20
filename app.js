@@ -229,6 +229,8 @@ const state = {
     selectedOwnedId: null,
   },
   selectedIds: [],
+  selectedEnemyIds: [],
+  setupSide: "player",
   playerTeam: [],
   enemyTeam: [],
   playerActiveIndex: 0,
@@ -371,6 +373,9 @@ document.addEventListener("DOMContentLoaded", () => {
     myHouseSaveSlots: document.querySelector("#myHouseSaveSlots"),
     myHouseLoadSlots: document.querySelector("#myHouseLoadSlots"),
     myHouseSaveStatus: document.querySelector("#myHouseSaveStatus"),
+    setupPanelTitle: document.querySelector("#setupPanelTitle"),
+    setupPlayerModeButton: document.querySelector("#setupPlayerModeButton"),
+    setupEnemyModeButton: document.querySelector("#setupEnemyModeButton"),
     selectedSlots: document.querySelector("#selectedSlots"),
     rosterGrid: document.querySelector("#rosterGrid"),
     randomTeamButton: document.querySelector("#randomTeamButton"),
@@ -456,15 +461,20 @@ function bindEvents() {
   });
   document.addEventListener("keydown", handleStoryKeydown);
 
+  els.setupPlayerModeButton?.addEventListener("click", () => setSetupSide("player"));
+  els.setupEnemyModeButton?.addEventListener("click", () => setSetupSide("enemy"));
+
   els.randomTeamButton.addEventListener("click", () => {
-    state.selectedIds = buildSlotTeam(state.characters, TEAM_SLOT_LIMIT, true).map((character) => character.character_id);
+    setSetupSelectionIds(
+      buildSlotTeam(state.characters, TEAM_SLOT_LIMIT, true).map((character) => character.character_id),
+    );
     renderSetup();
   });
 
   els.randomBattleButton.addEventListener("click", startRandomBattle);
 
   els.clearTeamButton.addEventListener("click", () => {
-    state.selectedIds = [];
+    setSetupSelectionIds([]);
     renderSetup();
   });
 
@@ -542,6 +552,7 @@ function showBattleSetup() {
   setStoryStage("travel");
   els.battleView.classList.add("is-hidden");
   els.setupView.classList.remove("is-hidden");
+  state.setupSide = "player";
   renderSetup();
 }
 
@@ -2575,15 +2586,38 @@ function parseBoolean(value) {
 }
 
 function renderSetup() {
+  const playerSlots = selectedSlotTotal();
+  const enemySlots = selectedEnemySlotTotal();
+  const activeLabel = setupSideLabel(state.setupSide);
+  if (els.setupPanelTitle) {
+    els.setupPanelTitle.textContent = `${activeLabel}チーム`;
+  }
+  els.setupPlayerModeButton?.classList.toggle("is-active", state.setupSide === "player");
+  els.setupEnemyModeButton?.classList.toggle("is-active", state.setupSide === "enemy");
+  els.setupPlayerModeButton?.setAttribute("aria-pressed", state.setupSide === "player" ? "true" : "false");
+  els.setupEnemyModeButton?.setAttribute("aria-pressed", state.setupSide === "enemy" ? "true" : "false");
   renderSelectedSlots();
   renderRoster();
   renderDetailPanel();
-  els.startButton.disabled = selectedSlotTotal() <= 0 || selectedSlotTotal() > TEAM_SLOT_LIMIT;
+  els.startButton.disabled =
+    playerSlots <= 0 ||
+    playerSlots > TEAM_SLOT_LIMIT ||
+    enemySlots > TEAM_SLOT_LIMIT;
   els.randomBattleButton.disabled = state.characters.length <= 0;
 }
 
 function renderSelectedSlots() {
-  const selectedCharacters = selectedCharactersForSetup();
+  els.selectedSlots.innerHTML = `
+    ${renderSetupPartySlots("player", "自分", selectedCharactersForSetup())}
+    ${renderSetupPartySlots("enemy", "相手", selectedEnemyCharactersForSetup())}
+  `;
+
+  for (const button of els.selectedSlots.querySelectorAll("[data-setup-side]")) {
+    button.addEventListener("click", () => setSetupSide(button.dataset.setupSide));
+  }
+}
+
+function renderSetupPartySlots(side, label, selectedCharacters) {
   const usedSlots = slotTotal(selectedCharacters);
   const emptySlots = Math.max(0, TEAM_SLOT_LIMIT - usedSlots);
   const selectedHtml = selectedCharacters
@@ -2596,22 +2630,32 @@ function renderSelectedSlots() {
       `,
     )
     .join("");
-  const emptyHtml = Array.from({ length: emptySlots }, () => {
-    return `<div class="selected-slot"><div class="slot-name">EMPTY</div><div class="slot-meta">スロット ${slotMarks(1)}</div></div>`;
-  }).join("");
+  const emptyHtml = selectedCharacters.length
+    ? `<div class="selected-slot"><div class="slot-name">EMPTY</div><div class="slot-meta">残り ${emptySlots}/${TEAM_SLOT_LIMIT}</div></div>`
+    : `<div class="selected-slot"><div class="slot-name">${side === "enemy" ? "未指定" : "EMPTY"}</div><div class="slot-meta">${side === "enemy" ? "未指定ならランダム" : "モンスターを選択"}</div></div>`;
 
-  els.selectedSlots.innerHTML = `
-    <div class="team-slot-summary">スロット ${usedSlots}/${TEAM_SLOT_LIMIT}</div>
-    ${selectedHtml}${emptyHtml}
+  return `
+    <section class="setup-party-slots ${state.setupSide === side ? "is-active" : ""}">
+      <button class="team-slot-summary" type="button" data-setup-side="${side}">
+        <span>${label}チーム</span>
+        <strong>${usedSlots}/${TEAM_SLOT_LIMIT}</strong>
+      </button>
+      ${selectedHtml}${emptyHtml}
+    </section>
   `;
 }
 
 function renderRoster() {
+  const activeSelectedIds = setupSelectionIds();
+  const otherSide = state.setupSide === "enemy" ? "player" : "enemy";
+  const otherSelectedIds = setupSelectionIds(otherSide);
+  const otherLabel = setupSideLabel(otherSide);
   els.rosterGrid.innerHTML = state.characters
     .map((character) => {
-      const selected = state.selectedIds.includes(character.character_id);
+      const selected = activeSelectedIds.includes(character.character_id);
+      const selectedByOtherSide = otherSelectedIds.includes(character.character_id);
       return `
-        <article class="character-card ${selected ? "is-selected" : ""}">
+        <article class="character-card ${selected ? "is-selected" : ""} ${selectedByOtherSide ? "is-other-side-selected" : ""}">
           <button class="card-select-button" type="button" data-character-id="${character.character_id}">
             <div class="card-topline">
               <span class="card-name">${escapeHtml(character.name)}</span>
@@ -2621,6 +2665,7 @@ function renderRoster() {
               <img class="card-image" src="${escapeHtml(character.imageSrc)}" alt="${escapeHtml(character.name)}" />
             </div>
             <div class="card-slot-meta">スロット ${slotMarks(character.slot)}</div>
+            ${selectedByOtherSide ? `<div class="card-side-note">${otherLabel}チーム選択中</div>` : ""}
           </button>
           <button class="detail-button" type="button" data-detail-id="${character.character_id}">詳細</button>
         </article>
@@ -2886,13 +2931,51 @@ function resistanceCell(character, element) {
 }
 
 function selectedCharactersForSetup() {
-  return state.selectedIds
+  return charactersForSetupIds(state.selectedIds);
+}
+
+function selectedEnemyCharactersForSetup() {
+  return charactersForSetupIds(state.selectedEnemyIds);
+}
+
+function charactersForSetupIds(characterIds) {
+  return characterIds
     .map((id) => state.characterMap.get(id))
     .filter(Boolean);
 }
 
 function selectedSlotTotal() {
   return slotTotal(selectedCharactersForSetup());
+}
+
+function selectedEnemySlotTotal() {
+  return slotTotal(selectedEnemyCharactersForSetup());
+}
+
+function setupSelectionIds(side = state.setupSide) {
+  return side === "enemy" ? state.selectedEnemyIds : state.selectedIds;
+}
+
+function setSetupSelectionIds(characterIds, side = state.setupSide) {
+  const validIds = characterIds.filter((characterId) => state.characterMap.has(characterId));
+  if (side === "enemy") {
+    state.selectedEnemyIds = validIds;
+  } else {
+    state.selectedIds = validIds;
+  }
+}
+
+function setupSlotTotal(side = state.setupSide) {
+  return slotTotal(charactersForSetupIds(setupSelectionIds(side)));
+}
+
+function setupSideLabel(side = state.setupSide) {
+  return side === "enemy" ? "相手" : "自分";
+}
+
+function setSetupSide(side) {
+  state.setupSide = side === "enemy" ? "enemy" : "player";
+  renderSetup();
 }
 
 function slotMarks(value) {
@@ -3407,17 +3490,18 @@ function ownedPartySlotTotal() {
 }
 
 function toggleCharacter(characterId) {
-  const selectedIndex = state.selectedIds.indexOf(characterId);
+  const selectedIds = setupSelectionIds();
+  const selectedIndex = selectedIds.indexOf(characterId);
   if (selectedIndex >= 0) {
-    state.selectedIds.splice(selectedIndex, 1);
+    selectedIds.splice(selectedIndex, 1);
   } else {
     const character = state.characterMap.get(characterId);
     if (!character || character.slot > TEAM_SLOT_LIMIT) return;
-    while (selectedSlotTotal() + character.slot > TEAM_SLOT_LIMIT && state.selectedIds.length) {
-      state.selectedIds.shift();
+    while (setupSlotTotal() + character.slot > TEAM_SLOT_LIMIT && selectedIds.length) {
+      selectedIds.shift();
     }
-    if (selectedSlotTotal() + character.slot > TEAM_SLOT_LIMIT) return;
-    state.selectedIds.push(characterId);
+    if (setupSlotTotal() + character.slot > TEAM_SLOT_LIMIT) return;
+    selectedIds.push(characterId);
   }
   renderSetup();
 }
@@ -3426,6 +3510,7 @@ function startRandomBattle() {
   const randomTeam = buildSlotTeam(state.characters, TEAM_SLOT_LIMIT, true);
   if (!randomTeam.length) return;
   state.selectedIds = randomTeam.map((character) => character.character_id);
+  state.selectedEnemyIds = [];
   renderSetup();
   startBattle();
 }
@@ -3623,6 +3708,8 @@ async function startRankBattle(rankBattleId) {
 function startBattle(options = {}) {
   if (selectedSlotTotal() <= 0 || selectedSlotTotal() > TEAM_SLOT_LIMIT) return;
   const currentBattleId = options.storyRankBattleId || null;
+  const manualEnemyCharacters = selectedEnemyCharactersForSetup();
+  if (!options.storyRankBattleId && manualEnemyCharacters.length && selectedEnemySlotTotal() > TEAM_SLOT_LIMIT) return;
   const enemyPool = state.characters.filter(
     (character) => !state.selectedIds.includes(character.character_id),
   );
@@ -3631,6 +3718,8 @@ function startBattle(options = {}) {
     ? options.enemyCharacterIds
         .map((id) => state.characterMap.get(id))
         .filter(Boolean)
+    : manualEnemyCharacters.length
+      ? manualEnemyCharacters
     : buildSlotTeam(enemyPool.length ? enemyPool : state.characters, TEAM_SLOT_LIMIT, true);
 
   if (!playerFighterSources.length || !enemyCharacters.length) return;
@@ -4402,6 +4491,9 @@ function completeVictoryExchange() {
   state.playerActiveIndex = Math.min(state.playerActiveIndex, Math.max(0, state.playerTeam.length - 1));
   state.enemyActiveIndex = Math.min(state.enemyActiveIndex, Math.max(0, state.enemyTeam.length - 1));
   state.selectedIds = state.playerTeam.map((member) => member.id);
+  if (!state.story.currentRankBattleId) {
+    state.selectedEnemyIds = state.enemyTeam.map((member) => member.id);
+  }
   syncOwnedMonsterPartyFromSelectedIds({ persist: false });
   if (state.story.currentRankBattleId) {
     finalizeStoryBattleVictory(state.story.currentRankBattleId);
