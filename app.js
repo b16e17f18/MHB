@@ -1701,24 +1701,26 @@ function renderShopPurchaseConfirm(item) {
     : "購入してよろしいですか？";
 
   return `
-    <div class="shop-exchange-header">
-      <div>
-        <div class="shop-exchange-title">${escapeHtml(name)}を購入しますか？</div>
-        <div class="shop-exchange-note">${escapeHtml(note)}</div>
+    <div class="shop-confirm-dialog-card">
+      <div class="shop-exchange-header">
+        <div>
+          <div class="shop-exchange-title">${escapeHtml(name)}を購入しますか？</div>
+          <div class="shop-exchange-note">${escapeHtml(note)}</div>
+        </div>
       </div>
-      <button class="small-button shop-confirm-cancel" type="button" data-shop-confirm-action="cancel">キャンセル</button>
-    </div>
-    <div class="shop-exchange-summary">
-      <span>価格 ${escapeHtml(item.price)}z</span>
-      <span>所持金 ${escapeHtml(state.saveData.money)}z</span>
-      <span>在庫 ${escapeHtml(currentShopStock(item))}</span>
-    </div>
-    ${monster ? renderShopMonsterConfirmDetail(monster) : ""}
-    ${equipment ? renderShopEquipmentConfirmDetail(equipment) : ""}
-    <div class="shop-confirm-actions">
-      <button class="primary-button shop-confirm-button" type="button" data-shop-confirm-action="confirm" ${disabledReason ? "disabled" : ""}>
-        ${disabledReason ? escapeHtml(disabledReason) : "購入する"}
-      </button>
+      <div class="shop-exchange-summary">
+        <span>価格 ${escapeHtml(item.price)}z</span>
+        <span>所持金 ${escapeHtml(state.saveData.money)}z</span>
+        <span>在庫 ${escapeHtml(currentShopStock(item))}</span>
+      </div>
+      ${monster ? renderShopMonsterConfirmDetail(monster) : ""}
+      ${equipment ? renderShopEquipmentConfirmDetail(equipment) : ""}
+      <div class="shop-confirm-actions">
+        <button class="primary-button shop-confirm-button" type="button" data-shop-confirm-action="confirm" ${disabledReason ? "disabled" : ""}>
+          ${disabledReason ? escapeHtml(disabledReason) : "はい"}
+        </button>
+        <button class="small-button shop-confirm-button" type="button" data-shop-confirm-action="cancel">いいえ</button>
+      </div>
     </div>
   `;
 }
@@ -1762,17 +1764,27 @@ function renderShopExchangePanel() {
   );
   if (confirmItem) {
     els.businessShopExchangePanel.classList.remove("is-hidden");
+    els.businessShopExchangePanel.classList.add("is-shop-confirm-dialog");
+    els.businessShopExchangePanel.setAttribute("role", "dialog");
+    els.businessShopExchangePanel.setAttribute("aria-modal", "true");
+    els.businessShopExchangePanel.setAttribute("aria-label", "購入確認");
     els.businessShopExchangePanel.innerHTML = renderShopPurchaseConfirm(confirmItem);
-    els.businessShopExchangePanel.querySelector("[data-shop-confirm-action='cancel']")?.addEventListener("click", () => {
+    const cancelButton = els.businessShopExchangePanel.querySelector("[data-shop-confirm-action='cancel']");
+    cancelButton?.addEventListener("click", () => {
       state.shop.confirmEntryId = null;
       renderBusinessShop();
     });
     els.businessShopExchangePanel.querySelector("[data-shop-confirm-action='confirm']")?.addEventListener("click", () => {
       confirmShopPurchase(confirmItem);
     });
+    cancelButton?.focus({ preventScroll: true });
     return;
   }
   state.shop.confirmEntryId = null;
+  els.businessShopExchangePanel.classList.remove("is-shop-confirm-dialog");
+  els.businessShopExchangePanel.removeAttribute("role");
+  els.businessShopExchangePanel.removeAttribute("aria-modal");
+  els.businessShopExchangePanel.removeAttribute("aria-label");
 
   const item = availableShopItems(currentShopId()).find(
     (entry) => entry.shop_entry_id === state.shop.exchangeEntryId,
