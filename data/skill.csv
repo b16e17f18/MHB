@@ -18,12 +18,12 @@ skill_016,爪ガード,status,0,none,none,normal,none,0,none,0,protect,100,reven
 skill_017,突き上げ,attack,80,none,physical,normal,none,0,none,0,underground,100,none,0,enemy,0,1,1ターン目に地面に潜り、2ターン目に攻撃する。,attack_hit01,500,1
 skill_018,炎ブレス,attack,90,fire,special,normal,burn,25,none,0,none,0,none,0,enemy,0,2,25％の確率で相手を火やられにする。,magic_fire02,500,1
 skill_019,サマーソルト,attack,90,none,physical,normal,poison,50,none,0,none,0,none,0,enemy,0,3,50％の確率で相手を毒にする。,attack_slash03,250,2
-skill_020,氷塊落とし,attack,90,ice,physical,normal,phy_def_down,50,speed_down,50,none,0,none,0,enemy,0,3,50％の確率で相手の物理防御と敏捷を25％downさせる。,magic_ice01,250,1
+skill_020,氷塊落とし,attack,90,ice,physical,normal,phy_def_down,50,speed_down,50,none,0,none,0,enemy,0,3,50％の確率で相手の物理防御と敏捷を25％downさせる。,magic_ice01,750,1
 skill_021,麻痺牙,attack,50,none,physical,normal,paralysis,50,none,0,none,0,none,0,enemy,0,2,50％の確率で相手を麻痺にする。,attack_spear01,500,1
 skill_022,連続水ブレス,attack,80,water,special,normal,sp_def_down,75,none,0,underwater,100,none,0,enemy,0,1,1ターン目に水中に潜り、2ターン目に攻撃する。75％の確率で相手の特殊防御を25％downさせる。,magic_holy01,250,3
 skill_023,爪研ぎ,status,0,none,none,normal,phy_atk_up,100,none,0,none,0,none,0,self,0,1,物理攻撃を25％upする。,magic_enhance01,125,2
-skill_024,電気ブレス,attack,90,thunder,special,normal,paralysis,25,none,0,none,0,none,0,enemy,0,2,25％の確率で相手を麻痺にする。,magic_lightning01_akira,250,2
-skill_025,放電プレス,attack,110,thunder,physical,normal,paralysis,50,none,0,none,0,none,0,enemy,0,3,50％の確率で相手を麻痺にする。,magic_lightning01_akira,1000,1
+skill_024,電気ブレス,attack,90,thunder,special,normal,paralysis,25,none,0,none,0,none,0,enemy,0,2,25％の確率で相手を麻痺にする。,magic_lightning01_akira,500,3
+skill_025,放電プレス,attack,110,thunder,physical,normal,paralysis,50,none,0,none,0,none,0,enemy,0,3,50％の確率で相手を麻痺にする。,magic_lightning01_akira,2000,1
 skill_026,タックル,attack,70,none,physical,normal,none,0,none,0,none,0,none,0,enemy,0,1,通常攻撃。,attack_hit01,500,1
 skill_027,睡眠ガス,status,0,none,none,normal,sleep,75,none,0,none,0,none,0,enemy,0,2,75％の確率で相手を睡眠にする。,magic_mist02,1000,1
 skill_028,毒ガス,status,0,none,none,normal,poison,100,none,0,none,0,none,0,enemy,0,1,75％の確率で相手を毒にする。,magic_mist02,1000,1
@@ -46,7 +46,7 @@ skill_044,激震咆哮,attack,110,none,physical,ground_wave,none,0,none,0,charge
 skill_045,毒ブレス,attack,90,fire,special,normal,poison,75,none,0,none,0,none,0,enemy,0,2,75％の確率で相手を毒にする。,magic_mist02,750,1
 skill_046,激怒,status,0,fire,none,normal,sp_atk_up,100,speed_up,100,none,0,none,0,self,0,2,特殊攻撃と敏捷を25％upする。,attack_beat01,100,5
 skill_047,落雷,attack,60,thunder,special,anti_air,paralysis,25,none,0,none,0,none,0,enemy,0,2,25％の確率で相手を麻痺にする。相手が上空にいても技が命中する。,magic_lightning01_akira,500,1
-skill_048,連続電撃,attack,80,thunder,special,normal,sp_def_down,75,none,0,none,0,none,0,enemy,0,3,75％の確率で相手の特殊防御を25％downさせる。,magic_lightning01_akira,100,5
+skill_048,連続電撃,attack,80,thunder,special,normal,sp_def_down,75,none,0,none,0,none,0,enemy,0,3,75％の確率で相手の特殊防御を25％downさせる。,magic_lightning01_akira,250,4
 skill_049,炎の風,attack,60,fire,special,normal,burn,100,none,0,none,0,none,0,enemy,0,2,相手を火やられにする。,magic_fire01,250,2
 skill_050,龍風圧,attack,70,dragon,physical,normal,none,0,none,0,none,0,none,0,enemy,0,1,通常攻撃。,magic_holy02,250,3
 skill_051,竜巻ブレス,attack,110,dragon,special,normal,wind,100,none,0,none,0,none,0,enemy,0,3,相手の場に竜巻が起きる。,magic_circle01,150,5
@@ -54,7 +54,7 @@ skill_052,長い舌,attack,50,dragon,physical,normal,phy_atk_down,50,none,0,none
 skill_053,幻影,attack,120,dragon,physical,guard_break,none,0,none,0,ghost_phase,100,none,0,enemy,0,4,1ターン目に姿を消し、2ターン目に攻撃する。相手はダメージをcutできない。,magic_sonicwave01,500,1
 skill_054,粉塵爆破,attack,110,fire,special,sure_hit,none,0,none,0,future_blast,100,none,0,enemy,0,3,1ターン目に粉塵をばら撒き、次のターンに爆破する。次のターンは行動できる。必ず命中する。,magic_fire01,50,10
 skill_055,炎の床,attack,130,fire,special,sure_hit,burn,100,none,0,none,0,none,0,enemy,0,5,相手を火やられにする。必ず命中する。,magic_fire02,500,5
-skill_056,超帯電,status,0,thunder,none,normal,sp_atk_up,100,none,0,protect,100,none,0,self,0,0,特殊攻撃が25％upし、ダメージを50％cutする。,magic_lightning01_akira,1000,1
+skill_056,超帯電,status,0,thunder,none,normal,sp_atk_up,100,none,0,protect,100,none,0,self,0,0,特殊攻撃が25％upし、ダメージを50％cutする。,magic_lightning01_akira,250,4
 skill_057,砂ブレス,attack,90,none,special,normal,speed_down,75,sp_def_down,75,none,0,none,0,enemy,0,2,75％の確率で相手の特殊防御と敏捷を25％downさせる。,magic_smoke01,500,1
 skill_058,,,,,,,,,,,,,,,,,,,,,
 skill_059,,,,,,,,,,,,,,,,,,,,,
