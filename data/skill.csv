@@ -49,14 +49,15 @@ skill_047,落雷,attack,70,thunder,special,anti_air,paralysis,25,none,0,none,0,n
 skill_048,連続電撃,attack,90,thunder,special,normal,sp_def_down,75,none,0,none,0,none,0,enemy,0,3,75％の確率で相手の特殊防御を25％downさせる。,magic_lightning01_akira,250,4
 skill_049,炎の風,attack,60,fire,special,normal,burn,100,none,0,none,0,none,0,enemy,0,2,相手を火やられにする。,magic_fire01,250,2
 skill_050,龍風圧,attack,70,dragon,physical,normal,none,0,none,0,none,0,none,0,enemy,0,1,通常攻撃。,magic_holy02,250,3
-skill_051,竜巻ブレス,attack,100,dragon,special,normal,wind,100,none,0,none,0,none,0,enemy,0,3,相手の場に竜巻が起きる。,magic_circle01,150,5
+skill_051,竜巻ブレス,attack,100,dragon,special,normal,wind,100,none,0,none,0,none,0,enemy,0,3,相手の場に竜巻が起きる。,magic_circle01,75,10
 skill_052,長い舌,attack,50,dragon,physical,normal,phy_atk_down,50,none,0,none,0,none,0,enemy,0,2,50％の確率で相手の特殊攻撃を25％downさせる。,attack_hit01,500,1
 skill_053,幻影,attack,120,dragon,physical,guard_break,none,0,none,0,ghost_phase,100,none,0,enemy,0,4,1ターン目に姿を消し、2ターン目に攻撃する。相手はダメージをcutできない。,magic_sonicwave01,500,1
 skill_054,粉塵爆破,attack,110,fire,special,sure_hit,none,0,none,0,future_blast,100,none,0,enemy,0,3,1ターン目に粉塵をばら撒き、次のターンに爆破する。次のターンは行動できる。必ず命中する。,magic_fire01,50,10
 skill_055,炎の床,attack,130,fire,special,sure_hit,burn,100,none,0,none,0,none,0,enemy,0,5,相手を火やられにする。必ず命中する。,magic_fire02,500,5
 skill_056,超帯電,status,0,thunder,none,normal,sp_atk_up,100,none,0,protect,100,none,0,self,0,0,特殊攻撃が25％upし、ダメージを50％cutする。,magic_lightning01_akira,100,4
 skill_057,砂ブレス,attack,90,none,special,normal,speed_down,75,sp_def_down,75,none,0,none,0,enemy,0,2,75％の確率で相手の特殊防御と敏捷を25％downさせる。,magic_smoke01,500,1
-skill_058,嵐纏い,status,0,dragon,none,normal,sp_def_up,100,none,0,protect,100,none,0,self,0,0,特殊防御が25％upし、ダメージを50％cutする。,magic_circle01,250,3
+skill_058,嵐纏い,status,0,dragon,none,normal,sp_def_up,100,none,0,protect,100,none,0,self,0,0,特殊防御が25％upし、ダメージを50％cutする。,magic_circle01,750,1
+skill_059,,,,,,,,,,,,,,,,,,,,,
 skill_060,,,,,,,,,,,,,,,,,,,,,
 ,かみなり,attack,110,thunder,special,anti_air,paralysis,30,,,none,0,none,0,enemy,0,3,,,,
 ,じしん,attack,100,none,physical,ground_wave,none,0,,,none,0,none,0,enemy,0,3,,,,
