@@ -57,7 +57,7 @@ skill_055,炎の床,attack,130,fire,special,sure_hit,burn,100,none,0,none,0,none
 skill_056,超帯電,status,0,thunder,none,normal,sp_atk_up,100,none,0,protect,100,none,0,self,0,0,特殊攻撃が25％upし、ダメージを50％cutする。,magic_lightning01_akira,100,4
 skill_057,砂ブレス,attack,90,none,special,normal,speed_down,75,sp_def_down,75,none,0,none,0,enemy,0,2,75％の確率で相手の特殊防御と敏捷を25％downさせる。,magic_smoke01,500,1
 skill_058,嵐纏い,status,0,dragon,none,normal,sp_def_up,100,none,0,protect,100,none,0,self,0,0,特殊防御が25％upし、ダメージを50％cutする。,magic_circle01,750,1
-skill_059,粘菌爆破,status,0,fire,none,normal,phy_atk_up,100,none,0,protect,100,revenge,100,self,1,4,物理攻撃が25％upする。ダメージを50％cutし、反撃する。技優先度+１。,magic_fire01,250,1
+skill_059,粘菌爆破,status,0,fire,none,normal,phy_atk_up,100,none,0,protect,100,revenge,100,self,1,5,物理攻撃が25％upする。ダメージを50％cutし、反撃する。技優先度+１。,magic_fire01,250,1
 skill_060,睡眠針,attack,70,none,physical,normal,sleep,50,none,0,none,0,none,0,enemy,0,3,75％の確率で相手を睡眠にする。,attack_hit02,450,1
 skill_061,蜘蛛糸縛り,attack,60,none,physical,normal,speed_down,100,none,0,none,0,none,0,enemy,0,2,相手の敏捷を25％downさせる。,attack_beat01,50,10
 skill_062,泡沫の舞,status,0,water,none,normal,sp_atk_up,100,speed_up,100,protect,100,none,0,self,0,2,特殊攻撃と敏捷が25％upし、ダメージを50％cutする。,magic_holy01,500,2

@@ -35,7 +35,7 @@ character_033,オオナズチ,675,345,190,290,415,290,105,2,3,150,50,50,25,150,d
 character_034,ヤマツカミ,950,440,220,220,440,5,35,1,4,100,100,50,150,150,dragon,skill_001,skill_003,skill_050,,character_034.png,#ffffff,8,,elder_dragon,34
 character_035,テオテスカトル,690,425,360,360,360,360,70,1,3,25,150,50,100,100,fire,skill_001,skill_018,skill_050,skill_054,character_035.png,#ffffff,8,,elder_dragon,35
 character_036,ミラボレアス,1200,475,425,425,425,95,35,2,4,100,100,50,100,150,dragon,skill_001,skill_018,skill_050,skill_055,character_036.png,#ffffff,8,-110,elder_dragon,999
-character_037,ブラキディオス,600,345,295,165,245,245,70,2,2,25,150,50,100,50,fire,skill_004,skill_002,skill_010,skill_059,character_037.png,#ffffff,8,,fanged_wyvern,36
+character_037,ブラキディオス,600,300,295,165,245,245,70,2,2,25,150,50,100,50,fire,skill_004,skill_002,skill_010,skill_059,character_037.png,#ffffff,8,,fanged_wyvern,36
 character_038,ネルスキュラ,540,290,320,105,185,145,105,1,2,100,50,100,50,25,none,skill_001,skill_002,skill_060,skill_061,character_038.png,#ffffff,8,,temnoceran,37
 character_039,タマミツネ,605,300,240,240,380,240,70,2,2,50,50,150,50,100,water,skill_062,skill_004,skill_010,skill_063,character_039.png,#ffffff,8,,leviathan,38
 character_040,ディノバルド,585,320,320,260,260,185,70,1,2,25,150,50,100,100,fire,skill_001,skill_023,skill_018,skill_064,character_040.png,#ffffff,8,,fanged_wyvern,39
