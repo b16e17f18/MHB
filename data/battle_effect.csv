@@ -1,4 +1,4 @@
-battle_effect_id,name,battle_effect_group,damage_type,damage_value,turn,can_move,guard_type,weak_hit_type,damage_cut,turn
+﻿battle_effect_id,name,battle_effect_group,damage_type,damage_value,turn,can_move,guard_type,weak_hit_type,damage_cut,turn
 protect,防御態勢,guard,none,50,1,TRUE,all_damage,guard_break,50,1
 endure,こらえる,trigger,none,1,1,TRUE,hp,none,0,1
 revenge,反撃準備,trigger,received_damage_rate,150,1,TRUE,none,none,0,1
@@ -8,3 +8,5 @@ underwater,水中,position,none,0,1,FALSE,surface_attack,water_wave,0,1
 ghost_phase,消失,position,none,0,1,FALSE,all_damage,sure_hit,0,1
 charge_attack,溜め攻撃,charge,none,0,1,FALSE,none,none,0,1
 future_blast,粉塵爆破,delayed_attack,fixed_power,110,1,TRUE,none,none,0,1
+future_blast2,泡玉,delayed_attack,fixed_power,90,1,TRUE,none,none,0,1
+future_blast3,鱗粉,delayed_attack,fixed_power,70,1,TRUE,none,none,0,1

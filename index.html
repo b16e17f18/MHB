@@ -214,6 +214,16 @@
       <div id="dexOverlay" class="detail-overlay is-hidden" aria-label="図鑑">
         <section id="dexPanel" class="detail-panel dex-panel"></section>
       </div>
+
+      <div id="dialogueOverlay" class="dialogue-overlay is-hidden" role="dialog" aria-modal="true" tabindex="-1">
+        <section class="dialogue-window" aria-live="polite">
+          <img id="dialogueWindowFrame" class="dialogue-window-frame" src="./assets/dialogue_window.png" alt="" />
+          <div class="dialogue-portrait-frame">
+            <img id="dialogueNpcImage" class="dialogue-npc-image" alt="" />
+          </div>
+          <div id="dialogueText" class="dialogue-text"></div>
+        </section>
+      </div>
     </main>
 
     <script src="./data-inline.js?v=20260709-utf8-clean"></script>
