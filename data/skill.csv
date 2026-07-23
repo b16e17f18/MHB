@@ -68,7 +68,7 @@ skill_066,急下降,attack,70,none,physical,normal,paralysis,50,none,0,fly,100,n
 skill_067,振動波,attack,90,none,special,ground_wave,none,0,none,0,none,0,none,0,enemy,0,2,相手が地中にいても技が命中する。,magic_sonicwave01,100,5
 skill_068,鳴甲飛ばし,attack,40,none,physical,normal,none,0,none,0,none,0,none,0,enemy,1,1,技優先度+１。,attack_hit01,100,3
 skill_069,鱗粉爆破,attack,70,none,special,sure_hit,none,0,none,0,future_blast3,100,none,0,enemy,0,2,1ターン目に鱗粉をばら撒き、次のターンに爆破する。次のターンは行動できる。必ず命中する。,magic_shadow01,1000,1
-skill_070,狂竜ブレス,attack,90,none,special,normal,speed_down,75,poison,100,none,0,none,0,enemy,0,3,75％の確率で相手の特殊防御を25％downさせる。相手を毒にする。,magic_shadow01,750,1
+skill_070,狂竜ブレス,attack,90,dragon,special,normal,speed_down,75,poison,100,none,0,none,0,enemy,0,5,75％の確率で相手の特殊防御を25％downさせる。相手を毒にする。,magic_shadow01,750,1
 skill_071,,,,,,,,,,,,,,,,,,,,,
 skill_072,,,,,,,,,,,,,,,,,,,,,
 skill_073,,,,,,,,,,,,,,,,,,,,,
