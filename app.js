@@ -3266,10 +3266,21 @@ function statModifierLabel(stat, value) {
   return `${STAT_LABELS[stat] ?? stat}${marker.repeat(steps)}`;
 }
 
+function statusDisplayLabel(status) {
+  const resistanceLabel = resistanceStatusLabel(status);
+  return resistanceLabel || status.name;
+}
+
+function resistanceStatusLabel(status) {
+  const match = safeText(status?.name).match(/^(.+耐性)(up|down)$/i);
+  if (!match) return "";
+  return `${match[1]}${match[2].toLowerCase() === "up" ? "△" : "▼"}`;
+}
+
 function fighterStatusEntries(fighter) {
   if (!fighter) return [];
   const statusEntries = fighter.statuses.map((status) => ({
-    label: status.name,
+    label: statusDisplayLabel(status),
     className: effectChipClass(status.id),
   }));
   const battleEffectEntries = fighter.battleEffects.map((effect) => ({
@@ -5835,9 +5846,16 @@ function effectChipClass(effectId) {
   if (effectId === "paralysis") return "effect-paralysis";
   if (effectId === "poison") return "effect-poison";
   if (effectId === "burn") return "effect-burn";
+  const resistanceClass = resistanceEffectChipClass(effectId);
+  if (resistanceClass) return resistanceClass;
   if (effectId.endsWith("_up")) return "effect-up";
   if (effectId.endsWith("_down") || effectId === "def_down") return "effect-down";
   return "effect-other";
+}
+
+function resistanceEffectChipClass(effectId) {
+  const match = safeText(effectId).match(/^(fire|water|thunder|ice|dragon)_weak_/);
+  return match ? `effect-resistance-${match[1]}` : "";
 }
 
 function moveCategoryLabel(category) {
