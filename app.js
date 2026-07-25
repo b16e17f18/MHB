@@ -11,6 +11,7 @@ const DATA_PATHS = {
   encyclopediaBooks: "./data/encyclopedia_book.csv",
   equipment: "./data/equipment.csv",
   species: "./data/species.csv",
+  npcs: "./data/dialogue/npc.csv",
 };
 
 const STORY_MAP_PATHS = [
@@ -64,6 +65,9 @@ const MANUAL_SAVE_STORAGE_KEYS = ["mhb_save_1", "mhb_save_2", "mhb_save_3"];
 const INITIAL_MONEY = 1500;
 const BUSINESS_SHOP_ID = "business";
 const BUSINESS2_SHOP_ID = "business2";
+const DIALOGUE_DATA_DIRECTORY = "./data/dialogue";
+const NPC_IMAGE_DIRECTORY = "./assets/npc_image";
+const DIALOGUE_WINDOW_IMAGE = "./assets/dialogue_window.png";
 const SHOP_ITEM_FILTER_BOOK = "book";
 const SHOP_ITEM_FILTER_MONSTER = "monster";
 const SHOP_ITEM_FILTER_EQUIPMENT = "equipment";
@@ -198,6 +202,123 @@ for (const element of ELEMENT_TYPES) {
     cost: 1,
   };
 }
+
+class DialogueManager {
+  constructor() {
+    this.npcs = new Map();
+    this.dialogues = new Map();
+    this.elements = {};
+    this.active = false;
+    this.resolveClose = null;
+    this.previousFocus = null;
+    this.boundKeydown = (event) => this.handleKeydown(event);
+  }
+
+  mount(elements) {
+    this.elements = elements;
+    this.elements.overlay?.addEventListener("click", () => this.close());
+    document.addEventListener("keydown", this.boundKeydown, true);
+  }
+
+  async load(npcText) {
+    this.npcs.clear();
+    this.dialogues.clear();
+
+    const npcs = rowsFromCsv(npcText)
+      .map(normalizeNpc)
+      .filter((npc) => npc.npc_id);
+
+    for (const npc of npcs) {
+      this.npcs.set(npc.npc_id, npc);
+    }
+
+    const dialogueResults = await Promise.allSettled(
+      npcs.map(async (npc) => ({
+        npc,
+        text: await loadOptionalCsvText(
+          `dialogue:${npc.npc_id}`,
+          `${DIALOGUE_DATA_DIRECTORY}/${npc.npc_id}_dialogue.csv`,
+        ),
+      })),
+    );
+
+    for (const result of dialogueResults) {
+      if (result.status !== "fulfilled" || !result.value.text) continue;
+      const { npc, text } = result.value;
+      for (const dialogue of rowsFromCsv(text).map((row) => normalizeDialogue(row, npc.npc_id))) {
+        if (dialogue.dialogue_id) {
+          this.dialogues.set(this.dialogueKey(dialogue.npc_id, dialogue.dialogue_id), dialogue);
+        }
+      }
+    }
+  }
+
+  dialogueKey(npcId, dialogueId) {
+    return `${safeText(npcId)}:${safeText(dialogueId)}`;
+  }
+
+  show(npcId, dialogueId) {
+    const npc = this.npcs.get(safeText(npcId));
+    const dialogue = this.dialogues.get(this.dialogueKey(npcId, dialogueId));
+    if (!npc || !dialogue || !this.elements.overlay) {
+      return Promise.resolve(false);
+    }
+
+    this.close({ silent: true });
+    this.active = true;
+    this.previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+
+    if (this.elements.portrait) {
+      this.elements.portrait.src = npcImagePath(npc.image);
+      this.elements.portrait.alt = npc.name || npc.npc_id;
+    }
+    if (this.elements.text) {
+      this.elements.text.textContent = dialogue.text;
+    }
+    if (this.elements.windowFrame) {
+      this.elements.windowFrame.src = DIALOGUE_WINDOW_IMAGE;
+    }
+
+    this.elements.overlay.classList.remove("is-hidden");
+    this.elements.overlay.focus({ preventScroll: true });
+
+    return new Promise((resolve) => {
+      this.resolveClose = resolve;
+    });
+  }
+
+  close({ silent = false } = {}) {
+    if (!this.active && !this.resolveClose) return;
+    this.active = false;
+    this.elements.overlay?.classList.add("is-hidden");
+    if (this.elements.text) {
+      this.elements.text.textContent = "";
+    }
+    if (this.elements.portrait) {
+      this.elements.portrait.removeAttribute("src");
+      this.elements.portrait.alt = "";
+    }
+
+    const resolve = this.resolveClose;
+    this.resolveClose = null;
+    resolve?.(!silent);
+    if (!silent) {
+      this.previousFocus?.focus?.({ preventScroll: true });
+    }
+  }
+
+  handleKeydown(event) {
+    if (!this.active) return;
+    event.preventDefault();
+    event.stopPropagation();
+    event.stopImmediatePropagation();
+    if (event.key === "Enter") {
+      this.close();
+    }
+  }
+}
+
+const dialogueManager = new DialogueManager();
 
 const state = {
   characters: [],
@@ -403,8 +524,18 @@ document.addEventListener("DOMContentLoaded", () => {
     detailPanel: document.querySelector("#detailPanel"),
     dexOverlay: document.querySelector("#dexOverlay"),
     dexPanel: document.querySelector("#dexPanel"),
+    dialogueOverlay: document.querySelector("#dialogueOverlay"),
+    dialogueWindowFrame: document.querySelector("#dialogueWindowFrame"),
+    dialogueNpcImage: document.querySelector("#dialogueNpcImage"),
+    dialogueText: document.querySelector("#dialogueText"),
   });
 
+  dialogueManager.mount({
+    overlay: els.dialogueOverlay,
+    windowFrame: els.dialogueWindowFrame,
+    portrait: els.dialogueNpcImage,
+    text: els.dialogueText,
+  });
   bindEvents();
   gameDataPromise = loadGameData();
 });
@@ -421,10 +552,10 @@ function bindEvents() {
   els.storyMyPartyButton?.addEventListener("click", showMyParty);
   els.myPartyBackButton?.addEventListener("click", hideMyParty);
   els.storyMainStage?.addEventListener("click", handleStoryMainStageClick);
-  els.businessBackButton?.addEventListener("click", hideBusinessShop);
+  els.businessBackButton?.addEventListener("click", leaveBusinessShop);
   els.businessBookButton?.addEventListener("click", () => openBusinessShop(SHOP_ITEM_FILTER_BOOK));
   els.businessMonsterButton?.addEventListener("click", () => openBusinessShop(SHOP_ITEM_FILTER_MONSTER));
-  els.business2BackButton?.addEventListener("click", hideBusiness2);
+  els.business2BackButton?.addEventListener("click", leaveBusiness2);
   els.business2EquipmentButton?.addEventListener("click", openBusiness2Shop);
   els.businessShopBackButton?.addEventListener("click", closeBusinessShopPanel);
   els.myHouseScreenBackButton?.addEventListener("click", hideMyHouse);
@@ -673,6 +804,7 @@ async function showBusinessShop() {
   setStoryStage("business");
   els.businessShopPanel?.classList.add("is-hidden");
   els.businessBackButton?.focus({ preventScroll: true });
+  void showDialogue("merchant", "merchant_welcome");
 }
 
 async function openBusinessShop(itemFilter) {
@@ -702,6 +834,17 @@ function hideBusinessShop({ restoreTravel = true } = {}) {
   if (restoreTravel) showStoryTravel();
 }
 
+async function leaveBusinessShop() {
+  state.shop.open = false;
+  state.shop.itemFilter = "";
+  state.shop.confirmEntryId = null;
+  state.shop.exchangeEntryId = null;
+  state.shop.offerOwnedIds = [];
+  els.businessShopPanel?.classList.add("is-hidden");
+  await showDialogue("merchant", "merchant_goodbye");
+  showStoryTravel();
+}
+
 async function showBusiness2() {
   if (gameDataPromise) {
     await gameDataPromise;
@@ -724,6 +867,7 @@ async function showBusiness2() {
   setStoryStage("business2");
   els.businessShopPanel?.classList.add("is-hidden");
   els.business2BackButton?.focus({ preventScroll: true });
+  void showDialogue("blacksmith", "blacksmith_welcome");
 }
 
 async function openBusiness2Shop() {
@@ -753,6 +897,17 @@ function hideBusiness2({ restoreTravel = true } = {}) {
   if (restoreTravel) showStoryTravel();
 }
 
+async function leaveBusiness2() {
+  state.shop.open = false;
+  state.shop.itemFilter = "";
+  state.shop.confirmEntryId = null;
+  state.shop.exchangeEntryId = null;
+  state.shop.offerOwnedIds = [];
+  els.businessShopPanel?.classList.add("is-hidden");
+  await showDialogue("blacksmith", "blacksmith_goodbye");
+  showStoryTravel();
+}
+
 function closeBusinessShopPanel() {
   const shopId = currentShopId();
   state.shop.open = false;
@@ -772,6 +927,10 @@ function attachBusinessShopPanel(container) {
   if (els.businessShopPanel.parentElement !== container) {
     container.appendChild(els.businessShopPanel);
   }
+}
+
+function showDialogue(npcId, dialogueId) {
+  return dialogueManager.show(npcId, dialogueId);
 }
 
 async function showMyHouse() {
@@ -2110,6 +2269,7 @@ async function loadGameData() {
       encyclopediaBookText,
       equipmentText,
       speciesText,
+      npcText,
     ] = await Promise.all([
       loadCsvText("characters", DATA_PATHS.characters),
       loadCsvText("skills", DATA_PATHS.skills),
@@ -2123,6 +2283,7 @@ async function loadGameData() {
       loadOptionalCsvText("encyclopediaBooks", DATA_PATHS.encyclopediaBooks),
       loadOptionalCsvText("equipment", DATA_PATHS.equipment),
       loadOptionalCsvText("species", DATA_PATHS.species),
+      loadOptionalCsvText("npcs", DATA_PATHS.npcs),
     ]);
 
     state.characters = rowsFromCsv(characterText)
@@ -2198,6 +2359,8 @@ async function loadGameData() {
         state.speciesMap.set(species.species_id, species);
       }
     }
+
+    await dialogueManager.load(npcText);
 
     state.animations.clear();
     state.animationDefinitions.clear();
@@ -2352,6 +2515,7 @@ function normalizeCharacter(row) {
     transparentColor: safeText(row.transparent_color),
     transparencyTolerance: number(row.tolerance),
     renderOffsetY: number(row.render_offset_y),
+    display_order: number(row.display_order, 9999),
     skillIds: [row.skill_1, row.skill_2, row.skill_3, row.skill_4, row.skill_5]
       .map((skillId) => safeText(skillId))
       .filter(Boolean),
@@ -2523,6 +2687,23 @@ function normalizeSpecies(row) {
   };
 }
 
+function normalizeNpc(row) {
+  return {
+    npc_id: safeText(row.npc_id),
+    name: safeText(row.name),
+    image: safeText(row.image),
+  };
+}
+
+function normalizeDialogue(row, fallbackNpcId = "") {
+  return {
+    dialogue_id: safeText(row.dialogue_id),
+    npc_id: safeText(row.npc_id, fallbackNpcId),
+    text: csvText(row.text),
+    next_id: safeText(row.next_id),
+  };
+}
+
 function normalizeEncyclopediaBook(row) {
   return {
     book_id: safeText(row.book_id),
@@ -2543,6 +2724,13 @@ function applyAnimationConfig() {
 function characterImagePath(characterId, imageName = "") {
   const fileName = safeText(imageName, characterId ? `${characterId}.png` : "");
   return fileName ? `./assets/character_image_transparent/${fileName}` : "";
+}
+
+function npcImagePath(imageName = "") {
+  const image = safeText(imageName);
+  if (!image) return "";
+  if (/^(?:https?:|data:|\.?\/)/i.test(image)) return image;
+  return `${NPC_IMAGE_DIRECTORY}/${image}`;
 }
 
 function safeText(value, fallback = "") {
@@ -2815,6 +3003,7 @@ function openDex() {
 function renderDexPanel() {
   if (!els.dexOverlay || !els.dexPanel) return;
 
+  const dexCharacters = charactersByDisplayOrder();
   const fallbackId = activeEnemy()?.id || activePlayer()?.id || state.characters[0]?.character_id || null;
   const selectedId = state.dex.characterId || fallbackId;
   const character = state.characterMap.get(selectedId) || state.characters[0];
@@ -2874,7 +3063,7 @@ function renderDexPanel() {
     </div>
     <div class="dex-layout">
       <aside class="dex-list" aria-label="Breeder一覧">
-        ${state.characters
+        ${dexCharacters
           .map((entry) => {
             const canViewEntry = !isStoryBattle || canViewStoryBattleEncyclopedia(entry.character_id);
             return `
@@ -2914,6 +3103,19 @@ function renderDexPanel() {
       renderDexPanel();
     });
   }
+}
+
+function charactersByDisplayOrder() {
+  return [...state.characters].sort((a, b) => {
+    const displayOrder = a.display_order - b.display_order;
+    if (displayOrder) return displayOrder;
+    return characterSortNumber(a) - characterSortNumber(b) || a.character_id.localeCompare(b.character_id);
+  });
+}
+
+function characterSortNumber(character) {
+  const match = safeText(character?.character_id).match(/^character_(\d+)$/i);
+  return match ? Number(match[1]) : Number.MAX_SAFE_INTEGER;
 }
 
 function resistanceCell(character, element) {
