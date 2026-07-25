@@ -4193,26 +4193,10 @@ function bindSpriteStatusClicks() {
 function showFighterStatus(side) {
   const fighter = activeBySide(side);
   if (!fighter) return;
-  if (state.story.currentRankBattleId) {
-    if (state.busy || state.gameOver || state.pendingSwitchSide) return;
-    state.battleInspectSide = side === "player" ? "player" : "enemy";
-    state.commandMode = "enemyInfo";
-    renderBattle();
-    return;
-  }
-
-  const owner = side === "player" ? "自分" : "相手";
-  if (side === "enemy") {
-    if (state.busy || state.gameOver || state.pendingSwitchSide) return;
-    state.battleInspectSide = "enemy";
-    state.commandMode = "enemyInfo";
-    renderBattle();
-    return;
-  }
-
-  pushLog(
-    `${owner}:${fighter.name} / EN ${fighter.energy} / 耐性 ${resistanceSummaryText(fighter.base)} / 状態 ${fighterStatusSummary(fighter)}`,
-  );
+  if (state.busy || state.gameOver || state.pendingSwitchSide) return;
+  state.battleInspectSide = side === "player" ? "player" : "enemy";
+  state.commandMode = "enemyInfo";
+  renderBattle();
 }
 
 function renderEnemyInfoPanel(enemy, inspectSide = "enemy") {

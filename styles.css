@@ -1654,6 +1654,28 @@ button {
   background: #48c7ff;
 }
 
+.effect-resistance-fire {
+  background: #e64234;
+}
+
+.effect-resistance-water {
+  background: #2488ff;
+}
+
+.effect-resistance-thunder {
+  background: #f6d743;
+  color: #111111;
+}
+
+.effect-resistance-ice {
+  background: #48c7ff;
+  color: #111111;
+}
+
+.effect-resistance-dragon {
+  background: #8e44ad;
+}
+
 .effect-up {
   background: #ff9d28;
   color: #111111;
