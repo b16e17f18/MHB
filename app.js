@@ -139,6 +139,7 @@ const ANIMATION_FRAME_HEIGHT = 43;
 const BATTLE_ANIMATION_SCALE = 1.52;
 const TEAM_SLOT_LIMIT = 5;
 const START_ENERGY = 1;
+const BATTLE_SAVE_ENERGY_ENABLED = false;
 const ENEMY_AI_CONFIG = {
   DEBUG: false,
   AVERAGE_DAMAGE_VARIANCE: 0.975,
@@ -4404,7 +4405,7 @@ function renderMoveGrid(fighter) {
       `;
     })
     .join("");
-  const saveEnergyButton = `
+  const saveEnergyButton = BATTLE_SAVE_ENERGY_ENABLED ? `
     <button class="move-button move-save-energy-button" type="button" data-save-energy="true" ${saveEnergyDisabled ? "disabled" : ""}>
       <span class="move-name">静止</span>
       <span class="move-cost">${energyBadge(0)}</span>
@@ -4413,7 +4414,7 @@ function renderMoveGrid(fighter) {
       <span class="move-power power-chip">EN回復</span>
       <span class="move-text">行動せず、ターン終了時のEN回復を待つ。</span>
     </button>
-  `;
+  ` : "";
   els.moveGrid.innerHTML = `${moveButtons}${saveEnergyButton}`;
 
   for (const button of els.moveGrid.querySelectorAll(".move-button")) {
@@ -4635,6 +4636,7 @@ function playerChooseMove(moveId) {
 }
 
 function playerChooseSaveEnergy() {
+  if (!BATTLE_SAVE_ENERGY_ENABLED) return;
   if (state.busy || state.gameOver || state.pendingSwitchSide) return;
   const fighter = activePlayer();
   if (!fighter || pendingSkillId(fighter)) return;
@@ -4815,7 +4817,7 @@ function decorateAction(action) {
   }
 
   const actor = activeBySide(action.side);
-  if (action.type === "save_energy") {
+  if (action.type === "save_energy" || action.type === "idle") {
     return {
       ...action,
       priority: 0,
@@ -4851,7 +4853,12 @@ async function executeAction(action) {
     return;
   }
 
+  if (action.type === "idle") {
+    return;
+  }
+
   if (action.type === "save_energy") {
+    if (!BATTLE_SAVE_ENERGY_ENABLED) return;
     const blockText = blockedByControl(actor);
     if (blockText) {
       pushLog(blockText);
@@ -4994,14 +5001,16 @@ function chooseEnemyAction() {
     debugEnemyAI(enemy, {
       usableMoveScores,
       saveEnergy,
-      selected: "save_energy",
+      selected: BATTLE_SAVE_ENERGY_ENABLED ? "save_energy" : "idle",
       reason: "no_usable_moves",
     });
-    return { side: "enemy", type: "save_energy" };
+    return BATTLE_SAVE_ENERGY_ENABLED
+      ? { side: "enemy", type: "save_energy" }
+      : { side: "enemy", type: "idle" };
   }
 
   if (!usableMoveScores.length) {
-    if (saveEnergy.available && saveEnergy.score > 0) {
+    if (BATTLE_SAVE_ENERGY_ENABLED && saveEnergy.available && saveEnergy.score > 0) {
       debugEnemyAI(enemy, {
         usableMoveScores,
         saveEnergy,
@@ -5022,7 +5031,9 @@ function chooseEnemyAction() {
       return { side: "enemy", type: "move", moveId: fallbackMove.skill_id };
     }
 
-    return { side: "enemy", type: "save_energy" };
+    return BATTLE_SAVE_ENERGY_ENABLED
+      ? { side: "enemy", type: "save_energy" }
+      : { side: "enemy", type: "idle" };
   }
 
   const currentBestScore = Math.max(...usableMoveScores.map((candidate) => candidate.score));
@@ -5031,13 +5042,15 @@ function chooseEnemyAction() {
       ...candidate,
       action: { side: "enemy", type: "move", moveId: candidate.move.skill_id },
     })),
-    {
+  ];
+  if (BATTLE_SAVE_ENERGY_ENABLED) {
+    candidates.push({
       type: "save_energy",
       score: saveEnergy.score,
       estimatedDamage: 0,
       action: { side: "enemy", type: "save_energy" },
-    },
-  ];
+    });
+  }
   if (legacyFallbackMove) {
     candidates.push({
       type: "move",
