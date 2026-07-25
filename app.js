@@ -514,6 +514,7 @@ document.addEventListener("DOMContentLoaded", () => {
     restartButton: document.querySelector("#restartButton"),
     dexButton: document.querySelector("#dexButton"),
     glossaryButton: document.querySelector("#glossaryButton"),
+    glossaryPanel: document.querySelector("#glossaryPanel"),
     commandLights: document.querySelector("#commandLights"),
     battleStatusPanel: document.querySelector("#battleStatusPanel"),
     moveGrid: document.querySelector("#moveGrid"),
@@ -628,7 +629,11 @@ function bindEvents() {
   });
 
   els.glossaryButton.addEventListener("click", () => {
-    pushLog("用語は準備中です。");
+    els.glossaryPanel?.classList.toggle("is-hidden");
+  });
+
+  els.glossaryPanel?.addEventListener("click", () => {
+    els.glossaryPanel.classList.add("is-hidden");
   });
 
   els.restartButton.addEventListener("click", () => {
