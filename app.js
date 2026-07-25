@@ -2838,7 +2838,7 @@ function renderRoster() {
   const otherSide = state.setupSide === "enemy" ? "player" : "enemy";
   const otherSelectedIds = setupSelectionIds(otherSide);
   const otherLabel = setupSideLabel(otherSide);
-  els.rosterGrid.innerHTML = state.characters
+  els.rosterGrid.innerHTML = charactersByDisplayOrder()
     .map((character) => {
       const selected = activeSelectedIds.includes(character.character_id);
       const selectedByOtherSide = otherSelectedIds.includes(character.character_id);
