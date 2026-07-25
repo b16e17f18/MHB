@@ -139,6 +139,31 @@ const ANIMATION_FRAME_HEIGHT = 43;
 const BATTLE_ANIMATION_SCALE = 1.52;
 const TEAM_SLOT_LIMIT = 5;
 const START_ENERGY = 1;
+const ENEMY_AI_CONFIG = {
+  DEBUG: false,
+  AVERAGE_DAMAGE_VARIANCE: 0.975,
+  WAITING_PENALTY: 25,
+  MIN_FUTURE_GAIN: 20,
+  ENERGY_COST_PENALTY: 3,
+  EMPTY_ENERGY_PENALTY: 8,
+  LOW_HP_DAMAGE_RATIO: 0.7,
+  SAVE_BLOCK_PENALTY: 10000,
+  NEAR_BEST_RANDOM_RANGE: 0.1,
+  NEAR_BEST_MIN_RANGE: 5,
+  CANDIDATE_MIN_WEIGHT: 1,
+  CANDIDATE_WEIGHT_OFFSET: 1,
+  KO_BONUS: 1000,
+  LEGACY_FALLBACK_SCORE_RATIO: 0.94,
+};
+const ENEMY_AI_TYPE_CONFIGS = {
+  balanced: {},
+  aggressive: {
+    WAITING_PENALTY: 40,
+  },
+  patient: {
+    WAITING_PENALTY: 10,
+  },
+};
 const STAT_GRAPH_MAX = {
   hp: 999,
   phy_atk: 500,
@@ -2508,6 +2533,7 @@ function normalizeCharacter(row) {
     regen_value: number(row.regen_value ?? row.regen ?? row.recovery),
     energy_charge: Math.max(1, number(row.cost_charge ?? row.energy_charge, 1)),
     slot: number(row.slot, 1),
+    ai_type: safeText(row.ai_type, "balanced"),
     element,
     weaknesses: {
       fire: number(row.weak_fire, 100) / 100,
@@ -4350,7 +4376,12 @@ function renderMoveGrid(fighter) {
   }
 
   const pendingMoveId = pendingSkillId(fighter);
-  els.moveGrid.innerHTML = movesForCharacter(fighter.base)
+  const saveEnergyDisabled =
+    state.busy ||
+    state.gameOver ||
+    Boolean(state.pendingSwitchSide) ||
+    Boolean(pendingMoveId);
+  const moveButtons = movesForCharacter(fighter.base)
     .map((move) => {
       const disabled =
         state.busy ||
@@ -4373,9 +4404,24 @@ function renderMoveGrid(fighter) {
       `;
     })
     .join("");
+  const saveEnergyButton = `
+    <button class="move-button move-save-energy-button" type="button" data-save-energy="true" ${saveEnergyDisabled ? "disabled" : ""}>
+      <span class="move-name">静止</span>
+      <span class="move-cost">${energyBadge(0)}</span>
+      <span class="move-element">無</span>
+      <span class="move-kind">待機</span>
+      <span class="move-power power-chip">EN回復</span>
+      <span class="move-text">行動せず、ターン終了時のEN回復を待つ。</span>
+    </button>
+  `;
+  els.moveGrid.innerHTML = `${moveButtons}${saveEnergyButton}`;
 
   for (const button of els.moveGrid.querySelectorAll(".move-button")) {
-    button.addEventListener("click", () => playerChooseMove(button.dataset.moveId));
+    if (button.dataset.saveEnergy) {
+      button.addEventListener("click", () => playerChooseSaveEnergy());
+    } else {
+      button.addEventListener("click", () => playerChooseMove(button.dataset.moveId));
+    }
   }
 }
 
@@ -4588,6 +4634,13 @@ function playerChooseMove(moveId) {
   resolveTurn({ side: "player", type: "move", moveId: selectedMoveId });
 }
 
+function playerChooseSaveEnergy() {
+  if (state.busy || state.gameOver || state.pendingSwitchSide) return;
+  const fighter = activePlayer();
+  if (!fighter || pendingSkillId(fighter)) return;
+  resolveTurn({ side: "player", type: "save_energy" });
+}
+
 function playerChooseSwitch(index) {
   if (state.busy || state.gameOver) return;
   const target = state.playerTeam[index];
@@ -4762,6 +4815,14 @@ function decorateAction(action) {
   }
 
   const actor = activeBySide(action.side);
+  if (action.type === "save_energy") {
+    return {
+      ...action,
+      priority: 0,
+      speed: actor ? effectiveStat(actor, "speed") : 0,
+    };
+  }
+
   const move = moveForFighter(actor, action.moveId);
   return {
     ...action,
@@ -4786,6 +4847,19 @@ async function executeAction(action) {
       state.commandMode = "fight";
     }
     pushLog(`${actor.name}を戻した。${activeBySide(action.side).name}、出番だ！`);
+    await pause(420);
+    return;
+  }
+
+  if (action.type === "save_energy") {
+    const blockText = blockedByControl(actor);
+    if (blockText) {
+      pushLog(blockText);
+      await pause(520);
+      return;
+    }
+
+    pushLog(`${actor.name}は静止している。`);
     await pause(420);
     return;
   }
@@ -4891,11 +4965,289 @@ function chooseEnemyAction() {
     return { side: "enemy", type: "switch", index: bench };
   }
 
-  const moves = movesForCharacter(enemy.base).filter((move) => move.cost <= enemy.energy);
-  const attacks = moves.filter((move) => move.category === "attack");
-  const candidates = attacks.length ? attacks : moves;
-  const picked = candidates[Math.floor(Math.random() * candidates.length)] ?? state.skills.get("basic_strike");
-  return { side: "enemy", type: "move", moveId: picked.skill_id };
+  const target = activePlayer();
+  const aiConfig = enemyAiConfigFor(enemy);
+  const allMoves = movesForCharacter(enemy.base);
+  const usableMoves = allMoves.filter((move) => move.cost <= enemy.energy);
+  const usableMoveScores = usableMoves
+    .map((move) => scoreEnemyUsableMove(enemy, target, move, aiConfig))
+    .filter(Boolean);
+  const scoredMoveIds = new Set(usableMoveScores.map((candidate) => candidate.move.skill_id));
+  const legacyFallbackMove = pickLegacyEnemyMove(
+    usableMoves.filter((move) => !scoredMoveIds.has(move.skill_id) && move.category === "attack"),
+  );
+  const saveEnergy = scoreEnemySaveEnergy(enemy, target, allMoves, usableMoveScores, aiConfig);
+  const knockoutMoves = usableMoveScores.filter((candidate) => candidate.canKnockout);
+
+  if (knockoutMoves.length) {
+    const selected = knockoutMoves.sort(compareEnemyKnockoutMoves)[0];
+    debugEnemyAI(enemy, {
+      usableMoveScores,
+      saveEnergy,
+      selected: selected.move.skill_id,
+      reason: "knockout",
+    });
+    return { side: "enemy", type: "move", moveId: selected.move.skill_id };
+  }
+
+  if (!usableMoves.length) {
+    debugEnemyAI(enemy, {
+      usableMoveScores,
+      saveEnergy,
+      selected: "save_energy",
+      reason: "no_usable_moves",
+    });
+    return { side: "enemy", type: "save_energy" };
+  }
+
+  if (!usableMoveScores.length) {
+    if (saveEnergy.available && saveEnergy.score > 0) {
+      debugEnemyAI(enemy, {
+        usableMoveScores,
+        saveEnergy,
+        selected: "save_energy",
+        reason: "future_move",
+      });
+      return { side: "enemy", type: "save_energy" };
+    }
+
+    const fallbackMove = pickLegacyEnemyMove(usableMoves);
+    if (fallbackMove) {
+      debugEnemyAI(enemy, {
+        usableMoveScores,
+        saveEnergy,
+        selected: fallbackMove.skill_id,
+        reason: "legacy_fallback",
+      });
+      return { side: "enemy", type: "move", moveId: fallbackMove.skill_id };
+    }
+
+    return { side: "enemy", type: "save_energy" };
+  }
+
+  const currentBestScore = Math.max(...usableMoveScores.map((candidate) => candidate.score));
+  const candidates = [
+    ...usableMoveScores.map((candidate) => ({
+      ...candidate,
+      action: { side: "enemy", type: "move", moveId: candidate.move.skill_id },
+    })),
+    {
+      type: "save_energy",
+      score: saveEnergy.score,
+      estimatedDamage: 0,
+      action: { side: "enemy", type: "save_energy" },
+    },
+  ];
+  if (legacyFallbackMove) {
+    candidates.push({
+      type: "move",
+      move: legacyFallbackMove,
+      score: currentBestScore * aiConfig.LEGACY_FALLBACK_SCORE_RATIO,
+      estimatedDamage: 0,
+      legacyFallback: true,
+      action: { side: "enemy", type: "move", moveId: legacyFallbackMove.skill_id },
+    });
+  }
+  const selected = pickEnemyAiCandidate(candidates, aiConfig);
+  debugEnemyAI(enemy, {
+    usableMoveScores,
+    saveEnergy,
+    selected: selected.action.type === "save_energy" ? "save_energy" : selected.action.moveId,
+    reason: "scored",
+  });
+  return selected.action;
+}
+
+function isEnemyAiScoredMove(move) {
+  return Boolean(
+    move &&
+      move.category === "attack" &&
+      move.target !== "self" &&
+      !twoTurnBattleEffectId(move) &&
+      !hasDelayedAttackBattleEffect(move)
+  );
+}
+
+function enemyAiTypeFor(enemy) {
+  const aiType = safeText(enemy?.base?.ai_type, "balanced").toLowerCase();
+  return ENEMY_AI_TYPE_CONFIGS[aiType] ? aiType : "balanced";
+}
+
+function enemyAiConfigFor(enemy) {
+  const aiType = enemyAiTypeFor(enemy);
+  return {
+    ...ENEMY_AI_CONFIG,
+    ...(ENEMY_AI_TYPE_CONFIGS[aiType] ?? ENEMY_AI_TYPE_CONFIGS.balanced),
+  };
+}
+
+function scoreEnemyUsableMove(enemy, target, move, aiConfig = ENEMY_AI_CONFIG) {
+  if (!enemy || !target || !isEnemyAiScoredMove(move)) return null;
+  const hitCheck = canHitTarget(target, move);
+  if (!hitCheck.canHit) return null;
+
+  const estimatedDamage = estimateMoveDamage(enemy, target, move, aiConfig);
+  const canKnockout = estimatedDamage >= target.hp;
+  let score = estimatedDamage - move.cost * aiConfig.ENERGY_COST_PENALTY;
+  if (enemy.energy - move.cost <= 0) {
+    score -= aiConfig.EMPTY_ENERGY_PENALTY;
+  }
+  if (canKnockout) {
+    score += aiConfig.KO_BONUS;
+  }
+
+  return {
+    type: "move",
+    move,
+    score,
+    estimatedDamage,
+    canKnockout,
+  };
+}
+
+function scoreEnemySaveEnergy(enemy, target, allMoves, usableMoveScores, aiConfig = ENEMY_AI_CONFIG) {
+  const currentEnergy = enemy?.energy ?? 0;
+  const energyCharge = enemy?.base?.energy_charge ?? 1;
+  const maxEnergy = enemy?.maxEnergy ?? 7;
+  const nextEnergy = Math.min(currentEnergy + energyCharge, maxEnergy);
+  const currentBestEstimatedDamage = Math.max(
+    0,
+    ...usableMoveScores.map((candidate) => candidate.estimatedDamage),
+  );
+  const futureMoves = (allMoves ?? [])
+    .filter((move) => move.cost > currentEnergy && move.cost <= nextEnergy)
+    .filter(isEnemyAiScoredMove)
+    .map((move) => {
+      const hitCheck = target ? canHitTarget(target, move) : { canHit: false };
+      if (!hitCheck.canHit) return null;
+      return {
+        move,
+        estimatedDamage: estimateMoveDamage(enemy, target, move, aiConfig),
+      };
+    })
+    .filter(Boolean)
+    .sort((a, b) => b.estimatedDamage - a.estimatedDamage);
+  const futureBest = futureMoves[0] ?? null;
+  const futureGain = futureBest
+    ? futureBest.estimatedDamage - currentBestEstimatedDamage
+    : 0;
+  let score = futureBest ? futureGain - aiConfig.WAITING_PENALTY : -aiConfig.SAVE_BLOCK_PENALTY;
+  let available = Boolean(futureBest);
+
+  if (!futureBest || futureGain < aiConfig.MIN_FUTURE_GAIN) {
+    score -= aiConfig.SAVE_BLOCK_PENALTY;
+    available = false;
+  }
+  if (currentEnergy >= maxEnergy) {
+    score -= aiConfig.SAVE_BLOCK_PENALTY;
+    available = false;
+  }
+  if (target && currentBestEstimatedDamage >= target.hp * aiConfig.LOW_HP_DAMAGE_RATIO) {
+    score -= aiConfig.WAITING_PENALTY;
+  }
+
+  return {
+    type: "save_energy",
+    score,
+    available,
+    currentEnergy,
+    energyCharge,
+    nextEnergy,
+    currentBestEstimatedDamage,
+    futureMoves,
+    futureBest,
+    futureGain,
+  };
+}
+
+function compareEnemyKnockoutMoves(a, b) {
+  if (a.move.cost !== b.move.cost) return a.move.cost - b.move.cost;
+  if (a.estimatedDamage !== b.estimatedDamage) return b.estimatedDamage - a.estimatedDamage;
+  return b.score - a.score;
+}
+
+function pickLegacyEnemyMove(usableMoves) {
+  const attacks = usableMoves.filter((move) => move.category === "attack");
+  const candidates = attacks.length ? attacks : usableMoves;
+  return candidates[Math.floor(Math.random() * candidates.length)] ?? null;
+}
+
+function pickEnemyAiCandidate(candidates, aiConfig = ENEMY_AI_CONFIG) {
+  const sorted = [...candidates].sort((a, b) => b.score - a.score);
+  const best = sorted[0];
+  const nearBestRange = Math.max(
+    aiConfig.NEAR_BEST_MIN_RANGE,
+    Math.abs(best.score) * aiConfig.NEAR_BEST_RANDOM_RANGE,
+  );
+  const nearBest = sorted.filter((candidate) => best.score - candidate.score <= nearBestRange);
+  if (nearBest.length <= 1) return best;
+
+  const floor = best.score - nearBestRange;
+  const totalWeight = nearBest.reduce(
+    (total, candidate) => total + Math.max(
+      aiConfig.CANDIDATE_MIN_WEIGHT,
+      candidate.score - floor + aiConfig.CANDIDATE_WEIGHT_OFFSET,
+    ),
+    0,
+  );
+  let roll = Math.random() * totalWeight;
+  for (const candidate of nearBest) {
+    roll -= Math.max(
+      aiConfig.CANDIDATE_MIN_WEIGHT,
+      candidate.score - floor + aiConfig.CANDIDATE_WEIGHT_OFFSET,
+    );
+    if (roll <= 0) return candidate;
+  }
+  return best;
+}
+
+function estimateMoveDamage(attacker, target, move, aiConfig = ENEMY_AI_CONFIG) {
+  if (!attacker || !target || !move) return 0;
+  const hitCheck = canHitTarget(target, move);
+  if (!hitCheck.canHit) return 0;
+
+  const physical = move.attack_type !== "special";
+  const attackStat = effectiveStat(attacker, physical ? "phy_atk" : "sp_atk");
+  const defenseStat = effectiveStat(target, physical ? "phy_def" : "sp_def");
+  const ratio = attackStat / Math.max(45, defenseStat + 60);
+  const elementMultiplier = weaknessMultiplier(target, move.element);
+  const sameElementBonus =
+    move.element !== "none" && move.element === attacker.base.element ? 1.15 : 1;
+  let damage = (move.power * 1.45 + attackStat * 0.48) * ratio;
+
+  damage *= elementMultiplier * sameElementBonus * aiConfig.AVERAGE_DAMAGE_VARIANCE;
+  damage = applyIncomingBattleEffects(target, damage, move);
+  return Math.max(1, Math.round(damage));
+}
+
+function debugEnemyAI(enemy, details) {
+  if (!ENEMY_AI_CONFIG.DEBUG) return;
+  const saveEnergy = details.saveEnergy;
+  const usableLines = details.usableMoveScores.length
+    ? details.usableMoveScores.map((candidate) => (
+        `  ${candidate.move.skill_id} score=${Math.round(candidate.score)} estimatedDamage=${candidate.estimatedDamage}`
+      ))
+    : ["  none"];
+  const futureLines = saveEnergy.futureMoves.length
+    ? saveEnergy.futureMoves.map((candidate) => (
+        `  ${candidate.move.skill_id} estimatedDamage=${candidate.estimatedDamage}`
+      ))
+    : ["  none"];
+  console.debug([
+    "[EnemyAI]",
+    `enemy=${enemy?.id ?? ""}`,
+    `currentEnergy=${saveEnergy.currentEnergy}`,
+    `energyCharge=${saveEnergy.energyCharge}`,
+    `nextEnergy=${saveEnergy.nextEnergy}`,
+    "usableMoves:",
+    ...usableLines,
+    "futureMoves:",
+    ...futureLines,
+    `futureGain=${saveEnergy.futureGain}`,
+    `saveEnergyScore=${Math.round(saveEnergy.score)}`,
+    `selected=${details.selected}`,
+    `reason=${details.reason}`,
+  ].join("\n"));
 }
 
 function dealDamage(attacker, target, move) {
