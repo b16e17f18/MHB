@@ -46,6 +46,6 @@ character_044,ゴア・マガラ,666,333,222,333,333,333,105,2,3,100,50,50,50,10
 character_045,ザボアザギル,630,260,220,270,390,155,70,1,2,150,50,100,25,50,ice,skill_001,skill_071,skill_015,skill_065,character_045.png,#ffffff,8,,amphibian,121
 character_046,メラルー,250,90,90,70,70,330,105,2,1,25,25,25,25,25,none,skill_072,skill_073,skill_074,,character_046.png,#ffffff,8,,unknown,131
 character_047,ウカムルバス,825,390,390,150,250,125,70,2,4,150,50,100,25,50,ice,skill_001,skill_017,skill_031,skill_020,character_047.png,#ffffff,8,,flying_wyvern,802
-character_048,アルバトリオン,999,499,499,499,499,99,35,2,5,50,100,50,50,50,dragon,skill_049,skill_035,skill_020,skill_075,character_048.png,#ffffff,8,,elder_dragon,999
+character_048,アルバトリオン,999,399,399,399,399,99,35,2,5,50,100,50,50,50,dragon,skill_049,skill_035,skill_020,skill_075,character_048.png,#ffffff,8,,elder_dragon,999
 character_049,,,,,,,,,,,,,,,,,,,,,,,,,,
 character_050,,,,,,,,,,,,,,,,,,,,,,,,,,
