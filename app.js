@@ -59,7 +59,33 @@ const STORY_RANK_BUTTON_AREAS = {
   SS: { left: 74.6, top: 66.5, width: 20.8, height: 27.5 },
 };
 const STORY_RANK_ORDER_INDEX = new Map(STORY_RANK_ORDER.map((rank, index) => [rank, index]));
-const INITIAL_STORY_RANK_BATTLE_IDS = new Set(["battle_f_1"]);
+const INITIAL_STORY_RANK_BATTLE_IDS = new Set(["battle_f_1", "arena_g_1"]);
+const ARENA_STAGE_AREAS = [
+  { id: "G1", left: 3.1, top: 15, width: 18.5, height: 31.8 },
+  { id: "G2", left: 25.5, top: 34.4, width: 16.7, height: 30.1 },
+  { id: "G3", left: 19.7, top: 65.9, width: 17.5, height: 30.3 },
+  { id: "G4", left: 45.7, top: 4.9, width: 18, height: 28.5 },
+  { id: "G5", left: 70.8, top: 3.3, width: 17, height: 28 },
+  { id: "G6", left: 58.3, top: 33.6, width: 16.8, height: 27.7 },
+  { id: "G7", left: 82.1, top: 31.4, width: 17.7, height: 27.2 },
+  { id: "M1", left: 40.5, top: 66.1, width: 19.8, height: 33.4 },
+  { id: "M2", left: 75.9, top: 59.9, width: 22.2, height: 37.4 },
+];
+const ARENA_BATTLE_MAP = {
+  G1: "arena_g_1",
+  G2: "arena_g_2",
+  G3: "arena_g_3",
+  G4: "arena_g_4",
+  G5: "arena_g_5",
+  G6: "arena_g_6",
+  G7: "arena_g_7",
+  M1: "arena_m_1",
+  M2: "arena_m_2",
+};
+const ARENA_BATTLE_ENTRANCE_BY_ID = Object.fromEntries(
+  Object.entries(ARENA_BATTLE_MAP).map(([entranceId, rankBattleId]) => [rankBattleId, entranceId]),
+);
+const ARENA_UNAVAILABLE_MESSAGE = "\u307e\u3060\u5bfe\u6226\u3067\u304d\u306a\u3044\u3088\u3046\u3060";
 
 const MANUAL_SAVE_STORAGE_KEYS = ["mhb_save_1", "mhb_save_2", "mhb_save_3"];
 const INITIAL_MONEY = 1500;
@@ -197,9 +223,14 @@ const GENERATED_SKILLS = {
     attack_type: "physical",
     hit_type: "normal",
     effect1: "none",
+    effect_target1: "enemy",
     effect_chance1: 0,
     effect2: "none",
+    effect_target2: "enemy",
     effect_chance2: 0,
+    effect3: "none",
+    effect_target3: "enemy",
+    effect_chance3: 0,
     battle_effect1: "none",
     battle_effect_chance1: 0,
     battle_effect2: "none",
@@ -413,6 +444,9 @@ const state = {
     walkToken: 0,
     pendingRankBattleId: null,
     currentRankBattleId: null,
+    currentArenaBattleId: null,
+    selectedArenaEntranceId: null,
+    selectedArenaBattleId: null,
     clearedRankBattleIds: new Set(),
     disabledRankBattleIds: new Set(),
   },
@@ -431,6 +465,7 @@ function createExchangeState() {
     playerIndices: [],
     enemyIndex: null,
     completed: false,
+    cancelled: false,
     storyDecision: null,
   };
 }
@@ -474,14 +509,17 @@ document.addEventListener("DOMContentLoaded", () => {
     travelMyHouseButton: document.querySelector("#travelMyHouseButton"),
     travelBusinessButton: document.querySelector("#travelBusinessButton"),
     travelBusiness2Button: document.querySelector("#travelBusiness2Button"),
+    travelArenaButton: document.querySelector("#travelArenaButton"),
     travelMainButton: document.querySelector("#travelMainButton"),
     storyBackButton: document.querySelector("#storyBackButton"),
     storyMainStage: document.querySelector("#storyMainStage"),
     storyMyPartyButton: document.querySelector("#storyMyPartyButton"),
     storyRankBattleButtons: document.querySelector("#storyRankBattleButtons"),
     storyBattleConfirmOverlay: document.querySelector("#storyBattleConfirmOverlay"),
+    storyBattleConfirmLayout: document.querySelector("#storyBattleConfirmOverlay .story-confirm-layout"),
     storyBattleConfirmText: document.querySelector("#storyBattleConfirmText"),
     storyBattleOpponentList: document.querySelector("#storyBattleOpponentList"),
+    storyBattleOpponentPanel: document.querySelector("#storyBattleOpponentList")?.closest(".story-opponent-panel"),
     storyBattleConfirmYesButton: document.querySelector("#storyBattleConfirmYesButton"),
     storyBattleConfirmNoButton: document.querySelector("#storyBattleConfirmNoButton"),
     storyMap: document.querySelector("#storyMap"),
@@ -494,6 +532,14 @@ document.addEventListener("DOMContentLoaded", () => {
     business2Screen: document.querySelector("#business2Screen"),
     business2BackButton: document.querySelector("#business2BackButton"),
     business2EquipmentButton: document.querySelector("#business2EquipmentButton"),
+    arenaScreen: document.querySelector("#arenaScreen"),
+    arenaBackButton: document.querySelector("#arenaBackButton"),
+    arenaHotspots: document.querySelector("#arenaHotspots"),
+    arenaMessage: document.querySelector("#arenaMessage"),
+    arenaConfirmPanel: document.querySelector("#arenaConfirmPanel"),
+    arenaConfirmContent: document.querySelector("#arenaConfirmContent"),
+    arenaChallengeButton: document.querySelector("#arenaChallengeButton"),
+    arenaConfirmCloseButton: document.querySelector("#arenaConfirmCloseButton"),
     businessShopPanel: document.querySelector("#businessShopPanel"),
     businessShopBackButton: document.querySelector("#businessShopBackButton"),
     businessShopTitle: document.querySelector("#businessShopTitle"),
@@ -574,6 +620,7 @@ function bindEvents() {
   els.travelMyHouseButton?.addEventListener("click", showMyHouse);
   els.travelBusinessButton?.addEventListener("click", showBusinessShop);
   els.travelBusiness2Button?.addEventListener("click", showBusiness2);
+  els.travelArenaButton?.addEventListener("click", showArena);
   els.travelMainButton?.addEventListener("click", showStoryMain);
   els.storyBackButton.addEventListener("click", showStoryTravel);
   els.storyMyPartyButton?.addEventListener("click", showMyParty);
@@ -585,6 +632,10 @@ function bindEvents() {
   els.business2BackButton?.addEventListener("click", leaveBusiness2);
   els.business2EquipmentButton?.addEventListener("click", openBusiness2Shop);
   els.businessShopBackButton?.addEventListener("click", closeBusinessShopPanel);
+  els.arenaBackButton?.addEventListener("click", hideArena);
+  els.arenaHotspots?.addEventListener("click", handleArenaHotspotClick);
+  els.arenaChallengeButton?.addEventListener("click", handleArenaChallengeClick);
+  els.arenaConfirmCloseButton?.addEventListener("click", hideArenaBattleConfirm);
   els.myHouseScreenBackButton?.addEventListener("click", hideMyHouse);
   els.myHouseSaveLoadButton?.addEventListener("click", () => showMyHouseSection("save"));
   els.myHouseBookButton?.addEventListener("click", () => showMyHouseSection("books"));
@@ -676,6 +727,7 @@ function showTitleView() {
   clearStoryWalkTimer();
   hideRankBattleConfirm();
   state.story.currentRankBattleId = null;
+  state.story.currentArenaBattleId = null;
   els.battleView.classList.add("is-hidden");
   els.setupView.classList.add("is-hidden");
   els.storyView.classList.add("is-hidden");
@@ -708,6 +760,7 @@ function showBattleSetup() {
   clearStoryWalkTimer();
   hideRankBattleConfirm();
   state.story.currentRankBattleId = null;
+  state.story.currentArenaBattleId = null;
   clearTitleMessage();
   els.titleView.classList.add("is-hidden");
   els.storyView.classList.add("is-hidden");
@@ -746,6 +799,7 @@ function setStoryStage(stage) {
   els.myPartyPanel?.classList.toggle("is-hidden", stage !== "myParty");
   els.businessScreen?.classList.toggle("is-hidden", stage !== "business");
   els.business2Screen?.classList.toggle("is-hidden", stage !== "business2");
+  els.arenaScreen?.classList.toggle("is-hidden", stage !== "arena");
   els.myHouseScreen?.classList.toggle("is-hidden", stage !== "myHouse");
 }
 
@@ -768,6 +822,8 @@ function showStoryTravel({ focus = true } = {}) {
   els.businessShopPanel?.classList.add("is-hidden");
   els.myHousePanel?.classList.add("is-hidden");
   els.myPartyPanel?.classList.add("is-hidden");
+  hideArenaBattleConfirm({ clearSelection: true, focus: false });
+  if (els.arenaMessage) els.arenaMessage.textContent = "";
   showStoryFrame();
   setStoryStage("travel");
   if (focus) els.travelBackButton?.focus({ preventScroll: true });
@@ -958,6 +1014,279 @@ function attachBusinessShopPanel(container) {
   if (els.businessShopPanel.parentElement !== container) {
     container.appendChild(els.businessShopPanel);
   }
+}
+
+async function showArena() {
+  if (gameDataPromise) {
+    await gameDataPromise;
+  }
+
+  state.story.active = false;
+  state.shop.open = false;
+  hideBusinessShop({ restoreTravel: false });
+  hideBusiness2({ restoreTravel: false });
+  hideMyHouse({ restoreTravel: false });
+  clearStoryWalkTimer();
+  hideRankBattleConfirm();
+  renderArenaHotspots();
+  showStoryFrame();
+  setStoryStage("arena");
+  hideArenaBattleConfirm({ clearSelection: true, focus: false });
+  if (els.arenaMessage) els.arenaMessage.textContent = "";
+  els.arenaBackButton?.focus({ preventScroll: true });
+  void showDialogue("battlemaster", "battlemaster_welcome");
+}
+
+async function hideArena() {
+  hideArenaBattleConfirm({ clearSelection: true, focus: false });
+  if (els.arenaMessage) els.arenaMessage.textContent = "";
+  await showDialogue("battlemaster", "battlemaster_goodbye");
+  showStoryTravel();
+}
+
+function renderArenaHotspots() {
+  if (!els.arenaHotspots) return;
+  els.arenaHotspots.innerHTML = ARENA_STAGE_AREAS.map((area) => {
+    const style = `left: ${area.left}%; top: ${area.top}%; width: ${area.width}%; height: ${area.height}%;`;
+    return `
+      <button
+        class="story-location-button arena-hotspot-button"
+        type="button"
+        data-arena-id="${area.id}"
+        style="${style}"
+        aria-label="${area.id}"
+        title="${area.id}"
+      ></button>
+    `;
+  }).join("");
+}
+
+async function handleArenaHotspotClick(event) {
+  const button = event.target.closest("[data-arena-id]");
+  if (!button || !els.arenaHotspots?.contains(button)) return;
+  event.preventDefault();
+  await showArenaBattleConfirm(button.dataset.arenaId);
+}
+
+async function showArenaBattleConfirm(entranceId) {
+  const arenaEntranceId = safeText(entranceId);
+  if (gameDataPromise) {
+    await gameDataPromise;
+  }
+
+  const details = resolveArenaBattleDetails(arenaEntranceId);
+  if (!details.ok) {
+    hideArenaBattleConfirm({ clearSelection: true, focus: false });
+    if (details.missing !== "locked") warnArenaDataMissing(details);
+    showArenaMessage(ARENA_UNAVAILABLE_MESSAGE, { isError: true });
+    return;
+  }
+
+  state.story.selectedArenaEntranceId = arenaEntranceId;
+  state.story.selectedArenaBattleId = details.rankBattleId;
+  renderArenaBattleConfirm(details);
+  showArenaMessage("");
+  els.arenaConfirmPanel?.classList.remove("is-hidden");
+  els.arenaChallengeButton?.focus({ preventScroll: true });
+}
+
+function resolveArenaBattleDetails(entranceId) {
+  const rankBattleId = ARENA_BATTLE_MAP[entranceId];
+  if (!rankBattleId) {
+    return { ok: false, entranceId, missing: "ARENA_BATTLE_MAP" };
+  }
+
+  const rankBattle = state.rankBattles.get(rankBattleId);
+  if (!rankBattle) {
+    return { ok: false, entranceId, rankBattleId, missing: "rank_battle.csv" };
+  }
+
+  if (isStoryRankBattleDisabled(rankBattleId)) {
+    return { ok: false, entranceId, rankBattleId, missing: "locked" };
+  }
+
+  const enemyPartyId = safeText(rankBattle.enemy_party_id);
+  if (!enemyPartyId) {
+    return { ok: false, entranceId, rankBattleId, missing: "enemy_party_id" };
+  }
+
+  const enemyParty = state.enemyParties.get(enemyPartyId);
+  if (!enemyParty) {
+    return { ok: false, entranceId, rankBattleId, enemyPartyId, missing: "enemy_party.csv" };
+  }
+
+  const missingCharacterIds = [];
+  const enemies = enemyParty.characterIds
+    .map((characterId) => {
+      const character = state.characterMap.get(characterId);
+      if (!character) missingCharacterIds.push(characterId);
+      return character;
+    })
+    .filter(Boolean);
+
+  if (missingCharacterIds.length || !enemies.length) {
+    return {
+      ok: false,
+      entranceId,
+      rankBattleId,
+      enemyPartyId,
+      missing: "character.csv",
+      missingCharacterIds,
+    };
+  }
+
+  return {
+    ok: true,
+    entranceId,
+    rankBattleId,
+    rankBattle,
+    enemyPartyId,
+    enemyParty,
+    enemies,
+  };
+}
+
+function renderArenaBattleConfirm(details) {
+  if (!els.arenaConfirmContent) return;
+  els.arenaConfirmContent.innerHTML = renderRankBattleConfirmContent(details);
+}
+
+function renderRankBattleConfirmContent(details) {
+  const opponentName = safeText(details.rankBattle?.name, "\uFF1F\uFF1F\uFF1F");
+  const rewardMoney = Math.max(0, Math.floor(number(details.rankBattle?.reward_money)));
+  const badgeLabel = safeText(details.entranceId ?? details.rankBattle?.rank, details.rankBattleId);
+  return `
+    <div class="arena-confirm-header">
+      <div>
+        <div class="arena-confirm-entrance">${escapeHtml(badgeLabel)}</div>
+        <div class="arena-confirm-title">${escapeHtml(opponentName)}</div>
+      </div>
+      <div class="arena-confirm-reward">&#x5831;&#x916C; ${escapeHtml(rewardMoney)}z</div>
+    </div>
+    <div class="arena-confirm-party-title">&#x6575;&#x30D1;&#x30FC;&#x30C6;&#x30A3;</div>
+    <div class="arena-confirm-party">
+      ${details.enemies.map(renderArenaEnemyCard).join("")}
+    </div>
+    ${renderArenaUnlockBattles(details.rankBattle)}
+    ${renderRankBattleUnlockShopItems(details.rankBattleId)}
+  `;
+}
+
+function renderArenaUnlockBattles(rankBattle) {
+  const unlockBattleIds = Array.isArray(rankBattle.unlockBattleIds) ? rankBattle.unlockBattleIds : [];
+  if (!unlockBattleIds.length) return "";
+
+  return `
+    <div class="arena-unlock-section">
+      <div class="arena-unlock-title">\u89e3\u653e\u3055\u308c\u308b\u5bfe\u6226</div>
+      <div class="arena-unlock-list">
+        ${unlockBattleIds.map(renderArenaUnlockBattleBadge).join("")}
+      </div>
+    </div>
+  `;
+}
+
+function renderArenaUnlockBattleBadge(rankBattleId) {
+  const rankBattle = state.rankBattles.get(rankBattleId);
+  if (!rankBattle) {
+    console.warn("[Arena] unlock battle data not found", { rankBattleId });
+  }
+
+  return `<span class="arena-unlock-battle">${escapeHtml(rankBattleUnlockLabel(rankBattleId))}</span>`;
+}
+
+function rankBattleUnlockLabel(rankBattleId) {
+  const id = safeText(rankBattleId);
+  const arenaEntranceId = ARENA_BATTLE_ENTRANCE_BY_ID[id];
+  if (arenaEntranceId) return arenaEntranceId;
+
+  const rankBattle = state.rankBattles.get(id);
+  return safeText(rankBattle?.rank, "\uFF1F\uFF1F\uFF1F");
+}
+
+function renderRankBattleUnlockShopItems(rankBattleId) {
+  const items = shopItemsUnlockedByRankBattle(rankBattleId);
+  if (!items.length) return "";
+
+  return `
+    <div class="arena-shop-unlock-section">
+      <div class="arena-shop-unlock-title">\u89e3\u653e\u3055\u308c\u308b\u5546\u54c1</div>
+      <div class="arena-shop-unlock-list">
+        ${items.map(renderRankBattleUnlockShopItem).join("")}
+      </div>
+    </div>
+  `;
+}
+
+function shopItemsUnlockedByRankBattle(rankBattleId) {
+  const id = safeText(rankBattleId);
+  if (!id) return [];
+  return state.shopItems
+    .filter((item) => safeText(item.unlock_condition) === id)
+    .filter((item) => shopContentExists(item))
+    .sort((a, b) => a.display_order - b.display_order || a.shop_entry_id.localeCompare(b.shop_entry_id));
+}
+
+function renderRankBattleUnlockShopItem(item) {
+  return `<span class="arena-shop-unlock-item">${escapeHtml(shopItemName(item))}</span>`;
+}
+
+function renderArenaEnemyCard(character) {
+  const characterName = safeText(character.name, "\uFF1F\uFF1F\uFF1F");
+  return `
+    <article class="arena-enemy-card">
+      <span class="arena-enemy-image-frame">
+        <img class="arena-enemy-image" src="${escapeHtml(character.imageSrc)}" alt="${escapeHtml(characterName)}" />
+      </span>
+      <span class="arena-enemy-info">
+        <strong class="arena-enemy-name">${escapeHtml(characterName)}</strong>
+        <span class="arena-enemy-meta">
+          ${elementPill(character.element)}
+          <span class="arena-enemy-slots">${slotMarks(character.slot)}</span>
+        </span>
+      </span>
+    </article>
+  `;
+}
+
+function hideArenaBattleConfirm(options = {}) {
+  const clearSelection = options?.clearSelection ?? true;
+  const focus = options?.focus ?? true;
+  els.arenaConfirmPanel?.classList.add("is-hidden");
+  if (els.arenaConfirmContent) els.arenaConfirmContent.innerHTML = "";
+  if (clearSelection) {
+    state.story.selectedArenaEntranceId = null;
+    state.story.selectedArenaBattleId = null;
+  }
+  showArenaMessage("");
+  if (focus) els.arenaBackButton?.focus({ preventScroll: true });
+}
+
+function handleArenaChallengeClick() {
+  const rankBattleId = state.story.selectedArenaBattleId;
+  if (!rankBattleId) {
+    showArenaMessage(ARENA_UNAVAILABLE_MESSAGE, { isError: true });
+    console.warn("[Arena] challenge requested without selectedArenaBattleId");
+    return;
+  }
+
+  showArenaMessage(`${rankBattleId}\u3078\u306e\u6311\u6226\u51e6\u7406\u306f\u6b21\u306e\u5b9f\u88c5\u3067\u8ffd\u52a0\u3057\u307e\u3059`);
+}
+
+function showArenaMessage(message, { isError = false } = {}) {
+  if (!els.arenaMessage) return;
+  els.arenaMessage.textContent = message;
+  els.arenaMessage.classList.toggle("is-error", isError);
+}
+
+function warnArenaDataMissing(details) {
+  console.warn("[Arena] battle data not found", {
+    entranceId: details.entranceId,
+    rankBattleId: details.rankBattleId,
+    enemyPartyId: details.enemyPartyId,
+    missing: details.missing,
+    missingCharacterIds: details.missingCharacterIds,
+  });
 }
 
 function showDialogue(npcId, dialogueId) {
@@ -2276,6 +2605,8 @@ function returnToSetup() {
   state.exchange = createExchangeState();
   state.battleInspectSide = "enemy";
   state.detailCharacterId = null;
+  state.story.currentRankBattleId = null;
+  state.story.currentArenaBattleId = null;
   hideBattleMessage();
   state.dex = {
     open: false,
@@ -2564,9 +2895,14 @@ function normalizeSkill(row) {
     attack_type: safeText(row.attack_type, "none"),
     hit_type: safeText(row.hit_type, "normal"),
     effect1: safeText(row.effect1, "none"),
+    effect_target1: normalizeEffectTarget(row.effect_target1),
     effect_chance1: number(row.effect_chance1),
     effect2: safeText(row.effect2, "none"),
+    effect_target2: normalizeEffectTarget(row.effect_target2),
     effect_chance2: number(row.effect_chance2),
+    effect3: safeText(row.effect3, "none"),
+    effect_target3: normalizeEffectTarget(row.effect_target3),
+    effect_chance3: number(row.effect_chance3),
     battle_effect1: safeText(row.battle_effect1, "none"),
     battle_effect_chance1: number(row.battle_effect_chance1),
     battle_effect2: safeText(row.battle_effect2, "none"),
@@ -2580,6 +2916,10 @@ function normalizeSkill(row) {
     animation_duration_ms: Math.max(0, number(row.animation_duration_ms)),
     repeat_count: Math.max(0, Math.floor(number(row.repeat_count, 1))),
   };
+}
+
+function normalizeEffectTarget(value) {
+  return safeText(value, "enemy").toLowerCase() === "self" ? "self" : "enemy";
 }
 
 function normalizeEffect(row) {
@@ -3766,15 +4106,18 @@ async function showRankBattleConfirm(rankBattleId) {
   }
 
   if (isStoryRankBattleDisabled(rankBattleId)) return;
-  if (!rankBattleEnemyCharacterIds(rankBattleId).length) return;
+  const details = resolveRankBattleConfirmDetails(rankBattleId);
+  if (!details.ok) {
+    warnArenaDataMissing(details);
+    return;
+  }
 
   state.story.pendingRankBattleId = rankBattleId;
-  const opponentName = rankBattleDisplayName(rankBattleId);
-  els.storyBattleConfirmText.innerHTML = `
-    <div>${escapeHtml(opponentName)}と対戦を開始しますか？</div>
-    <div class="story-confirm-reward">勝利報酬 ${escapeHtml(rankBattleRewardMoney(rankBattleId))}z</div>
-  `;
-  els.storyBattleOpponentList.innerHTML = renderStoryOpponentCharacterNames(rankBattleId);
+  els.storyBattleConfirmLayout?.classList.add("is-rich-confirm");
+  els.storyBattleConfirmText.classList.add("story-confirm-content-rich");
+  els.storyBattleConfirmText.innerHTML = renderRankBattleConfirmContent(details);
+  els.storyBattleOpponentList.innerHTML = "";
+  els.storyBattleOpponentPanel?.classList.add("is-hidden");
   els.storyBattleConfirmOverlay.classList.remove("is-hidden");
   els.storyBattleConfirmYesButton.focus({ preventScroll: true });
 }
@@ -3783,9 +4126,15 @@ function hideRankBattleConfirm({ restoreFocus = false } = {}) {
   const restoreRankBattleId = state.story.pendingRankBattleId;
   state.story.pendingRankBattleId = null;
   els.storyBattleConfirmOverlay?.classList.add("is-hidden");
+  els.storyBattleConfirmLayout?.classList.remove("is-rich-confirm");
+  els.storyBattleConfirmText?.classList.remove("story-confirm-content-rich");
+  if (els.storyBattleConfirmText) {
+    els.storyBattleConfirmText.innerHTML = "";
+  }
   if (els.storyBattleOpponentList) {
     els.storyBattleOpponentList.innerHTML = "";
   }
+  els.storyBattleOpponentPanel?.classList.add("is-hidden");
   if (restoreFocus) {
     findStoryRankBattleButton(restoreRankBattleId)?.focus({ preventScroll: true });
   }
@@ -3796,6 +4145,55 @@ async function confirmRankBattleStart() {
   if (!rankBattleId) return;
   hideRankBattleConfirm();
   await startRankBattle(rankBattleId);
+}
+
+function resolveRankBattleConfirmDetails(rankBattleId, options = {}) {
+  const id = safeText(rankBattleId);
+  if (!id) return { ok: false, rankBattleId: id, missing: "rank_battle_id" };
+
+  const fallback = STORY_RANK_BATTLE_FALLBACKS[id];
+  const rankBattle = state.rankBattles.get(id) || (fallback
+    ? {
+        rank_battle_id: id,
+        rank: "",
+        name: fallback.name,
+        enemy_party_id: id,
+        reward_money: 0,
+        unlockBattleIds: [],
+      }
+    : null);
+  if (!rankBattle) {
+    return { ok: false, rankBattleId: id, missing: "rank_battle.csv" };
+  }
+
+  const enemyCharacterIds = rankBattleEnemyCharacterIds(id);
+  const missingCharacterIds = [];
+  const enemies = enemyCharacterIds
+    .map((characterId) => {
+      const character = state.characterMap.get(characterId);
+      if (!character) missingCharacterIds.push(characterId);
+      return character;
+    })
+    .filter(Boolean);
+
+  if (missingCharacterIds.length || !enemies.length) {
+    return {
+      ok: false,
+      rankBattleId: id,
+      enemyPartyId: safeText(rankBattle.enemy_party_id),
+      missing: "character.csv",
+      missingCharacterIds,
+    };
+  }
+
+  return {
+    ok: true,
+    entranceId: safeText(options.entranceId, rankBattle.rank || id),
+    rankBattleId: id,
+    rankBattle,
+    enemyPartyId: safeText(rankBattle.enemy_party_id),
+    enemies,
+  };
 }
 
 function rankBattleDisplayName(rankBattleId) {
@@ -3947,14 +4345,24 @@ async function startRankBattle(rankBattleId) {
     return;
   }
 
-  startBattle({ enemyCharacterIds, storyRankBattleId: rankBattleId });
+  const isArenaBattle = Boolean(ARENA_BATTLE_ENTRANCE_BY_ID[rankBattleId]);
+  startBattle({
+    enemyCharacterIds,
+    ...(isArenaBattle ? { arenaBattleId: rankBattleId } : { storyRankBattleId: rankBattleId }),
+  });
 }
 
 function startBattle(options = {}) {
   if (selectedSlotTotal() <= 0 || selectedSlotTotal() > TEAM_SLOT_LIMIT) return;
-  const currentBattleId = options.storyRankBattleId || null;
+  const requestedStoryBattleId = safeText(options.storyRankBattleId);
+  const requestedArenaBattleId =
+    safeText(options.arenaBattleId) ||
+    (ARENA_BATTLE_ENTRANCE_BY_ID[requestedStoryBattleId] ? requestedStoryBattleId : "");
+  const currentBattleId = requestedArenaBattleId ? null : requestedStoryBattleId || null;
+  const currentArenaBattleId = requestedArenaBattleId || null;
+  const hasProvidedEnemyTeam = Array.isArray(options.enemyCharacterIds);
   const manualEnemyCharacters = selectedEnemyCharactersForSetup();
-  if (!options.storyRankBattleId && manualEnemyCharacters.length && selectedEnemySlotTotal() > TEAM_SLOT_LIMIT) return;
+  if (!hasProvidedEnemyTeam && manualEnemyCharacters.length && selectedEnemySlotTotal() > TEAM_SLOT_LIMIT) return;
   const enemyPool = state.characters.filter(
     (character) => !state.selectedIds.includes(character.character_id),
   );
@@ -3985,6 +4393,7 @@ function startBattle(options = {}) {
   state.exchange = createExchangeState();
   state.battleInspectSide = "enemy";
   state.story.currentRankBattleId = currentBattleId;
+  state.story.currentArenaBattleId = currentArenaBattleId;
   state.dex = {
     open: false,
     characterId: null,
@@ -4075,7 +4484,10 @@ function createEmptyStatMods() {
 function renderBattle() {
   const player = activePlayer();
   const enemy = activeEnemy();
-  const exchangeVisible = state.gameOver && state.battleWinner === "player";
+  const exchangeVisible =
+    state.gameOver &&
+    state.battleWinner === "player" &&
+    !state.story.currentArenaBattleId;
   const playerPendingMove = Boolean(pendingSkillFor(player));
   const inspectSide = state.battleInspectSide === "player" ? "player" : "enemy";
   const inspectFighter = inspectSide === "player" ? player : enemy;
@@ -4455,7 +4867,7 @@ function renderSwitchGrid() {
 }
 
 function renderExchangePanel() {
-  if (!(state.gameOver && state.battleWinner === "player")) {
+  if (!(state.gameOver && state.battleWinner === "player") || state.story.currentArenaBattleId) {
     els.exchangePanel.innerHTML = "";
     return;
   }
@@ -4476,6 +4888,7 @@ function renderExchangePanel() {
   const nextPlayerSlotTotal = exchangeNextPlayerSlotTotal();
   const hasPlayerOffer = selectedPlayerIndices.length > 0;
   const hasEnemyTarget = state.exchange.enemyIndex !== null;
+  const canReceiveWithoutExchange = canReceiveEnemyWithoutExchange();
   const playerButtons = state.playerTeam
     .map((member, index) => exchangeChoiceButton("player", member, index))
     .join("");
@@ -4483,19 +4896,23 @@ function renderExchangePanel() {
     .map((member, index) => exchangeChoiceButton("enemy", member, index))
     .join("");
   const canExchange =
-    hasPlayerOffer &&
     hasEnemyTarget &&
     !state.exchange.completed &&
-    isValidVictoryExchange();
+    (canReceiveWithoutExchange || (hasPlayerOffer && isValidVictoryExchange()));
   const invalidExchange =
-    hasPlayerOffer &&
     hasEnemyTarget &&
     !state.exchange.completed &&
-    !isValidVictoryExchange();
+    !canExchange;
+  const exchangeButtonLabel = canReceiveWithoutExchange && !hasPlayerOffer ? "入手する" : "交換する";
+  const exchangeTitle = state.exchange.cancelled
+    ? "交換終了"
+    : state.exchange.completed
+      ? "交換完了"
+      : "勝利交換";
   const slotNote = exchangeSlotNote(playerSlotTotal, enemySlotNeed, nextPlayerSlotTotal, hasEnemyTarget);
 
   els.exchangePanel.innerHTML = `
-    <div class="exchange-title">${state.exchange.completed ? "交換完了" : "勝利交換"}</div>
+    <div class="exchange-title">${exchangeTitle}</div>
     <div class="exchange-columns">
       <div class="exchange-list">
         <div class="exchange-label">自分</div>
@@ -4507,8 +4924,9 @@ function renderExchangePanel() {
       </div>
     </div>
     <div class="exchange-actions">
-      <button class="primary-button exchange-action" type="button" data-result-action="exchange" ${canExchange ? "" : "disabled"}>交換する</button>
+      <button class="primary-button exchange-action" type="button" data-result-action="exchange" ${canExchange ? "" : "disabled"}>${exchangeButtonLabel}</button>
       <button class="small-button exchange-action" type="button" data-result-action="rematch">このチームで再戦</button>
+      ${state.exchange.completed ? "" : `<button class="small-button exchange-action" type="button" data-result-action="cancel">やめる</button>`}
     </div>
     ${invalidExchange ? `<div class="command-note">${escapeHtml(slotNote)}</div>` : slotNote ? `<div class="command-note">${escapeHtml(slotNote)}</div>` : ""}
   `;
@@ -4537,6 +4955,8 @@ function renderExchangePanel() {
         completeVictoryExchange();
       } else if (button.dataset.resultAction === "rematch") {
         startBattle();
+      } else if (button.dataset.resultAction === "cancel") {
+        cancelVictoryExchange();
       }
     });
   }
@@ -4705,14 +5125,22 @@ function exchangeCurrentPlayerSlotTotal() {
 }
 
 function exchangeNextPlayerSlotTotal() {
-  if (!exchangePlayerIndices().length || state.exchange.enemyIndex === null) {
+  if (state.exchange.enemyIndex === null) {
     return exchangeCurrentPlayerSlotTotal();
   }
   return exchangeCurrentPlayerSlotTotal() - exchangePlayerSlotTotal() + exchangeEnemySlotNeed();
 }
 
+function canReceiveEnemyWithoutExchange() {
+  if (state.exchange.enemyIndex === null) return false;
+  return exchangeCurrentPlayerSlotTotal() + exchangeEnemySlotNeed() <= TEAM_SLOT_LIMIT;
+}
+
 function exchangeSlotNote(playerSlotTotal, enemySlotNeed, nextPlayerSlotTotal, hasEnemyTarget) {
   if (state.exchange.completed || !hasEnemyTarget) return "";
+  if (canReceiveEnemyWithoutExchange() && playerSlotTotal === 0) {
+    return `空きスロットに入ります。交換せずに入手できます。${nextPlayerSlotTotal}/${TEAM_SLOT_LIMIT}`;
+  }
   if (playerSlotTotal === 0) {
     return `相手のスロット ${slotMarkText(enemySlotNeed)} に合わせて、自分のモンスターを選んでください。`;
   }
@@ -4725,16 +5153,23 @@ function exchangeSlotNote(playerSlotTotal, enemySlotNeed, nextPlayerSlotTotal, h
 function completeVictoryExchange() {
   if (
     state.exchange.completed ||
-    !exchangePlayerIndices().length ||
-    state.exchange.enemyIndex === null ||
-    !isValidVictoryExchange()
+    state.exchange.enemyIndex === null
   ) {
     return;
   }
 
   const playerMembers = exchangePlayerMembers();
   const enemyMember = state.enemyTeam[state.exchange.enemyIndex];
-  if (!playerMembers.length || !enemyMember) return;
+  if (!enemyMember) return;
+
+  if (!playerMembers.length) {
+    if (canReceiveEnemyWithoutExchange()) {
+      completeVictoryReceiveWithoutExchange(enemyMember);
+    }
+    return;
+  }
+
+  if (!isValidVictoryExchange()) return;
 
   const offeredIndexSet = new Set(exchangePlayerIndices());
   state.playerTeam = [
@@ -4762,6 +5197,50 @@ function completeVictoryExchange() {
     completed: true,
   };
   pushLog(`${playerMembers.map((member) => member.name).join("、")} と ${enemyMember.name} を交換した！`);
+  renderBattle();
+}
+
+function completeVictoryReceiveWithoutExchange(enemyMember) {
+  if (!enemyMember || !canReceiveEnemyWithoutExchange()) return;
+
+  state.playerTeam = [
+    ...state.playerTeam,
+    createFighter(enemyMember.originalBase || enemyMember.base),
+  ];
+  state.enemyTeam = state.enemyTeam.filter((_, index) => index !== state.exchange.enemyIndex);
+  state.playerActiveIndex = Math.min(state.playerActiveIndex, Math.max(0, state.playerTeam.length - 1));
+  state.enemyActiveIndex = Math.min(state.enemyActiveIndex, Math.max(0, state.enemyTeam.length - 1));
+  state.selectedIds = state.playerTeam.map((member) => member.id);
+  if (!state.story.currentRankBattleId) {
+    state.selectedEnemyIds = state.enemyTeam.map((member) => member.id);
+  }
+  syncOwnedMonsterPartyFromSelectedIds({ persist: false });
+  if (state.story.currentRankBattleId) {
+    finalizeStoryBattleVictory(state.story.currentRankBattleId);
+    return;
+  }
+  saveGameData();
+  state.exchange = {
+    ...createExchangeState(),
+    completed: true,
+  };
+  pushLog(`${enemyMember.name} が仲間になった！`);
+  renderBattle();
+}
+
+function cancelVictoryExchange() {
+  if (state.exchange.completed) return;
+  if (state.story.currentRankBattleId) {
+    finalizeStoryBattleVictory(state.story.currentRankBattleId);
+    return;
+  }
+
+  state.exchange = {
+    ...createExchangeState(),
+    completed: true,
+    cancelled: true,
+  };
+  pushLog("交換をやめた。");
   renderBattle();
 }
 
@@ -5343,16 +5822,21 @@ function canHitTarget(target, move) {
 
 function applySkillEffects(move, actor, target) {
   const pairs = [
-    [move.effect1, move.effect_chance1],
-    [move.effect2, move.effect_chance2],
+    [move.effect1, move.effect_chance1, move.effect_target1],
+    [move.effect2, move.effect_chance2, move.effect_target2],
+    [move.effect3, move.effect_chance3, move.effect_target3],
   ];
 
-  for (const [effectId, chance] of pairs) {
+  for (const [effectId, chance, effectTarget] of pairs) {
     if (!effectId || effectId === "none" || chance <= 0) continue;
     if (Math.random() * 100 <= chance) {
-      applyEffect(effectId, actor, target);
+      applyEffect(effectId, actor, skillEffectRecipient(effectTarget, actor, target));
     }
   }
+}
+
+function skillEffectRecipient(effectTarget, actor, target) {
+  return normalizeEffectTarget(effectTarget) === "self" ? actor : target;
 }
 
 function applyEffect(effectId, actor, target) {
@@ -5753,9 +6237,10 @@ function finishBattle(winner) {
   state.pendingSwitchSide = null;
   state.battleWinner = winner;
   state.battleAnimation = null;
-  state.commandMode = winner === "player" ? "exchange" : "fight";
+  const canShowVictoryExchange = winner === "player" && !state.story.currentArenaBattleId;
+  state.commandMode = canShowVictoryExchange ? "exchange" : "fight";
   state.exchange = createExchangeState();
-  if (winner === "player" && state.story.currentRankBattleId) {
+  if (canShowVictoryExchange && state.story.currentRankBattleId) {
     state.exchange.storyDecision = "choice";
   }
   pushLog(winner === "player" ? "勝負に勝った！" : "目の前が真っ暗になった...");
@@ -5771,6 +6256,7 @@ function finalizeStoryBattleVictory(rankBattleId) {
   state.story.clearedRankBattleIds.add(currentBattleId);
   state.story.disabledRankBattleIds.add(currentBattleId);
   state.story.currentRankBattleId = null;
+  state.story.currentArenaBattleId = null;
   state.story.pendingRankBattleId = null;
   state.gameOver = true;
   state.pendingSwitchSide = null;

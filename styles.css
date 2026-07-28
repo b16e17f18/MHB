@@ -3002,6 +3002,13 @@ button {
   height: 61.2%;
 }
 
+.travel-arena-button {
+  left: 57.9%;
+  top: 12.3%;
+  width: 13.9%;
+  height: 22.7%;
+}
+
 .story-main-stage {
   position: relative;
   width: 100%;
@@ -3123,6 +3130,247 @@ button {
   right: 14px;
   bottom: 14px;
   z-index: 5;
+}
+
+.arena-screen {
+  aspect-ratio: 870 / 628;
+  background: #bf7b56;
+}
+
+.arena-hotspots {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  pointer-events: none;
+}
+
+.arena-hotspot-button {
+  padding: 0;
+  border: 0;
+  outline: 0;
+  appearance: none;
+  -webkit-appearance: none;
+  background: transparent;
+  box-shadow: none;
+  pointer-events: auto;
+}
+
+.arena-hotspot-button:not(:hover):not(:focus-visible) {
+  outline: 0;
+  background: transparent;
+}
+
+.arena-message {
+  position: absolute;
+  left: 50%;
+  bottom: 72px;
+  z-index: 9;
+  transform: translateX(-50%);
+  padding: 10px 18px;
+  border: 3px solid #111111;
+  background: #fffdf0;
+  color: #111111;
+  font-weight: 900;
+  pointer-events: none;
+}
+
+.arena-message.is-error {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.arena-message:empty {
+  display: none;
+}
+
+.arena-confirm-panel {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  z-index: 7;
+  width: min(92%, 760px);
+  max-height: calc(100% - 32px);
+  padding: 16px;
+  overflow: auto;
+  transform: translate(-50%, -50%);
+  border: 4px solid #111111;
+  border-radius: 8px;
+  background: #fffdf7;
+  box-shadow: 8px 8px 0 rgba(12, 22, 38, 0.28);
+}
+
+.arena-confirm-content {
+  display: grid;
+  gap: 12px;
+}
+
+.arena-confirm-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.arena-confirm-entrance {
+  display: inline-block;
+  min-width: 54px;
+  padding: 4px 10px;
+  border: 3px solid #111111;
+  background: #facc15;
+  color: #111111;
+  font-size: 1.05rem;
+  font-weight: 900;
+  line-height: 1.2;
+  text-align: center;
+}
+
+.arena-confirm-title {
+  margin-top: 8px;
+  color: #111111;
+  font-size: clamp(1.1rem, 2.4vw, 1.55rem);
+  font-weight: 900;
+  line-height: 1.2;
+}
+
+.arena-confirm-reward {
+  flex: 0 0 auto;
+  padding: 7px 12px;
+  border: 3px solid #111111;
+  background: #facc15;
+  color: #111111;
+  font-weight: 900;
+  line-height: 1.2;
+}
+
+.arena-confirm-party-title {
+  color: #111111;
+  font-weight: 900;
+}
+
+.arena-confirm-party {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 10px;
+}
+
+.arena-enemy-card {
+  display: grid;
+  grid-template-columns: 82px minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+  min-width: 0;
+  padding: 10px;
+  border: 2px solid #111111;
+  border-radius: 8px;
+  background: #f8fafc;
+}
+
+.arena-enemy-image-frame {
+  display: grid;
+  width: 82px;
+  height: 72px;
+  place-items: center;
+  overflow: hidden;
+  border: 2px solid #111111;
+  border-radius: 6px;
+  background: #eef2f6;
+}
+
+.arena-enemy-image {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+.arena-enemy-info {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.arena-enemy-name {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  color: #111111;
+  font-size: 0.98rem;
+  font-weight: 900;
+  line-height: 1.25;
+}
+
+.arena-enemy-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px 8px;
+  align-items: center;
+}
+
+.arena-enemy-slots {
+  display: inline-flex;
+  align-items: center;
+}
+
+.arena-enemy-slots .slot-mark {
+  width: 12px;
+  height: 12px;
+  border-width: 2px;
+}
+
+.arena-unlock-section,
+.arena-shop-unlock-section {
+  display: grid;
+  gap: 8px;
+}
+
+.arena-unlock-title,
+.arena-shop-unlock-title {
+  color: #111111;
+  font-weight: 900;
+}
+
+.arena-unlock-list,
+.arena-shop-unlock-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.arena-unlock-battle {
+  display: inline-flex;
+  min-width: 44px;
+  padding: 4px 10px;
+  justify-content: center;
+  border: 3px solid #111111;
+  border-radius: 8px;
+  background: #facc15;
+  color: #111111;
+  font-size: 0.95rem;
+  font-weight: 900;
+  line-height: 1.2;
+}
+
+.arena-shop-unlock-item {
+  display: inline-flex;
+  min-width: 0;
+  padding: 6px 10px;
+  border: 2px solid #111111;
+  border-radius: 8px;
+  background: #fff2bc;
+  color: #111111;
+  font-size: 0.9rem;
+  font-weight: 900;
+  line-height: 1.25;
+}
+
+.arena-confirm-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.arena-confirm-button {
+  min-height: 42px;
 }
 
 .business-shop-panel {
@@ -3997,6 +4245,11 @@ button {
   align-items: stretch;
 }
 
+.story-confirm-layout.is-rich-confirm {
+  width: min(100%, 760px);
+  grid-template-columns: 1fr;
+}
+
 .story-confirm-panel {
   width: 100%;
   padding: 20px;
@@ -4013,6 +4266,13 @@ button {
   font-weight: 900;
   line-height: 1.45;
   text-align: center;
+}
+
+.story-confirm-text.story-confirm-content-rich {
+  display: grid;
+  gap: 12px;
+  font-size: 1rem;
+  text-align: left;
 }
 
 .story-confirm-reward {

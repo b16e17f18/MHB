@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>MonsterHunterBreeder</title>
-    <link rel="stylesheet" href="./styles.css?v=20260725-glossary-panel" />
+    <link rel="stylesheet" href="./styles.css?v=20260729-rank-confirm" />
   </head>
   <body>
     <main class="app-shell">
@@ -24,6 +24,7 @@
             <button id="travelMyHouseButton" class="story-location-button travel-my-house-button" type="button" aria-label="My House"></button>
             <button id="travelBusinessButton" class="story-location-button travel-business-button" type="button" aria-label="モンスター取引所"></button>
             <button id="travelBusiness2Button" class="story-location-button travel-business2-button" type="button" aria-label="工房"></button>
+            <button id="travelArenaButton" class="story-location-button travel-arena-button" type="button" aria-label="Arena"></button>
             <button id="travelMainButton" class="story-location-button travel-main-button" type="button" aria-label="メイン画面"></button>
           </div>
           <button id="travelBackButton" class="small-button story-back-button" type="button">タイトルへ戻る</button>
@@ -80,6 +81,20 @@
             <button id="business2EquipmentButton" class="story-location-button business-hotspot business2-equipment-button" type="button" aria-label="装備アイテム購入"></button>
           </div>
 
+          <div id="arenaScreen" class="story-location-stage story-room-stage arena-screen is-hidden">
+            <img class="story-location-image" src="./assets/arena.png" alt="Arena" />
+            <button id="arenaBackButton" class="small-button story-room-back-button" type="button">&#x623B;&#x308B;</button>
+            <div id="arenaHotspots" class="arena-hotspots"></div>
+            <div id="arenaMessage" class="arena-message" aria-live="polite"></div>
+            <section id="arenaConfirmPanel" class="arena-confirm-panel is-hidden" aria-label="Arena battle confirmation">
+              <div id="arenaConfirmContent" class="arena-confirm-content"></div>
+              <div class="arena-confirm-actions">
+                <button id="arenaChallengeButton" class="primary-button arena-confirm-button" type="button">&#x6311;&#x6226;&#x3059;&#x308B;</button>
+                <button id="arenaConfirmCloseButton" class="small-button arena-confirm-button" type="button">&#x9589;&#x3058;&#x308B;</button>
+              </div>
+            </section>
+          </div>
+
           <div id="myHouseScreen" class="story-location-stage story-room-stage is-hidden">
             <img class="story-location-image" src="./assets/MyHouse.png" alt="My House" />
             <button id="myHouseScreenBackButton" class="small-button story-room-back-button" type="button">移動画面へ戻る</button>
@@ -125,8 +140,8 @@
               <div class="story-confirm-panel">
                 <div id="storyBattleConfirmText" class="story-confirm-text"></div>
                 <div class="story-confirm-actions">
-                  <button id="storyBattleConfirmYesButton" class="primary-button story-confirm-button" type="button">はい</button>
-                  <button id="storyBattleConfirmNoButton" class="small-button story-confirm-button" type="button">いいえ</button>
+                  <button id="storyBattleConfirmYesButton" class="primary-button story-confirm-button" type="button">&#x6311;&#x6226;&#x3059;&#x308B;</button>
+                  <button id="storyBattleConfirmNoButton" class="small-button story-confirm-button" type="button">&#x9589;&#x3058;&#x308B;</button>
                 </div>
               </div>
               <div class="story-opponent-panel" aria-label="相手の所持キャラクター">
@@ -230,6 +245,6 @@
     </main>
 
     <script src="./data-inline.js?v=20260709-utf8-clean"></script>
-    <script src="./app.js?v=20260725-glossary-panel"></script>
+    <script src="./app.js?v=20260729-rank-confirm"></script>
   </body>
 </html>
