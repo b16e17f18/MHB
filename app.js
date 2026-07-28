@@ -5381,6 +5381,7 @@ async function executeAction(action) {
       ? startTwoTurnMove(actor, move, twoTurnEffectId, pendingTargetSide)
       : null;
     if (startedBattleEffect) {
+      applySkillEffects(move, actor, target, { targets: ["self"] });
       renderBattle();
       await playBattleEffectAnimation(startedBattleEffect, action.side);
       await pause(500);
@@ -5413,7 +5414,7 @@ async function executeAction(action) {
 
     await handleFaint(targetSide);
     if (!target.fainted && result.damage > 0) {
-      applySkillEffects(move, actor, target);
+      applySkillEffects(move, actor, target, completingTwoTurnMove ? { targets: ["enemy"] } : {});
       await pause(300);
     }
   } else {
@@ -5820,7 +5821,10 @@ function canHitTarget(target, move) {
   return { canHit: false, reason: `${target.name}に届かなかった！` };
 }
 
-function applySkillEffects(move, actor, target) {
+function applySkillEffects(move, actor, target, options = {}) {
+  const allowedTargets = Array.isArray(options.targets)
+    ? new Set(options.targets.map(normalizeEffectTarget))
+    : null;
   const pairs = [
     [move.effect1, move.effect_chance1, move.effect_target1],
     [move.effect2, move.effect_chance2, move.effect_target2],
@@ -5829,8 +5833,10 @@ function applySkillEffects(move, actor, target) {
 
   for (const [effectId, chance, effectTarget] of pairs) {
     if (!effectId || effectId === "none" || chance <= 0) continue;
+    const normalizedTarget = normalizeEffectTarget(effectTarget);
+    if (allowedTargets && !allowedTargets.has(normalizedTarget)) continue;
     if (Math.random() * 100 <= chance) {
-      applyEffect(effectId, actor, skillEffectRecipient(effectTarget, actor, target));
+      applyEffect(effectId, actor, skillEffectRecipient(normalizedTarget, actor, target));
     }
   }
 }
