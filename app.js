@@ -5409,8 +5409,9 @@ async function executeAction(action) {
   }
 
   const delayedAttackSetup = hasDelayedAttackBattleEffect(move);
+  const delayedAttackSetupOnly = delayedAttackSetup && move.category !== "attack";
   const animationSide = move.target === "self" ? action.side : targetSide;
-  if (!delayedAttackSetup) {
+  if (!delayedAttackSetupOnly) {
     await playSkillAnimation(move, animationSide);
   }
 
@@ -5423,7 +5424,7 @@ async function executeAction(action) {
     }
   }
 
-  if (move.category === "attack" && !delayedAttackSetup) {
+  if (move.category === "attack") {
     const result = dealDamage(actor, target, move);
     if (result.damage > 0) {
       flashSprite(targetSide);
