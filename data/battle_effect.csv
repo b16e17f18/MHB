@@ -7,7 +7,7 @@ underground,地中,position,none,0,1,FALSE,surface_attack,ground_wave,0,1
 underwater,水中,position,none,0,1,FALSE,surface_attack,water_wave,0,1
 ghost_phase,消失,position,none,0,1,FALSE,all_damage,sure_hit,0,1
 charge_attack,溜め攻撃,charge,none,0,1,FALSE,none,none,0,1
-future_blast,粉塵爆破,delayed_attack,fixed_power,110,2,TRUE,none,none,0,2
+future_blast,粉塵爆破,delayed_attack,fixed_power,40,2,TRUE,none,none,0,2
 future_blast2,泡玉,delayed_attack,fixed_power,90,2,TRUE,none,none,0,2
 future_blast3,鱗粉,delayed_attack,fixed_power,70,1,TRUE,none,none,0,1
 protect2,防御態勢(強),guard,none,75,1,TRUE,all_damage,guard_break,75,1
