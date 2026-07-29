@@ -2948,7 +2948,7 @@ function normalizeEffect(row) {
     effect_group: safeText(row.effect_group),
     damage_type: safeText(row.damage_type, "none"),
     damage_value: number(row.damage_value),
-    turn: Math.max(1, number(row.turn, 1)),
+    turn: Math.max(0, number(row.turn, 1)),
     can_move: parseBoolean(row.can_move),
     target_stat: safeText(row.target_stat, "none"),
   };
@@ -5414,6 +5414,15 @@ async function executeAction(action) {
     await playSkillAnimation(move, animationSide);
   }
 
+  if (move.category !== "attack" && move.target !== "self") {
+    const hitCheck = canHitTarget(target, move);
+    if (!hitCheck.canHit) {
+      pushLog(hitCheck.reason);
+      await pause(360);
+      return;
+    }
+  }
+
   if (move.category === "attack" && !delayedAttackSetup) {
     const result = dealDamage(actor, target, move);
     if (result.damage > 0) {
@@ -5865,6 +5874,8 @@ function skillEffectRecipient(effectTarget, actor, target) {
 }
 
 function applyEffect(effectId, actor, target) {
+  if (!target) return;
+
   if (effectId === "def_down") {
     applyEffect("phy_def_down", actor, target);
     applyEffect("sp_def_down", actor, target);
@@ -5873,6 +5884,16 @@ function applyEffect(effectId, actor, target) {
 
   const effect = state.effects.get(effectId);
   if (!effect) return;
+
+  if (effect.effect_group === "heal") {
+    applyHealEffect(effect, target);
+    return;
+  }
+
+  if (effect.effect_group === "energy_up" || effect.effect_group === "energy_down") {
+    applyEnergyEffect(effect, target);
+    return;
+  }
 
   if (effect.effect_group === "buff" || effect.effect_group === "debuff") {
     const stat = effect.target_stat;
@@ -5897,6 +5918,75 @@ function applyEffect(effectId, actor, target) {
       group: effect.effect_group,
       damageType: effect.damage_type,
       damageValue: effect.damage_value,
+      targetStat: effect.target_stat,
+      turns: effect.turn,
+    });
+  }
+  pushLog(`${target.name}は${effect.name}になった！`);
+}
+
+function applyHealEffect(effect, target) {
+  const amount = Math.max(0, Math.abs(effect.damage_value));
+  if (amount <= 0) return;
+
+  if (effect.target_stat === "hp") {
+    const beforeHp = target.hp;
+    target.hp = Math.min(target.maxHp, target.hp + amount);
+    const healed = target.hp - beforeHp;
+    if (healed > 0) {
+      pushLog(`${target.name}は ${healed} 回復した！`);
+    }
+    return;
+  }
+
+  if (effect.target_stat === "en") {
+    const beforeEnergy = target.energy;
+    target.energy = clamp(target.energy + amount, 0, target.maxEnergy);
+    const recovered = target.energy - beforeEnergy;
+    if (recovered > 0) {
+      pushLog(`${target.name}のENが ${recovered} 回復した！`);
+    }
+  }
+}
+
+function applyEnergyEffect(effect, target) {
+  if (effect.target_stat !== "en") return;
+
+  const amount = Math.max(0, Math.abs(effect.damage_value));
+  if (amount <= 0) return;
+
+  if (effect.turn <= 0) {
+    const beforeEnergy = target.energy;
+    const nextEnergy = effect.effect_group === "energy_up"
+      ? target.energy + amount
+      : target.energy - amount;
+    target.energy = clamp(nextEnergy, 0, target.maxEnergy);
+    const changed = target.energy - beforeEnergy;
+    if (changed > 0) {
+      pushLog(`${target.name}のENが ${changed} 増えた！`);
+    } else if (changed < 0) {
+      pushLog(`${target.name}のENが ${Math.abs(changed)} 減った！`);
+    }
+    return;
+  }
+
+  addTimedStatusEffect(effect, target);
+}
+
+function addTimedStatusEffect(effect, target) {
+  const current = target.statuses.find((status) => status.id === effect.effect_id);
+  if (current) {
+    current.turns = Math.max(current.turns, effect.turn);
+    current.damageValue = effect.damage_value;
+    current.targetStat = effect.target_stat;
+  } else {
+    target.statuses.push({
+      id: effect.effect_id,
+      name: effect.name,
+      group: effect.effect_group,
+      damageType: effect.damage_type,
+      damageValue: effect.damage_value,
+      targetStat: effect.target_stat,
       turns: effect.turn,
     });
   }
@@ -6166,9 +6256,12 @@ function blockedByControl(fighter) {
 }
 
 async function endRound() {
+  const energyChargeThisRound = new Map();
+
   for (const side of ["player", "enemy"]) {
     const fighter = activeBySide(side);
     if (!fighter || fighter.fainted) continue;
+    energyChargeThisRound.set(fighter, effectiveEnergyCharge(fighter));
 
     for (const status of [...fighter.statuses]) {
       if (status.group === "damage" && status.damageType === "percent_maxhp") {
@@ -6199,9 +6292,27 @@ async function endRound() {
   for (const side of ["player", "enemy"]) {
     const fighter = activeBySide(side);
     if (!fighter || fighter.fainted) continue;
-    fighter.energy = clamp(fighter.energy + fighter.base.energy_charge, 0, fighter.maxEnergy);
+    const energyCharge = energyChargeThisRound.get(fighter) ?? effectiveEnergyCharge(fighter);
+    fighter.energy = clamp(fighter.energy + energyCharge, 0, fighter.maxEnergy);
     fighter.battleEffects = tickBattleEffectsAfterRound(fighter.battleEffects);
   }
+}
+
+function effectiveEnergyCharge(fighter) {
+  const baseCharge = Math.max(0, fighter?.base?.energy_charge || 0);
+  const modifier = fighterEnergyChargeModifier(fighter);
+  return Math.max(0, baseCharge + modifier);
+}
+
+function fighterEnergyChargeModifier(fighter) {
+  if (!fighter) return 0;
+  return fighter.statuses.reduce((total, status) => {
+    if (status.targetStat !== "en") return total;
+    const amount = Math.max(0, Math.abs(status.damageValue || 0));
+    if (status.group === "energy_up") return total + amount;
+    if (status.group === "energy_down") return total - amount;
+    return total;
+  }, 0);
 }
 
 function tickBattleEffectsAfterRound(battleEffects) {
