@@ -1228,7 +1228,26 @@ function shopItemsUnlockedByRankBattle(rankBattleId) {
 }
 
 function renderRankBattleUnlockShopItem(item) {
-  return `<span class="arena-shop-unlock-item">${escapeHtml(shopItemName(item))}</span>`;
+  return `<span class="arena-shop-unlock-item">${escapeHtml(rankBattleUnlockShopItemName(item))}</span>`;
+}
+
+function rankBattleUnlockShopItemName(item) {
+  if (item.item_type !== "book") return shopItemName(item);
+
+  const bookName = state.encyclopediaBooks.get(item.content_id)?.name || item.content_id;
+  return encyclopediaBookUnlockDisplayName(bookName);
+}
+
+function encyclopediaBookUnlockDisplayName(name) {
+  const text = safeText(name);
+  if (!text || text.includes("図鑑")) return text;
+
+  const volumeMatch = text.match(/^(.*?種)(・(?:上巻|中巻|下巻))$/);
+  if (volumeMatch) {
+    return `${volumeMatch[1]}図鑑${volumeMatch[2]}`;
+  }
+
+  return `${text}図鑑`;
 }
 
 function renderArenaEnemyCard(character) {
