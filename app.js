@@ -158,6 +158,17 @@ let TWO_TURN_BATTLE_EFFECT_IDS = new Set([
   "ghost_phase",
   "charge_attack",
 ]);
+const DELAYED_ATTACK_SETUP_ONLY_EFFECT_IDS = new Set([
+  "future_blast",
+  "future_blast2",
+  "future_blast3",
+  "future_blast4",
+  "future_blast5",
+  "future_blast6",
+  "future_blast7",
+  "future_blast8",
+  "future_blast9",
+]);
 const BATTLE_MESSAGE_DURATION = 1400;
 const BATTLE_TEXT_SPEED_SCALE = 2;
 const ANIMATION_FRAME_WIDTH = 250;
@@ -5411,7 +5422,9 @@ async function executeAction(action) {
   }
 
   const delayedAttackSetup = hasDelayedAttackBattleEffect(move);
-  const delayedAttackSetupOnly = delayedAttackSetup && move.category !== "attack";
+  const delayedAttackSetupOnly =
+    delayedAttackSetup &&
+    (move.category !== "attack" || hasSetupOnlyDelayedAttackBattleEffect(move));
   const animationSide = move.target === "self" ? action.side : targetSide;
   if (!delayedAttackSetupOnly) {
     await playSkillAnimation(move, animationSide);
@@ -5426,7 +5439,7 @@ async function executeAction(action) {
     }
   }
 
-  if (move.category === "attack") {
+  if (move.category === "attack" && !delayedAttackSetupOnly) {
     const result = dealDamage(actor, target, move);
     if (result.damage > 0) {
       flashSprite(targetSide);
@@ -6092,6 +6105,15 @@ function hasDelayedAttackBattleEffect(move) {
     [move.battle_effect2, move.battle_effect_chance2],
   ].some(([effectId, chance]) => (
     chance > 0 && state.battleEffects.get(effectId)?.battle_effect_group === "delayed_attack"
+  ));
+}
+
+function hasSetupOnlyDelayedAttackBattleEffect(move) {
+  return [
+    [move.battle_effect1, move.battle_effect_chance1],
+    [move.battle_effect2, move.battle_effect_chance2],
+  ].some(([effectId, chance]) => (
+    chance > 0 && DELAYED_ATTACK_SETUP_ONLY_EFFECT_IDS.has(effectId)
   ));
 }
 
