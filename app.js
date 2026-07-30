@@ -438,6 +438,8 @@ const state = {
   pendingSwitchSide: null,
   battleWinner: null,
   exchange: createExchangeState(),
+  fieldEffects: createFieldEffectsState(),
+  nextFieldEffectId: 1,
   detailCharacterId: null,
   dex: {
     open: false,
@@ -478,6 +480,13 @@ function createExchangeState() {
     completed: false,
     cancelled: false,
     storyDecision: null,
+  };
+}
+
+function createFieldEffectsState() {
+  return {
+    player: [],
+    enemy: [],
   };
 }
 
@@ -2633,6 +2642,8 @@ function returnToSetup() {
   state.battleWinner = null;
   state.battleAnimation = null;
   state.exchange = createExchangeState();
+  state.fieldEffects = createFieldEffectsState();
+  state.nextFieldEffectId = 1;
   state.battleInspectSide = "enemy";
   state.detailCharacterId = null;
   state.story.currentRankBattleId = null;
@@ -2907,6 +2918,7 @@ function normalizeCharacter(row) {
     imageSrc: characterImagePath(characterId, row.image),
     transparentColor: safeText(row.transparent_color),
     transparencyTolerance: number(row.tolerance),
+    renderOffsetX: number(row.render_offset_x),
     renderOffsetY: number(row.render_offset_y),
     display_order: number(row.display_order, 9999),
     skillIds: [row.skill_1, row.skill_2, row.skill_3, row.skill_4, row.skill_5]
@@ -3689,6 +3701,13 @@ function fighterStatusEntries(fighter) {
     label: effect.name,
     className: effectChipClass(effect.id),
   }));
+  const side = sideForActiveFighter(fighter);
+  const fieldEffectEntries = side
+    ? fieldEffectsForSide(side).map((effect) => ({
+        label: effect.name,
+        className: effectChipClass(effect.id),
+      }))
+    : [];
   const statEntries = Object.entries(fighter.statMods)
     .filter(([, value]) => value !== 0)
     .map(([stat, value]) => ({
@@ -3696,7 +3715,7 @@ function fighterStatusEntries(fighter) {
       className: value > 0 ? "effect-up" : "effect-down",
     }));
 
-  return [...statusEntries, ...battleEffectEntries, ...statEntries];
+  return [...statusEntries, ...battleEffectEntries, ...fieldEffectEntries, ...statEntries];
 }
 
 function renderFighterStatusChips(fighter) {
@@ -4421,6 +4440,8 @@ function startBattle(options = {}) {
   state.battleWinner = null;
   state.battleAnimation = null;
   state.exchange = createExchangeState();
+  state.fieldEffects = createFieldEffectsState();
+  state.nextFieldEffectId = 1;
   state.battleInspectSide = "enemy";
   state.story.currentRankBattleId = currentBattleId;
   state.story.currentArenaBattleId = currentArenaBattleId;
@@ -4637,9 +4658,14 @@ function renderSprite(fighter, side, activeIndex = 0) {
   const slotClass = `sprite-slot-${Math.max(1, Math.floor(number(fighter.base.slot, 1)))}`;
   const teamSlotClass = `sprite-team-slot-${Math.max(1, activeIndex + 1)}`;
   const characterClass = `sprite-${cssToken(fighter.id, "character")}`;
+  const renderOffsetX = number(fighter.base.renderOffsetX);
   const renderOffsetY = number(fighter.base.renderOffsetY);
-  const imageStyle = renderOffsetY
-    ? ` style="--sprite-render-offset-y: ${escapeHtml(renderOffsetY)}px;"`
+  const imageStyleValues = [
+    renderOffsetX ? `--sprite-render-offset-x: ${escapeHtml(renderOffsetX)}px;` : "",
+    renderOffsetY ? `--sprite-render-offset-y: ${escapeHtml(renderOffsetY)}px;` : "",
+  ].filter(Boolean);
+  const imageStyle = imageStyleValues.length
+    ? ` style="${imageStyleValues.join(" ")}"`
     : "";
   return `
     <div class="sprite-image-wrap ${slotClass} ${teamSlotClass} ${characterClass}" data-fighter-side="${escapeHtml(side)}" role="button" tabindex="0" aria-label="${escapeHtml(fighter.name)}の状態">
@@ -6084,15 +6110,22 @@ function applyBattleEffects(move, actor, target, skipEffectIds = null) {
     const battleEffect = state.battleEffects.get(battleEffectId);
     if (!battleEffect) continue;
 
-    const recipient = battleEffect.battle_effect_group === "delayed_attack" ? target : actor;
+    if (battleEffect.battle_effect_group === "delayed_attack") {
+      const targetSide = sideForActiveFighter(target);
+      if (!targetSide) continue;
+      addFieldEffect(
+        targetSide,
+        battleEffect,
+        delayedBattleEffectPayload(move, actor, battleEffect),
+      );
+      pushLog(battleEffectStartText(actor, battleEffect, target));
+      appliedBattleEffects.push(battleEffect);
+      continue;
+    }
+
+    const recipient = actor;
     if (!recipient) continue;
-    addBattleEffect(
-      recipient,
-      battleEffect,
-      battleEffect.battle_effect_group === "delayed_attack"
-        ? delayedBattleEffectPayload(move, actor, battleEffect)
-        : {},
-    );
+    addBattleEffect(recipient, battleEffect);
     pushLog(battleEffectStartText(actor, battleEffect, recipient));
     appliedBattleEffects.push(battleEffect);
   }
@@ -6197,16 +6230,52 @@ function removeBattleEffect(fighter, id) {
   fighter.battleEffects = fighter.battleEffects.filter((effect) => effect.id !== id);
 }
 
+function fieldEffectsForSide(side) {
+  const key = side === "player" ? "player" : "enemy";
+  if (!state.fieldEffects) {
+    state.fieldEffects = createFieldEffectsState();
+  }
+  if (!Array.isArray(state.fieldEffects[key])) {
+    state.fieldEffects[key] = [];
+  }
+  return state.fieldEffects[key];
+}
+
+function addFieldEffect(side, battleEffect, extra = {}) {
+  fieldEffectsForSide(side).push({
+    id: battleEffect.battle_effect_id,
+    instanceId: state.nextFieldEffectId++,
+    name: battleEffect.name,
+    group: battleEffect.battle_effect_group,
+    turns: battleEffect.turn,
+    createdTurn: state.turn,
+    damage_value: battleEffect.damage_value,
+    damage_cut: battleEffect.damage_cut,
+    animation: battleEffect.animation,
+    animation_duration_ms: battleEffect.animation_duration_ms,
+    ...extra,
+  });
+}
+
+function removeFieldEffect(side, effectToRemove) {
+  const effects = fieldEffectsForSide(side);
+  const index = effects.indexOf(effectToRemove);
+  if (index >= 0) {
+    effects.splice(index, 1);
+  }
+}
+
 async function resolveDelayedBattleEffects() {
   for (const side of ["player", "enemy"]) {
-    const target = activeBySide(side);
-    if (!target || target.fainted) continue;
+    if (!activeBySide(side) || activeBySide(side).fainted) continue;
 
-    const delayedEffects = target.battleEffects.filter(
+    const delayedEffects = fieldEffectsForSide(side).filter(
       (effect) => effect.group === "delayed_attack" && delayedBattleEffectReady(effect),
     );
     for (const effect of delayedEffects) {
-      removeBattleEffect(target, effect.id);
+      const target = activeBySide(side);
+      if (!target || target.fainted) break;
+      removeFieldEffect(side, effect);
       const attacker = delayedEffectAttacker(effect, side);
       const move = delayedEffectMove(effect);
       if (!attacker || !move) continue;
@@ -6424,6 +6493,8 @@ function finalizeStoryBattleVictory(rankBattleId) {
   state.battleWinner = null;
   state.battleAnimation = null;
   state.exchange = createExchangeState();
+  state.fieldEffects = createFieldEffectsState();
+  state.nextFieldEffectId = 1;
   state.commandMode = "fight";
   saveGameData();
   hideRankBattleConfirm();
@@ -6477,6 +6548,13 @@ function activeEnemy() {
 
 function activeBySide(side) {
   return side === "player" ? activePlayer() : activeEnemy();
+}
+
+function sideForActiveFighter(fighter) {
+  if (!fighter) return "";
+  if (fighter === activePlayer()) return "player";
+  if (fighter === activeEnemy()) return "enemy";
+  return "";
 }
 
 function teamBySide(side) {

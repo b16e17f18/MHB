@@ -2482,12 +2482,12 @@ button {
   width: auto;
   max-width: none;
   height: auto;
-  transform: translateY(var(--sprite-render-offset-y, 0px));
+  transform: translate(var(--sprite-render-offset-x, 0px), var(--sprite-render-offset-y, 0px));
   filter: none;
 }
 
 .battle-view .sprite-image.is-enemy {
-  transform: translateY(var(--sprite-render-offset-y, 0px)) scaleX(-1);
+  transform: translate(var(--sprite-render-offset-x, 0px), var(--sprite-render-offset-y, 0px)) scaleX(-1);
 }
 
 .sprite-image-wrap {
@@ -2512,11 +2512,11 @@ button {
   width: min(80vw, 500px);
   max-width: none;
   height: auto;
-  transform: none;
+  transform: translate(var(--sprite-render-offset-x, 0px), var(--sprite-render-offset-y, 0px));
 }
 
 .battle-view .sprite-image-wrap.sprite-character_036 .sprite-image.is-enemy {
-  transform: scaleX(-1);
+  transform: translate(var(--sprite-render-offset-x, 0px), var(--sprite-render-offset-y, 0px)) scaleX(-1);
 }
 
 .battle-view .battle-console {
