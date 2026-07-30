@@ -16,14 +16,14 @@ equip_014,ニトロダケユニット,accessory,ババコンガのステータ�
 equip_015,錆びた龍鱗,accessory,クシャルダオラのステータスが変化する。,0,15,-30,25,0,15,elder_dragon,character_032
 equip_016,影蜘蛛の秘棘,accessory,ネルスキュラのステータスが変化する。,0,0,0,-70,265,0,temnoceran,character_038
 equip_017,鬼神手甲,accessory,ラージャンのステータスが変化する。,45,20,0,0,0,-20,fanged_beast,character_025
-equip_018,斬竜の獄炎状殻,accessory,ディノバルドのステータスが変化する。,0,0,55,0,0,15,brute_wyvern,character_040
+equip_018,斬竜の獄炎状殻,accessory,ディノバルドのステータスが変化する。,0,0,40,0,0,15,brute_wyvern,character_040
 equip_019,巨獣の重殻,accessory,ガムートのステータスが変化する。,0,0,50,-35,45,-20,fanged_beast,character_041
 equip_020,電竜の重棘殻,accessory,ライゼクスのステータスが変化する。,0,0,40,0,40,-10,flying_wyvern,character_042
 equip_021,金火竜の秘棘,accessory,リオレイアのステータスが変化する。,95,40,0,-20,0,-15,flying_wyvern,character_008
 equip_022,銀火竜の重殻,accessory,リオレウスのステータスが変化する。,0,0,25,60,25,-40,flying_wyvern,character_016
 equip_023,氷結晶,accessory,ザボアザギルのステータスが変化する。,0,20,20,20,20,0,amphibian,character_045
 equip_024,オトモ装備,accessory,メラルーのステータスが変化する。,150,0,60,0,80,-95,unknown,character_046
-equip_025,モノデビルプロテクタ,accessory,モノブロス亜種のステータスが変化する。,0,60,60,0,25,0,flying_wyvern,character_027
+equip_025,深紅の角,accessory,モノブロス亜種のステータスが変化する。,0,60,60,0,25,0,flying_wyvern,character_027
 equip_026,超雷電光虫,accessory,ジンオウガのステータスが変化する。,0,35,35,20,0,0,fanged_wyvern,character_023
 equip_027,力の爪,accessory,ステータスをUPする。,0,30,0,30,0,0,all,
 equip_028,守の爪,accessory,ステータスをUPする。,0,0,30,0,30,0,all,
