@@ -1301,7 +1301,7 @@ function hideArenaBattleConfirm(options = {}) {
   if (focus) els.arenaBackButton?.focus({ preventScroll: true });
 }
 
-function handleArenaChallengeClick() {
+async function handleArenaChallengeClick() {
   const rankBattleId = state.story.selectedArenaBattleId;
   if (!rankBattleId) {
     showArenaMessage(ARENA_UNAVAILABLE_MESSAGE, { isError: true });
@@ -1309,7 +1309,17 @@ function handleArenaChallengeClick() {
     return;
   }
 
-  showArenaMessage(`${rankBattleId}\u3078\u306e\u6311\u6226\u51e6\u7406\u306f\u6b21\u306e\u5b9f\u88c5\u3067\u8ffd\u52a0\u3057\u307e\u3059`);
+  const entranceId = state.story.selectedArenaEntranceId || ARENA_BATTLE_ENTRANCE_BY_ID[rankBattleId];
+  const details = resolveArenaBattleDetails(entranceId);
+  if (!details.ok) {
+    if (details.missing !== "locked") warnArenaDataMissing(details);
+    showArenaMessage(ARENA_UNAVAILABLE_MESSAGE, { isError: true });
+    return;
+  }
+
+  hideArenaBattleConfirm({ clearSelection: false, focus: false });
+  showArenaMessage("");
+  await startRankBattle(rankBattleId);
 }
 
 function showArenaMessage(message, { isError = false } = {}) {
@@ -4571,6 +4581,8 @@ function renderBattle() {
     state.gameOver &&
     state.battleWinner === "player" &&
     !state.story.currentArenaBattleId;
+  const arenaResultVisible = state.gameOver && Boolean(state.story.currentArenaBattleId);
+  const resultPanelVisible = exchangeVisible || arenaResultVisible;
   const playerPendingMove = Boolean(pendingSkillFor(player));
   const inspectSide = state.battleInspectSide === "player" ? "player" : "enemy";
   const inspectFighter = inspectSide === "player" ? player : enemy;
@@ -4591,17 +4603,17 @@ function renderBattle() {
   els.switchTab.disabled = state.busy || state.gameOver || playerPendingMove;
   els.moveGrid.classList.toggle(
     "is-hidden",
-    state.commandMode !== "fight" || exchangeVisible,
+    state.commandMode !== "fight" || resultPanelVisible,
   );
   els.switchGrid.classList.toggle(
     "is-hidden",
-    state.commandMode !== "switch" || exchangeVisible,
+    state.commandMode !== "switch" || resultPanelVisible,
   );
   els.enemyInfoPanel.classList.toggle(
     "is-hidden",
-    state.commandMode !== "enemyInfo" || exchangeVisible,
+    state.commandMode !== "enemyInfo" || resultPanelVisible,
   );
-  els.exchangePanel.classList.toggle("is-hidden", !exchangeVisible);
+  els.exchangePanel.classList.toggle("is-hidden", !resultPanelVisible);
   els.commandLights.innerHTML = renderCommandLights();
   els.battleStatusPanel.innerHTML = renderBattleStatusPanel(player, enemy);
 
@@ -4955,6 +4967,11 @@ function renderSwitchGrid() {
 }
 
 function renderExchangePanel() {
+  if (state.gameOver && state.story.currentArenaBattleId) {
+    renderArenaBattleResultPanel();
+    return;
+  }
+
   if (!(state.gameOver && state.battleWinner === "player") || state.story.currentArenaBattleId) {
     els.exchangePanel.innerHTML = "";
     return;
@@ -5048,6 +5065,32 @@ function renderExchangePanel() {
       }
     });
   }
+}
+
+function renderArenaBattleResultPanel() {
+  const rankBattleId = state.story.currentArenaBattleId;
+  const won = state.battleWinner === "player";
+  const opponentName = rankBattleDisplayName(rankBattleId);
+  const rewardMoney = rankBattleRewardMoney(rankBattleId);
+  const title = won ? "Arena勝利" : "Arena敗北";
+  const message = won
+    ? `${opponentName}に勝利しました。報酬 ${rewardMoney}z を受け取ります。`
+    : `${opponentName}に敗北しました。`;
+  els.exchangePanel.innerHTML = `
+    <div class="exchange-title">${escapeHtml(title)}</div>
+    <div class="command-note">${escapeHtml(message)}</div>
+    <div class="exchange-actions arena-result-actions">
+      <button class="primary-button exchange-action" type="button" data-arena-result-action="${won ? "complete" : "return"}">Arenaへ戻る</button>
+    </div>
+  `;
+
+  els.exchangePanel.querySelector("[data-arena-result-action]")?.addEventListener("click", () => {
+    if (won) {
+      finalizeArenaBattleVictory(rankBattleId);
+    } else {
+      returnToArenaAfterBattle();
+    }
+  });
 }
 
 function renderStoryVictoryExchangeChoice() {
@@ -6516,18 +6559,53 @@ function finishBattle(winner) {
 }
 
 function finalizeStoryBattleVictory(rankBattleId) {
+  if (!applyRankBattleVictory(rankBattleId)) return;
+  state.story.currentRankBattleId = null;
+  state.story.currentArenaBattleId = null;
+  state.story.pendingRankBattleId = null;
+  resetRankBattleRuntimeState();
+  saveGameData();
+  hideRankBattleConfirm();
+  showStoryMain();
+}
+
+function finalizeArenaBattleVictory(rankBattleId) {
+  if (!applyRankBattleVictory(rankBattleId)) return;
+  state.story.currentRankBattleId = null;
+  state.story.currentArenaBattleId = null;
+  state.story.pendingRankBattleId = null;
+  state.story.selectedArenaEntranceId = null;
+  state.story.selectedArenaBattleId = null;
+  resetRankBattleRuntimeState();
+  saveGameData();
+  hideArenaBattleConfirm({ clearSelection: true, focus: false });
+  void showArena();
+}
+
+function returnToArenaAfterBattle() {
+  state.story.currentRankBattleId = null;
+  state.story.currentArenaBattleId = null;
+  state.story.pendingRankBattleId = null;
+  resetRankBattleRuntimeState();
+  hideArenaBattleConfirm({ clearSelection: true, focus: false });
+  void showArena();
+}
+
+function applyRankBattleVictory(rankBattleId) {
   const currentBattleId = safeText(rankBattleId);
-  if (!currentBattleId) return;
+  if (!currentBattleId) return "";
   const alreadyCleared = state.story.clearedRankBattleIds.has(currentBattleId);
   if (!alreadyCleared) {
     state.saveData.money += rankBattleRewardMoney(currentBattleId);
   }
   state.story.clearedRankBattleIds.add(currentBattleId);
   state.story.disabledRankBattleIds.add(currentBattleId);
-  state.story.currentRankBattleId = null;
-  state.story.currentArenaBattleId = null;
-  state.story.pendingRankBattleId = null;
+  return currentBattleId;
+}
+
+function resetRankBattleRuntimeState() {
   state.gameOver = true;
+  state.busy = false;
   state.pendingSwitchSide = null;
   state.battleWinner = null;
   state.battleAnimation = null;
@@ -6535,9 +6613,6 @@ function finalizeStoryBattleVictory(rankBattleId) {
   state.fieldEffects = createFieldEffectsState();
   state.nextFieldEffectId = 1;
   state.commandMode = "fight";
-  saveGameData();
-  hideRankBattleConfirm();
-  showStoryMain();
 }
 
 function rankBattleRewardMoney(rankBattleId) {

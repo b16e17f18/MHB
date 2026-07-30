@@ -763,6 +763,10 @@ button:disabled {
   min-height: 44px;
 }
 
+.arena-result-actions {
+  grid-template-columns: 1fr;
+}
+
 .battle-inspect-panel {
   display: grid;
   align-content: start;
