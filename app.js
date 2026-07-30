@@ -1682,7 +1682,7 @@ function renderMyHouseCompleteMonsterDetail(character, ownedMonster = null) {
         <div class="detail-summary">
           <div class="dex-data-row"><span>スロット</span><strong>${slotMarks(character.slot)}</strong></div>
           <div class="dex-data-row"><span>EN回復</span><strong>${energyBadge(character.energy_charge)}</strong></div>
-          <div class="dex-data-row"><span>弱点</span><strong>${renderWeaknessBadges(character)}</strong></div>
+          <div class="dex-data-row"><span>弱点</span><strong>${renderWeaknessBadges(displayedCharacter)}</strong></div>
         </div>
         ${ownedMonster ? renderOwnedMonsterAccessorySection(ownedMonster, character) : ""}
       </div>
@@ -1704,7 +1704,7 @@ function renderMyHouseCompleteMonsterDetail(character, ownedMonster = null) {
       <div class="detail-resistances">
         <div class="detail-section-title">属性耐性</div>
         <div class="resistance-grid">
-          ${ELEMENT_TYPES.map((element) => resistanceCell(character, element)).join("")}
+          ${ELEMENT_TYPES.map((element) => resistanceCell(displayedCharacter, element)).join("")}
         </div>
       </div>
     </div>
@@ -2167,7 +2167,7 @@ function shopItemName(item) {
 }
 
 function shopDisabledReason(item) {
-  if (!EQUIPMENT_ITEM_TYPES.has(item.item_type) && currentShopStock(item) <= 0) return item.item_type === "book" ? "購入済み" : "在庫なし";
+  if (currentShopStock(item) <= 0) return item.item_type === "book" ? "購入済み" : "在庫なし";
   if (state.saveData.money < item.price) return "所持金不足";
   if (item.item_type === "book" && state.saveData.ownedBooks.has(item.content_id)) return "購入済み";
   if (item.item_type === "monster") {
@@ -2178,9 +2178,13 @@ function shopDisabledReason(item) {
 }
 
 function currentShopStock(item) {
-  return state.saveData.shopStock.has(item.shop_entry_id)
-    ? state.saveData.shopStock.get(item.shop_entry_id)
-    : item.stock;
+  if (state.saveData.shopStock.has(item.shop_entry_id)) {
+    return state.saveData.shopStock.get(item.shop_entry_id);
+  }
+  if (EQUIPMENT_ITEM_TYPES.has(item.item_type) && state.saveData.purchasedShopEntries.has(item.shop_entry_id)) {
+    return Math.max(0, item.stock - 1);
+  }
+  return item.stock;
 }
 
 function setShopStock(item, stock) {
@@ -2256,6 +2260,7 @@ function purchaseEquipment(item) {
     ownedEquipmentCount(equipment.equipment_id) + 1,
   );
   state.saveData.purchasedShopEntries.add(item.shop_entry_id);
+  setShopStock(item, currentShopStock(item) - 1);
   saveGameData();
   showShopMessage(`${equipment.name}を購入しました。`);
   state.shop.confirmEntryId = null;
