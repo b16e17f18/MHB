@@ -62,7 +62,7 @@ skill_060,睡眠針,attack,70,none,physical,normal,sleep,enemy,75,none,enemy,0,n
 skill_061,蜘蛛糸縛り,attack,60,none,physical,normal,speed_down,enemy,100,none,enemy,0,none,enemy,0,none,0,none,0,enemy,0,2,相手の敏捷を25％downさせる。,attack_beat01,50,10,,,
 skill_062,泡沫の舞,status,0,water,none,normal,sp_atk_up,enemy,100,speed_up,enemy,100,none,enemy,0,protect,100,none,0,self,0,2,特殊攻撃と敏捷が25％upし、ダメージを50％cutする。,magic_holy01,500,2,,,
 skill_063,泡玉,attack,90,water,special,sure_hit,none,enemy,0,none,enemy,0,none,enemy,0,future_blast2,100,none,0,enemy,0,3,泡玉をばら撒き、２ターン後に炸裂する。必ず命中する。,magic_holy01,750,1,,,
-skill_064,一刀両断,attack,100,none,physical,normal,phy_atk_up,self,100,phy_def_up,self,100,none,enemy,0,charge_attack,100,none,0,enemy,1,4,1ターン目に物理攻撃と物理防御が25％upし、2ターン目に攻撃する。技優先度+１。,attack_slash03,750,1,,,
+skill_064,一刀両断,attack,100,none,physical,normal,phy_atk_up,self,100,phy_def_up,self,100,none,enemy,0,charge_attack,100,none,0,enemy,1,3,1ターン目に物理攻撃と物理防御が25％upし、2ターン目に攻撃する。技優先度+１。,attack_slash03,750,1,,,
 skill_065,氷纏い,status,0,ice,none,normal,phy_atk_up,enemy,100,fire_weak_down,enemy,100,heal_en,enemy,100,none,0,none,0,self,0,1,物理攻撃と火耐性を25％upする。ENを2plusする。,magic_ice01,1000,1,,,
 skill_066,急下降,attack,70,none,physical,normal,paralysis,enemy,50,none,enemy,0,none,enemy,0,fly,100,none,0,enemy,0,1,1ターン目に空高く飛び上がり、2ターン目に攻撃する。50％の確率で相手を麻痺にする。,attack_hit01,250,1,,,
 skill_067,振動波,attack,90,none,special,ground_wave,none,enemy,0,none,enemy,0,none,enemy,0,none,0,none,0,enemy,0,2,相手が地中にいても技が命中する。,magic_sonicwave01,100,5,,,

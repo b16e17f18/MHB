@@ -1860,6 +1860,7 @@ function renderEquipmentBonusList(equipment) {
     <span class="accessory-bonus-list">
       ${entries.map((entry) => `
         <span class="accessory-bonus ${entry.value > 0 ? "is-up" : "is-down"}">
+          ${entry.element ? `<span class="accessory-bonus-element-square element-${escapeHtml(elementClass(entry.element))}" aria-hidden="true"></span>` : ""}
           ${escapeHtml(entry.label)} ${entry.value > 0 ? "+" : ""}${escapeHtml(entry.value)}
         </span>
       `).join("")}
@@ -1868,7 +1869,7 @@ function renderEquipmentBonusList(equipment) {
 }
 
 function equipmentBonusEntries(equipment) {
-  return [
+  const statEntries = [
     ["HP", equipment?.hp_bonus],
     ["物理攻撃", equipment?.atk_bonus],
     ["物理防御", equipment?.def_bonus],
@@ -1876,8 +1877,18 @@ function equipmentBonusEntries(equipment) {
     ["特殊防御", equipment?.sp_def_bonus],
     ["素早さ", equipment?.speed_bonus],
   ]
-    .map(([label, value]) => ({ label, value: number(value) }))
+    .map(([label, value]) => ({ label, value: number(value), element: "" }))
     .filter((entry) => entry.value !== 0);
+
+  const resistanceEntries = ELEMENT_TYPES
+    .map((element) => ({
+      label: `${elementName(element)}耐性`,
+      value: number(equipment?.[`weak_${element}_bonus`]),
+      element,
+    }))
+    .filter((entry) => entry.value !== 0);
+
+  return [...statEntries, ...resistanceEntries];
 }
 
 function equippedAccessoryForOwnedMonster(ownedMonster, character) {
@@ -1898,11 +1909,21 @@ function applyEquipmentBonusesToCharacter(character, equipment) {
     sp_atk: adjustedEquipmentStat(character.sp_atk, equipment.sp_atk_bonus),
     sp_def: adjustedEquipmentStat(character.sp_def, equipment.sp_def_bonus),
     speed: adjustedEquipmentStat(character.speed, equipment.speed_bonus),
+    weaknesses: adjustedEquipmentWeaknesses(character.weaknesses, equipment),
   };
 }
 
 function adjustedEquipmentStat(baseValue, bonusValue) {
   return Math.max(1, Math.round(number(baseValue, 1) + number(bonusValue)));
+}
+
+function adjustedEquipmentWeaknesses(baseWeaknesses = {}, equipment) {
+  return Object.fromEntries(
+    ELEMENT_TYPES.map((element) => [
+      element,
+      Math.max(0, number(baseWeaknesses[element], 1) - number(equipment?.[`weak_${element}_bonus`]) / 100),
+    ]),
+  );
 }
 
 function isAccessoryEquipment(equipment) {
@@ -3089,6 +3110,11 @@ function normalizeEquipment(row) {
     sp_atk_bonus: number(row.sp_atk_bonus),
     sp_def_bonus: number(row.sp_def_bonus),
     speed_bonus: number(row.speed_bonus),
+    weak_fire_bonus: number(row.weak_fire_bonus),
+    weak_water_bonus: number(row.weak_water_bonus),
+    weak_thunder_bonus: number(row.weak_thunder_bonus),
+    weak_ice_bonus: number(row.weak_ice_bonus),
+    weak_dragon_bonus: number(row.weak_dragon_bonus),
     species_id: safeText(row.species_id),
     character_id: safeText(row.character_id),
   };
@@ -3651,7 +3677,8 @@ function renderWeaknessBadges(character) {
   return entries
     .map(
       (entry) => `
-        <span class="weakness-badge element-${escapeHtml(elementClass(entry.element))}">
+        <span class="weakness-badge">
+          <span class="weakness-badge-element-square element-${escapeHtml(elementClass(entry.element))}" aria-hidden="true"></span>
           ${escapeHtml(elementName(entry.element))}
         </span>
       `,
@@ -5857,7 +5884,14 @@ function dealDamage(attacker, target, move) {
 
 function applyIncomingBattleEffects(target, damage, move) {
   let adjusted = damage;
-  const protect = target.battleEffects.find((effect) => effect.id === "protect");
+  const protect = target.battleEffects
+    .filter((effect) => effect.group === "guard")
+    .reduce((best, effect) => {
+      if (!best || number(effect.damage_cut) > number(best.damage_cut)) {
+        return effect;
+      }
+      return best;
+    }, null);
   if (protect) {
     const cutRate = move.hit_type === "guard_break" ? (protect.damage_cut || 50) / 200 : (protect.damage_cut || 50) / 100;
     adjusted *= 1 - cutRate;

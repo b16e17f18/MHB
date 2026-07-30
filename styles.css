@@ -1614,6 +1614,7 @@ button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  gap: 4px;
   min-height: 24px;
   min-width: 32px;
   padding: 3px 7px;
@@ -1621,6 +1622,13 @@ button {
   background: #fff0f0;
   color: #111111;
   font-weight: 900;
+}
+
+.weakness-badge-element-square {
+  width: 0.72em;
+  height: 0.72em;
+  border: 1px solid currentColor;
+  border-radius: 2px;
 }
 
 .power-chip,
@@ -4153,6 +4161,9 @@ button {
 }
 
 .accessory-bonus {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   padding: 2px 6px;
   border: 1px solid #111111;
   border-radius: 999px;
@@ -4160,6 +4171,13 @@ button {
   color: #111111;
   font-size: 0.72rem;
   font-weight: 900;
+}
+
+.accessory-bonus-element-square {
+  width: 0.72em;
+  height: 0.72em;
+  border: 1px solid currentColor;
+  border-radius: 2px;
 }
 
 .accessory-bonus.is-up {
