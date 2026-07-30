@@ -5400,9 +5400,11 @@ async function executeAction(action) {
       ? startTwoTurnMove(actor, move, twoTurnEffectId, pendingTargetSide)
       : null;
     if (startedBattleEffect) {
+      const auxiliaryBattleEffects = applyBattleEffects(move, actor, target, new Set([twoTurnEffectId]));
       applySkillEffects(move, actor, target, { targets: ["self"] });
       renderBattle();
       await playBattleEffectAnimation(startedBattleEffect, action.side);
+      await playBattleEffectAnimations(auxiliaryBattleEffects, action.side);
       await pause(500);
       return;
     }
