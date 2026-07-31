@@ -1871,7 +1871,7 @@ function renderEquipmentBonusList(equipment) {
       ${entries.map((entry) => `
         <span class="accessory-bonus ${entry.value > 0 ? "is-up" : "is-down"}">
           ${entry.element ? `<span class="accessory-bonus-element-square element-${escapeHtml(elementClass(entry.element))}" aria-hidden="true"></span>` : ""}
-          ${escapeHtml(entry.label)} ${entry.value > 0 ? "+" : ""}${escapeHtml(entry.value)}
+          ${escapeHtml(entry.label)}（${entry.value > 0 ? "+" : ""}${escapeHtml(entry.value)}）
         </span>
       `).join("")}
     </span>

@@ -1461,7 +1461,7 @@ button {
 .detail-stat-bonus-fill {
   left: var(--base-bar-width);
   width: var(--bonus-bar-width);
-  background: #48c7ff;
+  background: #c8f2ff;
 }
 
 .detail-stat-hp .detail-stat-fill {
