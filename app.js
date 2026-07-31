@@ -1702,7 +1702,7 @@ function renderMyHouseCompleteMonsterDetail(character, ownedMonster = null) {
         ${detailStat("物理防御", displayedCharacter.phy_def, "phy_def")}
         ${detailStat("特殊攻撃", displayedCharacter.sp_atk, "sp_atk")}
         ${detailStat("特殊防御", displayedCharacter.sp_def, "sp_def")}
-        ${detailStat("素早さ", displayedCharacter.speed, "speed")}
+        ${detailStat("敏捷", displayedCharacter.speed, "speed")}
         ${detailStat("回復力", character.regen_value, "regen_value")}
       </div>
       <div class="detail-skills">
@@ -1885,7 +1885,7 @@ function equipmentBonusEntries(equipment) {
     ["物理防御", equipment?.def_bonus],
     ["特殊攻撃", equipment?.sp_atk_bonus],
     ["特殊防御", equipment?.sp_def_bonus],
-    ["素早さ", equipment?.speed_bonus],
+    ["敏捷", equipment?.speed_bonus],
   ]
     .map(([label, value]) => ({ label, value: number(value), element: "" }))
     .filter((entry) => entry.value !== 0);
@@ -2344,7 +2344,7 @@ function renderShopMonsterConfirmDetail(monster) {
         <span>物理防御 <strong>${escapeHtml(monster.phy_def)}</strong></span>
         <span>特殊攻撃 <strong>${escapeHtml(monster.sp_atk)}</strong></span>
         <span>特殊防御 <strong>${escapeHtml(monster.sp_def)}</strong></span>
-        <span>素早さ <strong>${escapeHtml(monster.speed)}</strong></span>
+        <span>敏捷 <strong>${escapeHtml(monster.speed)}</strong></span>
       </div>
     </div>
   `;

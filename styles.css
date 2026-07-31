@@ -1469,7 +1469,7 @@ button {
 }
 
 .detail-stat-speed .detail-stat-fill {
-  background: #48c7ff;
+  background: #0057b8;
 }
 
 .detail-stat-regen_value .detail-stat-fill {
@@ -3712,6 +3712,7 @@ button {
 
 .shop-confirm-button {
   min-height: 44px;
+  color: #111111;
 }
 
 .my-house-panel {
