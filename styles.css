@@ -1431,7 +1431,14 @@ button {
 }
 
 .detail-stat-value {
+  display: inline-flex;
+  justify-content: flex-end;
+  gap: 4px;
   text-align: right;
+}
+
+.detail-stat-bonus {
+  color: #48c7ff;
 }
 
 .detail-stat-track {

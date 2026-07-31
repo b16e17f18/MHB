@@ -1697,12 +1697,12 @@ function renderMyHouseCompleteMonsterDetail(character, ownedMonster = null) {
         ${ownedMonster ? renderOwnedMonsterAccessorySection(ownedMonster, character) : ""}
       </div>
       <div class="detail-stats my-house-detail-stats">
-        ${detailStat("HP", displayedCharacter.hp, "hp")}
-        ${detailStat("物理攻撃", displayedCharacter.phy_atk, "phy_atk")}
-        ${detailStat("物理防御", displayedCharacter.phy_def, "phy_def")}
-        ${detailStat("特殊攻撃", displayedCharacter.sp_atk, "sp_atk")}
-        ${detailStat("特殊防御", displayedCharacter.sp_def, "sp_def")}
-        ${detailStat("敏捷", displayedCharacter.speed, "speed")}
+        ${detailStat("HP", displayedCharacter.hp, "hp", { baseValue: character.hp })}
+        ${detailStat("物理攻撃", displayedCharacter.phy_atk, "phy_atk", { baseValue: character.phy_atk })}
+        ${detailStat("物理防御", displayedCharacter.phy_def, "phy_def", { baseValue: character.phy_def })}
+        ${detailStat("特殊攻撃", displayedCharacter.sp_atk, "sp_atk", { baseValue: character.sp_atk })}
+        ${detailStat("特殊防御", displayedCharacter.sp_def, "sp_def", { baseValue: character.sp_def })}
+        ${detailStat("敏捷", displayedCharacter.speed, "speed", { baseValue: character.speed })}
         ${detailStat("回復力", character.regen_value, "regen_value")}
       </div>
       <div class="detail-skills">
@@ -3385,14 +3385,18 @@ function renderDetailPanel() {
   });
 }
 
-function detailStat(label, value, statKey) {
+function detailStat(label, value, statKey, options = {}) {
   const barPercent = detailStatBarPercent(statKey, value);
   const displayValue = statKey === "hp" && value > STAT_GRAPH_MAX.hp ? "???" : value;
+  const bonusValue = Math.max(0, Math.round(number(value)) - Math.round(number(options.baseValue, value)));
+  const bonusText = bonusValue > 0
+    ? `<span class="detail-stat-bonus">+${escapeHtml(bonusValue)}</span>`
+    : "";
   return `
     <div class="detail-stat detail-stat-${statKey}" style="--bar-width: ${barPercent}%">
       <span class="detail-stat-label">${escapeHtml(label)}</span>
       <div class="detail-stat-track"><span class="detail-stat-fill"></span></div>
-      <strong class="detail-stat-value">${escapeHtml(displayValue)}</strong>
+      <strong class="detail-stat-value">${escapeHtml(displayValue)}${bonusText}</strong>
     </div>
   `;
 }
