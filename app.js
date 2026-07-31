@@ -3387,16 +3387,18 @@ function renderDetailPanel() {
 
 function detailStat(label, value, statKey, options = {}) {
   const barPercent = detailStatBarPercent(statKey, value);
+  const baseBarPercent = options.baseValue == null
+    ? barPercent
+    : detailStatBarPercent(statKey, options.baseValue);
+  const visibleBaseBarPercent = Math.min(baseBarPercent, barPercent);
   const displayValue = statKey === "hp" && value > STAT_GRAPH_MAX.hp ? "???" : value;
-  const bonusValue = Math.max(0, Math.round(number(value)) - Math.round(number(options.baseValue, value)));
-  const bonusText = bonusValue > 0
-    ? `<span class="detail-stat-bonus">+${escapeHtml(bonusValue)}</span>`
-    : "";
+  const bonusPercent = Math.max(0, barPercent - visibleBaseBarPercent);
+  const bonusBar = bonusPercent > 0 ? `<span class="detail-stat-bonus-fill"></span>` : "";
   return `
-    <div class="detail-stat detail-stat-${statKey}" style="--bar-width: ${barPercent}%">
+    <div class="detail-stat detail-stat-${statKey}" style="--bar-width: ${barPercent}%; --base-bar-width: ${visibleBaseBarPercent}%; --bonus-bar-width: ${bonusPercent}%">
       <span class="detail-stat-label">${escapeHtml(label)}</span>
-      <div class="detail-stat-track"><span class="detail-stat-fill"></span></div>
-      <strong class="detail-stat-value">${escapeHtml(displayValue)}${bonusText}</strong>
+      <div class="detail-stat-track"><span class="detail-stat-fill"></span>${bonusBar}</div>
+      <strong class="detail-stat-value">${escapeHtml(displayValue)}</strong>
     </div>
   `;
 }

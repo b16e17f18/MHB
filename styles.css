@@ -1431,28 +1431,37 @@ button {
 }
 
 .detail-stat-value {
-  display: inline-flex;
-  justify-content: flex-end;
-  gap: 4px;
   text-align: right;
 }
 
-.detail-stat-bonus {
-  color: #48c7ff;
-}
-
 .detail-stat-track {
+  position: relative;
   height: 18px;
   border: 3px solid #111111;
   background: #ffffff;
+  overflow: hidden;
+}
+
+.detail-stat-fill,
+.detail-stat-bonus-fill {
+  display: block;
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  height: 100%;
 }
 
 .detail-stat-fill {
-  display: block;
-  width: var(--bar-width);
-  height: 100%;
+  left: 0;
+  width: var(--base-bar-width, var(--bar-width));
   min-width: 4px;
   background: #9df000;
+}
+
+.detail-stat-bonus-fill {
+  left: var(--base-bar-width);
+  width: var(--bonus-bar-width);
+  background: #48c7ff;
 }
 
 .detail-stat-hp .detail-stat-fill {
