@@ -68,7 +68,7 @@ skill_066,急下降,attack,70,none,physical,normal,paralysis,enemy,50,none,enemy
 skill_067,振動波,attack,90,none,special,ground_wave,none,enemy,0,none,enemy,0,none,enemy,0,none,0,none,0,enemy,0,2,相手が地中にいても技が命中する。,magic_sonicwave01,100,5,,,
 skill_068,鳴甲飛ばし,attack,40,none,physical,normal,none,enemy,0,none,enemy,0,none,enemy,0,none,0,none,0,enemy,1,1,技優先度+１。,attack_hit01,100,3,,,
 skill_069,鱗粉爆破,attack,70,none,special,sure_hit,none,enemy,0,none,enemy,0,none,enemy,0,future_blast3,100,none,0,enemy,0,2,鱗粉をばら撒き、次のターンに爆破する。次のターンは自由に行動できる。必ず命中する。,magic_shadow01,1000,1,,,
-skill_070,狂竜ブレス,attack,90,dragon,special,normal,speed_down,enemy,75,poison,enemy,100,none,enemy,0,none,0,none,0,enemy,0,5,75％の確率で相手の特殊防御を25％downさせる。相手を毒にする。,magic_shadow01,750,1,,,
+skill_070,狂竜ブレス,attack,90,dragon,special,normal,speed_down,enemy,75,poison,enemy,100,none,enemy,0,none,0,none,0,enemy,0,3,75％の確率で相手の特殊防御を25％downさせる。相手を毒にする。,magic_shadow01,750,1,,,
 skill_071,アイススピア,attack,100,ice,physical,normal,phy_def_down,enemy,75,fire_weak_up,enemy,100,none,enemy,0,none,0,none,0,enemy,0,4,75％の確率で相手の物理防御を25％downさせる。相手の火耐性を25％downさせる。,magic_ice01,500,1,,,
 skill_072,反撃ニャ！,status,0,none,none,normal,none,enemy,0,none,enemy,0,none,enemy,0,endure,100,revenge,100,self,0,2,戦闘不能になるダメージを受けた時、HPが１残り、反撃する。,none,0,0,,,
 skill_073,ニャンニャン棒,attack,20,none,physical,normal,sp_atk_down,enemy,100,none,enemy,0,none,enemy,0,none,0,none,0,enemy,0,1,相手の特殊攻撃を25％downさせる。,attack_hit01,250,1,,,
