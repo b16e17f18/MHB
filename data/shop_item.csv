@@ -27,12 +27,12 @@ business2,shop_entry_111,equip,equip_011,15000,FALSE,1,battle_e_1,111
 business2,shop_entry_112,equip,equip_012,15000,FALSE,1,battle_e_1,112
 business2,shop_entry_113,equip,equip_013,20000,FALSE,1,battle_e_2,113
 business2,shop_entry_114,equip,equip_014,20000,FALSE,1,battle_e_2,114
-business2,shop_entry_115,equip,equip_015,500000,FALSE,1,battle_a_1,115
-business2,shop_entry_116,equip,equip_016,500000,FALSE,1,arena_g_1,116
+business2,shop_entry_115,equip,equip_015,50000,FALSE,1,battle_a_1,115
+business2,shop_entry_116,equip,equip_016,50000,FALSE,1,arena_g_1,116
 business2,shop_entry_117,equip,equip_017,70000,FALSE,1,arena_g_1,117
-business2,shop_entry_118,equip,equip_018,500000,FALSE,1,arena_g_2,118
-business2,shop_entry_119,equip,equip_019,500000,FALSE,1,arena_g_3,119
-business2,shop_entry_120,equip,equip_020,500000,FALSE,1,arena_g_4,120
+business2,shop_entry_118,equip,equip_018,50000,FALSE,1,arena_g_2,118
+business2,shop_entry_119,equip,equip_019,50000,FALSE,1,arena_g_3,119
+business2,shop_entry_120,equip,equip_020,50000,FALSE,1,arena_g_4,120
 business2,shop_entry_121,equip,equip_021,80000,FALSE,1,arena_g_5,121
 business2,shop_entry_122,equip,equip_022,80000,FALSE,1,arena_g_5,122
 business2,shop_entry_123,equip,equip_023,50000,FALSE,1,arena_g_6,123
@@ -59,5 +59,5 @@ business,shop_entry_215,monster,character_041,150000,FALSE,1,arena_g_3,215
 business,shop_entry_216,monster,character_042,150000,FALSE,1,arena_g_4,216
 business,shop_entry_217,monster,character_043,100000,FALSE,1,arena_g_4,217
 business,shop_entry_218,monster,character_045,100000,FALSE,1,arena_g_6,218
-business,shop_entry_219,monster,character_046,200000,FALSE,1,arena_g_7,219
+business,shop_entry_219,monster,character_046,10000,FALSE,1,arena_g_7,219
 business,shop_entry_220,monster,character_047,250000,FALSE,1,arena_g_7,220
