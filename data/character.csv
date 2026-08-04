@@ -49,5 +49,5 @@ character_047,ウカムルバス,825,390,375,250,250,120,70,2,4,150,50,100,25,50
 character_048,アルバトリオン,999,400,400,380,380,99,35,2,5,50,100,50,50,50,dragon,skill_049,skill_035,skill_020,skill_075,character_048.png,#ffffff,8,,10,elder_dragon,999,patient
 character_049,ドスイーオス,430,230,185,70,260,310,105,1,1,50,150,100,100,50,none,skill_001,skill_002,skill_003,skill_008,character_049.png,#ffffff,8,,,bird_wyvern,5,patient
 character_050,アオアシラ,460,240,240,70,190,75,70,2,1,150,50,150,100,25,none,skill_091,skill_026,,,character_050.png,#ffffff,8,,,fanged_beast,14,patient
-character_051,キングチャチャブー,295,295,105,105,105,105,105,1,1,50,50,50,50,50,none,skill_092,skill_012,,,character_051.png,#ffffff,8,,,unknown,132,balanced
+character_051,キングチャチャブー,295,295,295,105,295,295,105,1,1,25,25,25,25,25,none,skill_092,skill_012,,,character_051.png,#ffffff,8,,,unknown,132,balanced
 character_052,ウルクスス,460,240,160,70,300,200,70,2,1,150,50,100,25,25,none,skill_001,skill_020,skill_090,,character_052.png,#ffffff,8,,,fanged_beast,15,balanced
