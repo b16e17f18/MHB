@@ -8,11 +8,13 @@ business,shop_entry_006,book,book_advanced3,500,FALSE,1,battle_e_1,6
 business,shop_entry_007,book,book_advanced2,500,FALSE,1,battle_d_1,7
 business,shop_entry_008,book,book_advanced1,500,FALSE,1,battle_c_1,8
 business,shop_entry_009,book,book_advanced4,500,FALSE,1,battle_c_2,9
-business,shop_entry_010,book,book_advanced5,500,FALSE,1,battle_b_1,10
+business,shop_entry_010,book,book_advanced5,500,FALSE,1,battle_c_1,10
 business,shop_entry_011,book,book_legend3,500,FALSE,1,battle_b_2,11
 business,shop_entry_012,book,book_legend2,500,FALSE,1,battle_b_2,12
 business,shop_entry_013,book,book_legend4,500,FALSE,1,battle_a_1,13
 business,shop_entry_014,book,book_legend1,500,FALSE,1,battle_a_2,14
+business,shop_entry_015,book,book_advanced6,500,FALSE,1,arena_g_1,15
+business,shop_entry_016,book,book_advanced7,500,FALSE,1,arena_g_2,16
 business2,shop_entry_101,equip,equip_001,5000,FALSE,1,battle_e_1,101
 business2,shop_entry_102,equip,equip_002,5000,FALSE,1,battle_e_1,102
 business2,shop_entry_103,equip,equip_003,5000,FALSE,1,battle_e_2,103
@@ -41,6 +43,7 @@ business2,shop_entry_125,equip,equip_025,0,FALSE,1,arena_g_6,125
 business2,shop_entry_126,equip,equip_026,70000,FALSE,1,arena_g_6,126
 business2,shop_entry_127,equip,equip_027,50000,FALSE,1,arena_g_1,127
 business2,shop_entry_128,equip,equip_028,50000,FALSE,1,arena_g_1,128
+business2,shop_entry_129,equip,equip_029,5000,FALSE,1,arena_g_2,129
 business,shop_entry_201,monster,character_001,0,FALSE,2,battle_f_1,201
 business,shop_entry_202,monster,character_002,0,FALSE,2,battle_f_1,202
 business,shop_entry_203,monster,character_003,20000,FALSE,2,battle_f_1,203
@@ -61,3 +64,7 @@ business,shop_entry_217,monster,character_043,100000,FALSE,1,arena_g_4,217
 business,shop_entry_218,monster,character_045,100000,FALSE,1,arena_g_6,218
 business,shop_entry_219,monster,character_046,10000,FALSE,1,arena_g_7,219
 business,shop_entry_220,monster,character_047,250000,FALSE,1,arena_g_7,220
+business,shop_entry_221,monster,character_049,0,FALSE,2,arena_g_6,221
+business,shop_entry_222,monster,character_050,0,FALSE,2,arena_g_3,222
+business,shop_entry_223,monster,character_051,100000,FALSE,2,arena_g_2,223
+business,shop_entry_224,monster,character_052,0,FALSE,2,arena_g_4,224
