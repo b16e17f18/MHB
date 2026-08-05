@@ -89,7 +89,7 @@ skill_087,狂竜ウイルス,status,0,dragon,special,normal,regen_value_down,ene
 skill_088,ウォーターハザード,status,0,water,special,normal,regen_value_down,enemy,100,thunder_weak_down,enemy,100,en_down,enemy,100,none,0,none,0,enemy,0,5,３ターンの間、相手の回復力が35downする。相手のENを１minusし、雷耐性を25％downさせる。,magic_holy01,1500,1,,,
 skill_089,毒鋏,attack,40,none,physical,normal,poison,enemy,75,none,enemy,0,none,enemy,0,none,0,none,0,enemy,0,0,75％の確率で相手を毒にする。,attack_hit02,150,2,,,
 skill_090,滑走,attack,50,none,physical,normal,speed_up,self,100,none,enemy,0,none,enemy,0,none,0,none,0,enemy,0,1,自分の敏捷が25％upする。,attack_hit01,200,1,,,
-skill_091,ハチミツ,status,0,none,none,normal,heal_hp,self,100,none,enemy,100,none,enemy,0,protect,100,none,0,self,0,1,最大体力の50％を回復する。ダメージを50％cutする。,none,0,0,,,
+skill_091,ハチミツ,status,0,none,none,normal,heal_hp,self,100,phy_atk_up,self,100,speed_up,self,100,protect,100,none,0,self,0,3,最大体力の50％を回復する。ダメージを50％cutする。物理攻撃と物理防御が25％upする。,none,0,0,,,
 skill_092,振り回す,attack,80,none,physical,normal,poison,enemy,50,none,enemy,100,none,enemy,0,none,0,none,0,enemy,0,1,50％の確率で相手を毒にする。,attack_slash03,200,6,,,
 skill_093,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 skill_094,,,,,,,,,,,,,,,,,,,,,,,,,,,,,

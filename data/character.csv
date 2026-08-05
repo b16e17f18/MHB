@@ -1,4 +1,4 @@
-character_id,name,hp,phy_atk,phy_def,sp_atk,sp_def,speed,regen_value,cost_charge,slot,weak_fire,weak_water,weak_thunder,weak_ice,weak_dragon,element,skill_1,skill_2,skill_3,skill_4,image,transparent_color,tolerance,render_offset_x,render_offset_y,species_id,display_order,ai_type
+﻿character_id,name,hp,phy_atk,phy_def,sp_atk,sp_def,speed,regen_value,cost_charge,slot,weak_fire,weak_water,weak_thunder,weak_ice,weak_dragon,element,skill_1,skill_2,skill_3,skill_4,image,transparent_color,tolerance,render_offset_x,render_offset_y,species_id,display_order,ai_type
 character_001,ドスランポス,420,220,185,70,260,315,105,1,1,100,100,100,100,50,none,skill_001,skill_002,skill_003,skill_004,character_001.png,#ffffff,8,,,bird_wyvern,1,patient
 character_002,ドスファンゴ,450,240,200,35,245,80,35,1,1,100,100,150,50,50,none,skill_001,skill_005,skill_006,,character_002.png,#ffffff,8,,,fanged_beast,11,aggressive
 character_003,ゲリョス,470,225,280,180,190,190,70,2,1,150,100,25,100,50,none,skill_009,skill_007,skill_008,skill_011,character_003.png,#ffffff,8,,,bird_wyvern,2,patient
@@ -48,6 +48,6 @@ character_046,メラルー,250,90,70,70,70,330,105,1,1,25,25,25,25,25,none,skill
 character_047,ウカムルバス,825,390,375,240,240,120,70,2,4,150,50,100,25,50,ice,skill_001,skill_017,skill_031,skill_020,character_047.png,#ffffff,8,,,flying_wyvern,802,patient
 character_048,アルバトリオン,999,400,400,360,360,99,35,2,5,50,100,50,50,50,dragon,skill_049,skill_035,skill_020,skill_075,character_048.png,#ffffff,8,,10,elder_dragon,999,patient
 character_049,ドスイーオス,430,230,185,105,260,310,105,2,1,50,150,100,100,50,none,skill_001,skill_002,skill_003,skill_008,character_049.png,#ffffff,8,,,bird_wyvern,5,patient
-character_050,アオアシラ,460,240,240,70,190,75,70,2,1,150,50,150,100,25,none,skill_091,skill_026,skill_010,,character_050.png,#ffffff,8,,,fanged_beast,14,patient
+character_050,アオアシラ,495,200,200,70,215,75,70,2,1,150,50,150,100,25,none,skill_091,skill_026,skill_010,,character_050.png,#ffffff,8,,,fanged_beast,14,patient
 character_051,キングチャチャブー,295,295,105,105,105,295,105,1,1,25,25,25,25,25,none,skill_082,skill_092,skill_012,,character_051.png,#ffffff,8,,,unknown,132,balanced
 character_052,ウルクスス,460,240,160,70,300,200,70,2,1,150,50,100,25,25,none,skill_001,skill_020,skill_090,,character_052.png,#ffffff,8,,,fanged_beast,15,balanced
