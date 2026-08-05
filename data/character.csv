@@ -48,6 +48,6 @@ character_046,メラルー,250,90,70,70,70,330,105,1,1,25,25,25,25,25,none,skill
 character_047,ウカムルバス,825,390,375,240,240,120,70,2,4,150,50,100,25,50,ice,skill_001,skill_017,skill_031,skill_020,character_047.png,#ffffff,8,,,flying_wyvern,802,patient
 character_048,アルバトリオン,999,400,400,360,360,99,35,2,5,50,100,50,50,50,dragon,skill_049,skill_035,skill_020,skill_075,character_048.png,#ffffff,8,,10,elder_dragon,999,patient
 character_049,ドスイーオス,430,230,185,105,260,310,105,2,1,50,150,100,100,50,none,skill_001,skill_002,skill_003,skill_008,character_049.png,#ffffff,8,,,bird_wyvern,5,patient
-character_050,アオアシラ,495,200,200,70,215,75,70,2,1,150,50,150,100,25,none,skill_091,skill_026,skill_010,,character_050.png,#ffffff,8,,,fanged_beast,14,patient
+character_050,アオアシラ,495,200,200,70,215,75,70,2,1,150,50,150,100,25,none,skill_001,skill_026,skill_010,skill_091,character_050.png,#ffffff,8,,,fanged_beast,14,patient
 character_051,キングチャチャブー,295,295,105,105,105,295,105,1,1,25,25,25,25,25,none,skill_082,skill_092,skill_012,,character_051.png,#ffffff,8,,,unknown,132,balanced
 character_052,ウルクスス,460,240,160,70,300,200,70,2,1,150,50,100,25,25,none,skill_001,skill_020,skill_090,,character_052.png,#ffffff,8,,,fanged_beast,15,balanced
