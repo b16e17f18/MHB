@@ -1,4 +1,4 @@
-effect_id,name,effect_group,damage_type,damage_value,turn,can_move,target_stat
+﻿effect_id,name,effect_group,damage_type,damage_value,turn,can_move,target_stat
 phy_atk_up,物理攻撃up,buff,none,25,99,TRUE,phy_atk
 phy_def_up,物理防御up,buff,none,25,99,TRUE,phy_def
 sp_atk_up,特殊攻撃up,buff,none,25,99,TRUE,sp_atk
@@ -24,7 +24,7 @@ ice_weak_up,氷耐性down,resistance,none,25,5,TRUE,weak_ice
 ice_weak_down,氷耐性up,resistance,none,25,5,TRUE,weak_ice
 dragon_weak_up,龍耐性down,resistance,none,25,5,TRUE,weak_dragon
 dragon_weak_down,龍耐性up,resistance,none,25,5,TRUE,weak_dragon
-heal_hp,体力回復,heal,none,50,0,TRUE,hp
+heal_hp,体力回復,heal,none,50,0,TRUE,max_hp
 heal_en,EN回復,heal,none,2,0,TRUE,en
 en_down,EN減衰,energy_down,none,1,0,TRUE,en
 energy_charge_up,EN+,energy_up,none,1,3,TRUE,en
