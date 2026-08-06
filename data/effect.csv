@@ -29,5 +29,5 @@ heal_en,EN回復,heal,none,2,0,TRUE,en
 en_down,EN減衰,energy_down,none,1,0,TRUE,en
 energy_charge_up,EN+,energy_up,none,1,3,TRUE,en
 energy_charge_down,EN-,energy_down,none,1,3,TRUE,en
-regen_value_up,回復力up,buff,none,35,3,TRUE,regen_value
-regen_value_down,回復力down,debuff,none,35,3,TRUE,regen_value
+regen_value_up,回復力up,buff,regen_value,35,3,TRUE,regen_value
+regen_value_down,回復力down,debuff,regen_value,35,3,TRUE,regen_value
