@@ -24,7 +24,7 @@ ice_weak_up,氷耐性down,resistance,none,25,5,TRUE,weak_ice
 ice_weak_down,氷耐性up,resistance,none,25,5,TRUE,weak_ice
 dragon_weak_up,龍耐性down,resistance,none,25,5,TRUE,weak_dragon
 dragon_weak_down,龍耐性up,resistance,none,25,5,TRUE,weak_dragon
-heal_hp,体力回復,heal,percent_maxhp,50,0,TRUE,hp
+heal_hp,体力回復,heal,percent_maxhp,50,0,TRUE,none
 heal_en,EN回復,heal,none,2,0,TRUE,en
 en_down,EN減衰,energy_down,none,1,0,TRUE,en
 energy_charge_up,EN+,energy_up,none,1,3,TRUE,en
