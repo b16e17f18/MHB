@@ -7,7 +7,7 @@ character_005,ババコンガ,510,270,205,205,205,205,70,2,2,100,100,50,50,25,no
 character_006,ダイミョウザザミ,455,255,370,205,180,50,35,2,1,150,50,150,100,25,water,skill_015,skill_016,skill_017,,character_006.png,#ffffff,8,,,carapaceon,21,balanced
 character_007,ドスガレオス,430,230,190,230,340,170,70,1,1,25,100,100,150,50,none,skill_001,skill_003,skill_057,skill_017,character_007.png,#ffffff,8,,,piscine_wyvern,31,patient
 character_008,リオレイア,505,255,225,255,400,90,70,2,2,50,100,100,50,150,fire,skill_001,skill_004,skill_018,skill_019,character_008.png,#ffffff,8,,,flying_wyvern,51,patient
-character_009,ドドブランゴ,530,285,195,105,285,195,70,2,2,150,100,100,25,25,ice,skill_001,skill_010,skill_017,skill_020,character_009.png,#ffffff,8,,,fanged_beast,13,balanced
+character_009,ドドブランゴ,530,285,205,205,285,240,70,2,2,150,100,100,25,25,ice,skill_001,skill_095,skill_017,skill_020,character_009.png,#ffffff,8,,,fanged_beast,13,balanced
 character_010,ドスゲネポス,425,225,185,70,240,320,105,1,1,100,100,150,150,50,none,skill_001,skill_002,skill_003,skill_021,character_010.png,#ffffff,8,,,bird_wyvern,4,aggressive
 character_011,ガノトトス,545,275,220,285,355,140,70,1,2,100,50,150,50,50,water,skill_001,skill_015,skill_022,skill_026,character_011.png,#ffffff,8,,,piscine_wyvern,32,balanced
 character_012,ショウグンギザミ,520,290,290,255,195,210,70,2,2,150,50,150,100,25,water,skill_005,skill_015,skill_016,skill_023,character_012.png,#ffffff,8,,,carapaceon,22,balanced
@@ -18,14 +18,14 @@ character_016,リオレウス,600,300,225,300,225,300,70,1,2,25,50,100,50,150,fi
 character_017,イャンガルルガ,525,275,355,265,265,265,70,2,2,50,150,50,100,50,fire,skill_001,skill_007,skill_018,skill_019,character_017.png,#ffffff,8,,,bird_wyvern,6,balanced
 character_018,ティガレックス,630,330,230,230,230,230,70,2,2,25,100,150,50,100,none,skill_004,skill_010,skill_031,skill_032,character_018.png,#ffffff,8,,,flying_wyvern,56,balanced
 character_019,ナルガクルガ,490,290,215,215,320,460,105,2,2,100,50,150,50,50,none,skill_001,skill_002,skill_033,skill_034,character_019.png,#ffffff,8,,,flying_wyvern,57,patient
-character_020,ラギアクルス,700,315,275,310,255,150,70,1,2,150,100,25,100,100,thunder,skill_001,skill_005,skill_024,skill_035,character_020.png,#ffffff,8,,,leviathan,41,balanced
+character_020,ラギアクルス,700,315,275,310,255,150,70,1,2,150,100,25,100,100,thunder,skill_001,skill_005,skill_024,skill_096,character_020.png,#ffffff,8,,,leviathan,41,balanced
 character_021,ロアルドロス,480,225,190,220,280,160,105,2,1,150,50,100,100,50,water,skill_001,skill_015,skill_026,skill_088,character_021.png,#ffffff,8,,,leviathan,42,aggressive
 character_022,ウラガンキン,540,275,440,255,255,60,70,1,2,25,150,50,100,150,fire,skill_001,skill_026,skill_036,skill_037,character_022.png,#ffffff,8,,,brute_wyvern,81,balanced
 character_023,ジンオウガ,640,305,305,250,250,250,70,1,2,100,100,25,150,50,thunder,skill_056,skill_010,skill_085,skill_038,character_023.png,#ffffff,8,,,fanged_wyvern,91,balanced
 character_024,ベリオロス,540,310,240,270,270,305,35,2,2,150,100,100,25,50,ice,skill_001,skill_004,skill_039,skill_040,character_024.png,#ffffff,8,,,flying_wyvern,58,balanced
 character_025,ラージャン,555,380,300,300,300,220,70,1,2,50,100,25,150,50,thunder,skill_004,skill_024,skill_038,skill_041,character_025.png,#ffffff,8,,,fanged_beast,17,patient
 character_026,イビルジョー,770,365,260,330,220,100,0,2,2,50,100,100,50,150,dragon,skill_046,skill_010,skill_042,skill_043,character_026.png,#ffffff,8,,,brute_wyvern,82,patient
-character_027,モノブロス亜種,680,300,320,35,270,270,35,2,2,50,50,100,150,25,none,skill_001,skill_006,skill_017,,character_027.png,#ffffff,8,,,flying_wyvern,59,balanced
+character_027,モノブロス亜種,680,300,320,35,270,270,35,2,2,50,50,100,150,25,none,skill_001,skill_006,skill_017,skill_094,character_027.png,#ffffff,8,,,flying_wyvern,59,balanced
 character_028,アカムトルム,870,385,250,250,250,125,105,1,4,50,150,100,50,150,none,skill_001,skill_017,skill_026,skill_044,character_028.png,#ffffff,8,,,flying_wyvern,801,patient
 character_029,エスピナス,510,345,345,280,280,200,105,1,2,25,50,50,150,50,fire,skill_001,skill_010,skill_045,skill_046,character_029.png,#ffffff,8,,,flying_wyvern,60,balanced
 character_030,キリン,490,250,365,365,365,440,105,2,2,150,100,25,100,25,thunder,skill_001,skill_035,skill_047,skill_048,character_030.png,#ffffff,8,,,elder_dragon,201,patient
