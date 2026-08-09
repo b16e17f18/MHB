@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>MonsterHunterBreeder</title>
-    <link rel="stylesheet" href="./styles.css?v=20260729-rank-confirm" />
+    <link rel="stylesheet" href="./styles.css?v=20260809-lab-swap-label" />
   </head>
   <body>
     <main class="app-shell">
@@ -25,9 +25,16 @@
             <button id="travelBusinessButton" class="story-location-button travel-business-button" type="button" aria-label="モンスター取引所"></button>
             <button id="travelBusiness2Button" class="story-location-button travel-business2-button" type="button" aria-label="工房"></button>
             <button id="travelArenaButton" class="story-location-button travel-arena-button" type="button" aria-label="Arena"></button>
+            <button id="travelSecondMapButton" class="story-location-button travel-second-map-button" type="button" aria-label="移動画面2へ移動"></button>
             <button id="travelMainButton" class="story-location-button travel-main-button" type="button" aria-label="メイン画面"></button>
           </div>
           <button id="travelBackButton" class="small-button story-back-button" type="button">タイトルへ戻る</button>
+
+          <div id="storyTravel2Stage" class="story-location-stage is-hidden">
+            <img class="story-location-image" src="./assets/移動画面2.png" alt="移動画面2" />
+            <button id="travel2BackTunnelButton" class="story-location-button travel2-back-tunnel-button" type="button" aria-label="移動画面へ移動"></button>
+            <button id="travel2LabButton" class="story-location-button travel2-lab-button" type="button" aria-label="LABへ移動"></button>
+          </div>
 
           <div id="storyMainStage" class="story-main-stage">
             <img class="story-main-image" src="./assets/メイン画面.png" alt="ストーリーモード メイン画面" />
@@ -93,6 +100,31 @@
                 <button id="arenaConfirmCloseButton" class="small-button arena-confirm-button" type="button">&#x9589;&#x3058;&#x308B;</button>
               </div>
             </section>
+          </div>
+
+          <div id="labScreen" class="story-location-stage story-room-stage is-hidden">
+            <img class="story-location-image" src="./assets/LAB.png" alt="LAB" />
+            <button id="labBackButton" class="small-button story-room-back-button" type="button">移動画面2へ戻る</button>
+            <button id="labEntranceButton" class="story-location-button lab-entrance-button" type="button" aria-label="LAB内へ移動"></button>
+          </div>
+
+          <div id="labInteriorScreen" class="story-location-stage story-room-stage is-hidden">
+            <img class="story-location-image" src="./assets/LAB内.png" alt="LAB内" />
+            <section id="labInteriorPanel" class="lab-interior-panel" aria-label="LAB内">
+              <div id="labMembersList" class="lab-members-list" aria-label="Members"></div>
+              <div id="labStorageList" class="lab-storage-list" aria-label="LAB"></div>
+            </section>
+            <section id="labActionPanel" class="lab-action-panel" aria-label="LAB編成操作">
+              <button id="labSwapButton" class="primary-button lab-swap-button" type="button" disabled>入替</button>
+              <button id="labRemoveButton" class="small-button lab-remove-button" type="button" disabled>外す</button>
+              <button id="labLeadButton" class="small-button lab-lead-button" type="button" disabled>先頭と入替</button>
+              <div id="labEditMessage" class="lab-edit-message" aria-live="polite"></div>
+              <div id="labUnsavedNotice" class="lab-unsaved-notice is-hidden" aria-live="polite">変更はまだ保存されていません。My Houseでセーブしてください。</div>
+            </section>
+            <section id="labDetailOverlay" class="lab-detail-overlay is-hidden" role="dialog" aria-modal="true" aria-labelledby="labDetailTitle">
+              <div id="labDetailPanel" class="lab-detail-panel"></div>
+            </section>
+            <button id="labInteriorBackButton" class="small-button story-room-back-button" type="button">エントランスに戻る</button>
           </div>
 
           <div id="myHouseScreen" class="story-location-stage story-room-stage is-hidden">
@@ -244,7 +276,7 @@
       </div>
     </main>
 
-    <script src="./data-inline.js?v=20260709-utf8-clean"></script>
-    <script src="./app.js?v=20260729-rank-confirm"></script>
+    <script src="./data-inline.js?v=20260809-equipment-bonus-columns"></script>
+    <script src="./app.js?v=20260809-equipment-bonus-columns"></script>
   </body>
 </html>

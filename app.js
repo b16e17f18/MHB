@@ -177,6 +177,7 @@ const BATTLE_ANIMATION_SCALE = 1.52;
 const TEAM_SLOT_LIMIT = 5;
 const START_ENERGY = 1;
 const BATTLE_SAVE_ENERGY_ENABLED = false;
+const LAB_MEMBER_DISPLAY_LIMIT = TEAM_SLOT_LIMIT;
 const ENEMY_AI_CONFIG = {
   DEBUG: false,
   AVERAGE_DAMAGE_VARIANCE: 0.975,
@@ -222,7 +223,7 @@ const STAT_LABELS = {
   regen_value: "回復力",
 };
 
-const STAT_MOD_KEYS = ["phy_atk", "phy_def", "sp_atk", "sp_def", "speed"];
+const STAT_MOD_KEYS = ["phy_atk", "phy_def", "sp_atk", "sp_def", "speed", "regen_value"];
 
 const GENERATED_SKILLS = {
   basic_strike: {
@@ -417,6 +418,16 @@ const state = {
   myParty: {
     selectedOwnedId: null,
   },
+  labInterior: {
+    selectedMemberSlotIndex: null,
+    selectedMemberOwnedId: null,
+    selectedLabOwnedId: null,
+    selectedLabOwnedIds: [],
+    detailOwnedId: null,
+    message: "",
+    messageIsError: false,
+  },
+  hasUnsavedChanges: false,
   selectedIds: [],
   selectedEnemyIds: [],
   setupSide: "player",
@@ -458,6 +469,7 @@ const state = {
     pendingRankBattleId: null,
     currentRankBattleId: null,
     currentArenaBattleId: null,
+    lastDefeatedEnemyId: null,
     selectedArenaEntranceId: null,
     selectedArenaBattleId: null,
     clearedRankBattleIds: new Set(),
@@ -467,6 +479,7 @@ const state = {
 
 const els = {};
 let battleMessageTimer = null;
+let gameOverReturnTimer = null;
 let gameDataPromise = null;
 let saveStatusTimer = null;
 let shopMessageTimer = null;
@@ -480,6 +493,8 @@ function createExchangeState() {
     completed: false,
     cancelled: false,
     storyDecision: null,
+    storyLabCapture: null,
+    storyLabCaptureCompleted: false,
   };
 }
 
@@ -495,6 +510,7 @@ function createSaveData() {
     money: INITIAL_MONEY,
     ownedBooks: new Set(),
     ownedMonsters: [],
+    partyOwnedIds: [],
     ownedEquipment: new Map(),
     shopStock: new Map(),
     purchasedShopEntries: new Set(),
@@ -525,11 +541,15 @@ document.addEventListener("DOMContentLoaded", () => {
     battleModeButton: document.querySelector("#battleModeButton"),
     titleMessage: document.querySelector("#titleMessage"),
     storyTravelStage: document.querySelector("#storyTravelStage"),
+    storyTravel2Stage: document.querySelector("#storyTravel2Stage"),
     travelBackButton: document.querySelector("#travelBackButton"),
     travelMyHouseButton: document.querySelector("#travelMyHouseButton"),
     travelBusinessButton: document.querySelector("#travelBusinessButton"),
     travelBusiness2Button: document.querySelector("#travelBusiness2Button"),
     travelArenaButton: document.querySelector("#travelArenaButton"),
+    travelSecondMapButton: document.querySelector("#travelSecondMapButton"),
+    travel2BackTunnelButton: document.querySelector("#travel2BackTunnelButton"),
+    travel2LabButton: document.querySelector("#travel2LabButton"),
     travelMainButton: document.querySelector("#travelMainButton"),
     storyBackButton: document.querySelector("#storyBackButton"),
     storyMainStage: document.querySelector("#storyMainStage"),
@@ -560,6 +580,22 @@ document.addEventListener("DOMContentLoaded", () => {
     arenaConfirmContent: document.querySelector("#arenaConfirmContent"),
     arenaChallengeButton: document.querySelector("#arenaChallengeButton"),
     arenaConfirmCloseButton: document.querySelector("#arenaConfirmCloseButton"),
+    labScreen: document.querySelector("#labScreen"),
+    labBackButton: document.querySelector("#labBackButton"),
+    labEntranceButton: document.querySelector("#labEntranceButton"),
+    labInteriorScreen: document.querySelector("#labInteriorScreen"),
+    labInteriorPanel: document.querySelector("#labInteriorPanel"),
+    labMembersList: document.querySelector("#labMembersList"),
+    labStorageList: document.querySelector("#labStorageList"),
+    labActionPanel: document.querySelector("#labActionPanel"),
+    labSwapButton: document.querySelector("#labSwapButton"),
+    labRemoveButton: document.querySelector("#labRemoveButton"),
+    labLeadButton: document.querySelector("#labLeadButton"),
+    labEditMessage: document.querySelector("#labEditMessage"),
+    labUnsavedNotice: document.querySelector("#labUnsavedNotice"),
+    labDetailOverlay: document.querySelector("#labDetailOverlay"),
+    labDetailPanel: document.querySelector("#labDetailPanel"),
+    labInteriorBackButton: document.querySelector("#labInteriorBackButton"),
     businessShopPanel: document.querySelector("#businessShopPanel"),
     businessShopBackButton: document.querySelector("#businessShopBackButton"),
     businessShopTitle: document.querySelector("#businessShopTitle"),
@@ -641,6 +677,9 @@ function bindEvents() {
   els.travelBusinessButton?.addEventListener("click", showBusinessShop);
   els.travelBusiness2Button?.addEventListener("click", showBusiness2);
   els.travelArenaButton?.addEventListener("click", showArena);
+  els.travelSecondMapButton?.addEventListener("click", showStoryTravel2);
+  els.travel2BackTunnelButton?.addEventListener("click", showStoryTravel);
+  els.travel2LabButton?.addEventListener("click", showLab);
   els.travelMainButton?.addEventListener("click", showStoryMain);
   els.storyBackButton.addEventListener("click", showStoryTravel);
   els.storyMyPartyButton?.addEventListener("click", showMyParty);
@@ -656,6 +695,16 @@ function bindEvents() {
   els.arenaHotspots?.addEventListener("click", handleArenaHotspotClick);
   els.arenaChallengeButton?.addEventListener("click", handleArenaChallengeClick);
   els.arenaConfirmCloseButton?.addEventListener("click", hideArenaBattleConfirm);
+  els.labBackButton?.addEventListener("click", showStoryTravel2);
+  els.labEntranceButton?.addEventListener("click", showLabInterior);
+  els.labMembersList?.addEventListener("click", handleLabMemberSelect);
+  els.labStorageList?.addEventListener("click", handleLabStorageSelect);
+  els.labSwapButton?.addEventListener("click", handleLabSwapClick);
+  els.labRemoveButton?.addEventListener("click", handleLabRemoveClick);
+  els.labLeadButton?.addEventListener("click", handleLabLeadClick);
+  els.labDetailOverlay?.addEventListener("click", handleLabDetailOverlayClick);
+  els.labInteriorBackButton?.addEventListener("click", showLab);
+  document.addEventListener("keydown", handleLabDetailKeydown);
   els.myHouseScreenBackButton?.addEventListener("click", hideMyHouse);
   els.myHouseSaveLoadButton?.addEventListener("click", () => showMyHouseSection("save"));
   els.myHouseBookButton?.addEventListener("click", () => showMyHouseSection("books"));
@@ -739,6 +788,7 @@ function bindEvents() {
 }
 
 function showTitleView() {
+  clearGameOverReturnTimer();
   state.story.active = false;
   state.shop.open = false;
   hideBusinessShop({ restoreTravel: false });
@@ -813,6 +863,7 @@ async function startStoryMode() {
 
 function setStoryStage(stage) {
   els.storyTravelStage?.classList.toggle("is-hidden", stage !== "travel");
+  els.storyTravel2Stage?.classList.toggle("is-hidden", stage !== "travel2");
   els.travelBackButton?.classList.toggle("is-hidden", stage !== "travel");
   els.storyMainStage?.classList.toggle("is-hidden", stage !== "main");
   els.storyBackButton?.classList.toggle("is-hidden", stage !== "main");
@@ -820,6 +871,8 @@ function setStoryStage(stage) {
   els.businessScreen?.classList.toggle("is-hidden", stage !== "business");
   els.business2Screen?.classList.toggle("is-hidden", stage !== "business2");
   els.arenaScreen?.classList.toggle("is-hidden", stage !== "arena");
+  els.labScreen?.classList.toggle("is-hidden", stage !== "lab");
+  els.labInteriorScreen?.classList.toggle("is-hidden", stage !== "labInterior");
   els.myHouseScreen?.classList.toggle("is-hidden", stage !== "myHouse");
 }
 
@@ -849,7 +902,614 @@ function showStoryTravel({ focus = true } = {}) {
   if (focus) els.travelBackButton?.focus({ preventScroll: true });
 }
 
-function showStoryMain({ focus = true } = {}) {
+function showStoryTravel2({ focus = true } = {}) {
+  state.story.active = false;
+  state.shop.open = false;
+  state.shop.confirmEntryId = null;
+  state.shop.exchangeEntryId = null;
+  state.shop.offerOwnedIds = [];
+  clearStoryWalkTimer();
+  hideRankBattleConfirm();
+  els.businessShopPanel?.classList.add("is-hidden");
+  els.myHousePanel?.classList.add("is-hidden");
+  els.myPartyPanel?.classList.add("is-hidden");
+  hideArenaBattleConfirm({ clearSelection: true, focus: false });
+  if (els.arenaMessage) els.arenaMessage.textContent = "";
+  showStoryFrame();
+  setStoryStage("travel2");
+  if (focus) els.travel2BackTunnelButton?.focus({ preventScroll: true });
+}
+
+function showLab({ focus = true } = {}) {
+  state.story.active = false;
+  state.shop.open = false;
+  state.shop.confirmEntryId = null;
+  state.shop.exchangeEntryId = null;
+  state.shop.offerOwnedIds = [];
+  clearStoryWalkTimer();
+  hideRankBattleConfirm();
+  els.businessShopPanel?.classList.add("is-hidden");
+  els.myHousePanel?.classList.add("is-hidden");
+  els.myPartyPanel?.classList.add("is-hidden");
+  hideArenaBattleConfirm({ clearSelection: true, focus: false });
+  if (els.arenaMessage) els.arenaMessage.textContent = "";
+  showStoryFrame();
+  closeLabOwnedMonsterDetail({ restoreFocus: false });
+  setStoryStage("lab");
+  if (focus) els.labBackButton?.focus({ preventScroll: true });
+}
+
+async function showLabInterior({ focus = true } = {}) {
+  if (gameDataPromise) {
+    await gameDataPromise;
+  }
+
+  state.story.active = false;
+  state.shop.open = false;
+  initializeSaveDataParty({ persist: false });
+  clearStoryWalkTimer();
+  hideRankBattleConfirm();
+  els.businessShopPanel?.classList.add("is-hidden");
+  els.myHousePanel?.classList.add("is-hidden");
+  els.myPartyPanel?.classList.add("is-hidden");
+  hideArenaBattleConfirm({ clearSelection: true, focus: false });
+  showStoryFrame();
+  setStoryStage("labInterior");
+  renderLabInterior();
+  if (focus) els.labInteriorBackButton?.focus({ preventScroll: true });
+}
+
+function renderLabInterior() {
+  if (!els.labMembersList || !els.labStorageList) return;
+
+  const entries = myHouseMonsterEntries();
+  const entryByOwnedId = new Map(entries.map((entry) => [entry.ownedId, entry]));
+  const partyOwnedIds = currentPartyOwnedIds();
+  const memberSlots = Array.from({ length: LAB_MEMBER_DISPLAY_LIMIT }, (_, index) => {
+    const ownedId = partyOwnedIds[index] || "";
+    return {
+      index,
+      ownedId,
+      entry: ownedId ? entryByOwnedId.get(ownedId) ?? null : null,
+    };
+  });
+  const memberOwnedIds = new Set(partyOwnedIds);
+  const labEntries = entries.filter((entry) => !memberOwnedIds.has(entry.ownedId));
+  const selection = labInteriorRenderSelection(memberSlots, labEntries);
+
+  els.labMembersList.innerHTML = memberSlots.map((slot) => renderLabMemberSlot(slot, selection)).join("");
+
+  els.labStorageList.classList.toggle("is-single-item", labEntries.length === 1);
+  els.labStorageList.innerHTML = labEntries.length
+    ? labEntries.map((entry) => renderLabStorageCard(entry, selection)).join("")
+    : `<div class="lab-empty lab-storage-empty">LABに保管中のモンスターはいません。</div>`;
+
+  renderLabActionPanel(selection);
+
+  if (state.labInterior.detailOwnedId) {
+    renderLabOwnedMonsterDetail();
+  }
+}
+
+function labInteriorRenderSelection(memberSlots, labEntries) {
+  const selectedSlotIndex = Number(state.labInterior.selectedMemberSlotIndex);
+  const hasSelectedSlot =
+    Number.isInteger(selectedSlotIndex) &&
+    selectedSlotIndex >= 0 &&
+    selectedSlotIndex < LAB_MEMBER_DISPLAY_LIMIT;
+  const selectedMemberOwnedId = safeText(state.labInterior.selectedMemberOwnedId);
+  const selectedMemberSlot = selectedMemberOwnedId
+    ? memberSlots.find((slot) => slot.ownedId === selectedMemberOwnedId) ?? null
+    : hasSelectedSlot
+      ? memberSlots.find((slot) => slot.index === selectedSlotIndex && !slot.entry) ?? null
+      : null;
+  const selectedLabOwnedIds = normalizeLabOwnedIdSelection(
+    state.labInterior.selectedLabOwnedIds,
+    state.labInterior.selectedLabOwnedId,
+  ).filter((ownedId) => labEntries.some((entry) => entry.ownedId === ownedId));
+
+  return {
+    selectedMemberSlotIndex: selectedMemberSlot?.index ?? null,
+    selectedMemberOwnedId: selectedMemberSlot?.entry ? selectedMemberSlot.ownedId : null,
+    selectedLabOwnedId: selectedLabOwnedIds[0] ?? null,
+    selectedLabOwnedIds,
+  };
+}
+
+function normalizeLabOwnedIdSelection(ownedIds, fallbackOwnedId = null) {
+  const rawIds = Array.isArray(ownedIds) && ownedIds.length ? ownedIds : [fallbackOwnedId];
+  const normalized = [];
+  for (const ownedId of rawIds) {
+    const id = safeText(ownedId);
+    if (!id || normalized.includes(id)) continue;
+    normalized.push(id);
+  }
+  return normalized;
+}
+
+function renderLabMemberSlot(slot, selection) {
+  if (!slot.entry) {
+    const selected =
+      selection.selectedMemberSlotIndex === slot.index &&
+      !selection.selectedMemberOwnedId;
+    return `
+      <button class="lab-member-empty-slot ${selected ? "selected is-selected" : ""}" type="button" data-lab-member-slot-index="${slot.index}">
+        <span>Member ${slot.index + 1}</span>
+        <strong>空き枠</strong>
+      </button>
+    `;
+  }
+
+  return renderLabMemberCard(slot.entry, slot.index, selection);
+}
+
+function renderLabMemberCard(entry, slotIndex, selection) {
+  return renderLabMonsterCard(entry, {
+    area: "member",
+    selected:
+      slotIndex === selection.selectedMemberSlotIndex &&
+      entry.ownedId === selection.selectedMemberOwnedId,
+    dataAttribute: "data-lab-member-owned-id",
+    extraAttributes: `data-lab-member-slot-index="${slotIndex}"`,
+    showStats: true,
+  });
+}
+
+function renderLabStorageCard(entry, selection) {
+  return renderLabMonsterCard(entry, {
+    area: "storage",
+    selected:
+      Array.isArray(selection.selectedLabOwnedIds) && selection.selectedLabOwnedIds.includes(entry.ownedId),
+    dataAttribute: "data-lab-storage-owned-id",
+    showStats: false,
+  });
+}
+
+function renderLabMonsterCard(entry, options) {
+  const character = entry.character;
+  const equippedAccessory = equippedAccessoryForOwnedMonster(entry.ownedMonster, character);
+  const displayedCharacter = applyEquipmentBonusesToCharacter(character, equippedAccessory);
+  const selectedClass = options.selected ? "selected is-selected" : "";
+  return `
+    <div class="lab-monster-card-shell lab-${escapeHtml(options.area)}-card-shell">
+      <button class="lab-monster-card lab-${escapeHtml(options.area)}-card ${selectedClass}" type="button" ${options.dataAttribute}="${escapeHtml(entry.ownedId)}" ${options.extraAttributes || ""}>
+        <span class="lab-monster-image-frame">
+          <img class="lab-monster-image" src="${escapeHtml(character.imageSrc)}" alt="${escapeHtml(character.name)}" />
+        </span>
+        <span class="lab-monster-info">
+          <strong class="lab-monster-name">${escapeHtml(character.name)}</strong>
+          <span class="lab-monster-meta">${elementPill(character.element)} <span>slot ${slotMarks(character.slot)}</span></span>
+          ${options.showStats ? `
+            <span class="lab-monster-stats">
+              ${renderLabStat("HP", displayedCharacter.hp)}
+              ${renderLabStat("物攻", displayedCharacter.phy_atk)}
+              ${renderLabStat("物防", displayedCharacter.phy_def)}
+              ${renderLabStat("特攻", displayedCharacter.sp_atk)}
+              ${renderLabStat("特防", displayedCharacter.sp_def)}
+              ${renderLabStat("敏捷", displayedCharacter.speed)}
+            </span>
+          ` : ""}
+        </span>
+      </button>
+      <button class="detail-button lab-card-detail-button" type="button" data-lab-detail-owned-id="${escapeHtml(entry.ownedId)}">詳細</button>
+    </div>
+  `;
+}
+
+function handleLabCardDetailClick(event, container) {
+  const detailButton = event.target.closest("[data-lab-detail-owned-id]");
+  if (!detailButton || !container?.contains(detailButton)) return false;
+  event.stopPropagation();
+  openLabOwnedMonsterDetail(detailButton.dataset.labDetailOwnedId);
+  return true;
+}
+
+function clearLabInteriorSelections() {
+  state.labInterior.selectedMemberSlotIndex = null;
+  state.labInterior.selectedMemberOwnedId = null;
+  state.labInterior.selectedLabOwnedId = null;
+  state.labInterior.selectedLabOwnedIds = [];
+}
+
+function renderLabActionPanel(selection = null) {
+  const renderSelection = selection ?? {
+    selectedMemberSlotIndex: state.labInterior.selectedMemberSlotIndex,
+    selectedMemberOwnedId: state.labInterior.selectedMemberOwnedId,
+    selectedLabOwnedId: state.labInterior.selectedLabOwnedId,
+    selectedLabOwnedIds: state.labInterior.selectedLabOwnedIds,
+  };
+  const selectedLabOwnedIds = normalizeLabOwnedIdSelection(
+    renderSelection.selectedLabOwnedIds,
+    renderSelection.selectedLabOwnedId,
+  );
+  const selectedSlotIndex = Number(renderSelection.selectedMemberSlotIndex);
+  const hasMemberSelection =
+    Number.isInteger(selectedSlotIndex) &&
+    selectedSlotIndex >= 0 &&
+    selectedSlotIndex < LAB_MEMBER_DISPLAY_LIMIT;
+  const hasLabSelection = selectedLabOwnedIds.length > 0;
+
+  if (els.labSwapButton) {
+    els.labSwapButton.disabled = !renderSelection.selectedMemberOwnedId || !hasLabSelection;
+    els.labSwapButton.textContent = "入替";
+  }
+
+  if (els.labRemoveButton) {
+    els.labRemoveButton.disabled = !renderSelection.selectedMemberOwnedId;
+  }
+
+  if (els.labLeadButton) {
+    const partyIds = currentPartyOwnedIds();
+    const selectedMemberIndex = renderSelection.selectedMemberOwnedId
+      ? partyIds.indexOf(renderSelection.selectedMemberOwnedId)
+      : -1;
+    els.labLeadButton.disabled = selectedMemberIndex <= 0;
+  }
+
+  if (els.labEditMessage) {
+    els.labEditMessage.textContent = state.labInterior.message || "";
+    els.labEditMessage.classList.toggle("is-error", Boolean(state.labInterior.messageIsError));
+  }
+
+  renderUnsavedChangesNotice();
+}
+
+function renderLabStat(label, value) {
+  return `<span class="lab-stat"><span>${escapeHtml(label)}</span><strong>${escapeHtml(value)}</strong></span>`;
+}
+
+function handleLabMemberSelect(event) {
+  if (handleLabCardDetailClick(event, els.labMembersList)) return;
+  const button = event.target.closest("[data-lab-member-owned-id], [data-lab-member-slot-index]");
+  if (!button || !els.labMembersList?.contains(button)) return;
+  const slotIndex = button.hasAttribute("data-lab-member-slot-index")
+    ? Number(button.dataset.labMemberSlotIndex)
+    : null;
+  state.labInterior.selectedMemberSlotIndex =
+    Number.isInteger(slotIndex) && slotIndex >= 0 ? slotIndex : null;
+  state.labInterior.selectedMemberOwnedId = button.dataset.labMemberOwnedId || null;
+  setLabEditMessage("");
+  if (normalizeLabOwnedIdSelection(state.labInterior.selectedLabOwnedIds, state.labInterior.selectedLabOwnedId).length) {
+    const result = applyLabPartyEdit();
+    setLabEditMessage(result.message, { isError: !result.ok });
+  }
+  renderLabInterior();
+}
+
+function handleLabStorageSelect(event) {
+  if (handleLabCardDetailClick(event, els.labStorageList)) return;
+  const button = event.target.closest("[data-lab-storage-owned-id]");
+  if (!button || !els.labStorageList?.contains(button)) return;
+  const ownedId = safeText(button.dataset.labStorageOwnedId);
+  const selectedLabOwnedIds = normalizeLabOwnedIdSelection(
+    state.labInterior.selectedLabOwnedIds,
+    state.labInterior.selectedLabOwnedId,
+  );
+  const existingIndex = selectedLabOwnedIds.indexOf(ownedId);
+  if (existingIndex >= 0) {
+    selectedLabOwnedIds.splice(existingIndex, 1);
+  } else if (ownedId) {
+    selectedLabOwnedIds.push(ownedId);
+  }
+  state.labInterior.selectedLabOwnedIds = selectedLabOwnedIds;
+  state.labInterior.selectedLabOwnedId = selectedLabOwnedIds.at(-1) ?? null;
+  setLabEditMessage("");
+  renderLabInterior();
+}
+
+function handleLabSwapClick() {
+  const result = applyLabPartyEdit();
+  setLabEditMessage(result.message, { isError: !result.ok });
+  renderLabInterior();
+}
+
+function handleLabRemoveClick() {
+  const result = removeSelectedLabMemberFromParty();
+  setLabEditMessage(result.message, { isError: !result.ok });
+  renderLabInterior();
+}
+
+function handleLabLeadClick() {
+  const result = swapPartyMemberWithLead(state.labInterior.selectedMemberOwnedId);
+  setLabEditMessage(result.message, { isError: !result.ok });
+  renderLabInterior();
+}
+
+function applyLabPartyEdit() {
+  const selectedSlotIndex = Number(state.labInterior.selectedMemberSlotIndex);
+  const selectedLabOwnedIds = normalizeLabOwnedIdSelection(
+    state.labInterior.selectedLabOwnedIds,
+    state.labInterior.selectedLabOwnedId,
+  );
+  const selectedMemberOwnedId = safeText(state.labInterior.selectedMemberOwnedId);
+  const currentPartyIds = currentPartyOwnedIds();
+
+  if (
+    !Number.isInteger(selectedSlotIndex) ||
+    selectedSlotIndex < 0 ||
+    selectedSlotIndex >= LAB_MEMBER_DISPLAY_LIMIT
+  ) {
+    return { ok: false, message: "Membersの枠を選択してください" };
+  }
+
+  if (!selectedLabOwnedIds.length) {
+    return { ok: false, message: "LAB側のモンスターを選択してください" };
+  }
+
+  const nextPartyOwnedIds = [...currentPartyIds];
+  const labMonsters = selectedLabOwnedIds.map((ownedId) => ownedMonsterByOwnedId(ownedId));
+  if (labMonsters.some((monster, index) => !monster || currentPartyIds.includes(selectedLabOwnedIds[index]))) {
+    return { ok: false, message: "LAB側のモンスターを選択してください" };
+  }
+  const labCharacters = labMonsters.map((monster) => state.characterMap.get(monster.characterId));
+  if (labCharacters.some((character) => !character)) {
+    return { ok: false, message: "選択したモンスターのデータが見つかりません" };
+  }
+  const labNames = labCharacters.map((character) => character.name).join("、");
+
+  let message = `${labNames}をMembersに編成しました`;
+  if (selectedMemberOwnedId) {
+    const memberIndex = nextPartyOwnedIds.indexOf(selectedMemberOwnedId);
+    if (memberIndex < 0) {
+      return { ok: false, message: "Members側のモンスターを選択してください" };
+    }
+    const memberMonster = ownedMonsterByOwnedId(selectedMemberOwnedId);
+    const memberCharacter = state.characterMap.get(memberMonster?.characterId);
+    nextPartyOwnedIds.splice(memberIndex, 1, ...selectedLabOwnedIds);
+    message = `${memberCharacter?.name || "モンスター"}と${labNames}を入れ替えました`;
+  } else {
+    if (nextPartyOwnedIds[selectedSlotIndex]) {
+      return { ok: false, message: "空き枠を選択してください" };
+    }
+    if (nextPartyOwnedIds.length + selectedLabOwnedIds.length > LAB_MEMBER_DISPLAY_LIMIT) {
+      return { ok: false, message: "Membersは5枠までです" };
+    }
+    nextPartyOwnedIds.splice(Math.min(selectedSlotIndex, nextPartyOwnedIds.length), 0, ...selectedLabOwnedIds);
+  }
+
+  if (!nextPartyOwnedIds.length) {
+    return { ok: false, message: "Membersを0体にはできません" };
+  }
+
+  if (new Set(nextPartyOwnedIds).size !== nextPartyOwnedIds.length) {
+    return { ok: false, message: "同じ個体を複数枠へ配置できません" };
+  }
+
+  if (nextPartyOwnedIds.length > LAB_MEMBER_DISPLAY_LIMIT) {
+    return { ok: false, message: "Membersは5枠までです" };
+  }
+
+  if (partySlotTotalForOwnedIds(nextPartyOwnedIds) > TEAM_SLOT_LIMIT) {
+    return { ok: false, message: "編成可能なslot上限を超えています" };
+  }
+
+  state.saveData.partyOwnedIds = nextPartyOwnedIds;
+  syncOwnedMonsterStorageFromParty();
+  syncSelectedIdsFromOwnedMonsters();
+  markUnsavedChanges();
+  clearLabInteriorSelections();
+  closeLabOwnedMonsterDetail({ restoreFocus: false });
+  if (els.myHousePanel && !els.myHousePanel.classList.contains("is-hidden")) {
+    ensureMyHouseSelection();
+    renderMyHouse();
+  }
+  if (els.myPartyPanel && !els.myPartyPanel.classList.contains("is-hidden")) {
+    ensureMyPartySelection();
+    renderMyParty();
+  }
+
+  return { ok: true, message };
+}
+
+function removeSelectedLabMemberFromParty() {
+  const selectedMemberOwnedId = safeText(state.labInterior.selectedMemberOwnedId);
+  const currentPartyIds = currentPartyOwnedIds();
+
+  if (!selectedMemberOwnedId || !currentPartyIds.includes(selectedMemberOwnedId)) {
+    return { ok: false, message: "外すMembersを選択してください" };
+  }
+
+  if (currentPartyIds.length <= 1) {
+    return { ok: false, message: "Membersを0体にはできません" };
+  }
+
+  const memberMonster = ownedMonsterByOwnedId(selectedMemberOwnedId);
+  const memberCharacter = state.characterMap.get(memberMonster?.characterId);
+  state.saveData.partyOwnedIds = currentPartyIds.filter((ownedId) => ownedId !== selectedMemberOwnedId);
+  syncOwnedMonsterStorageFromParty();
+  syncSelectedIdsFromOwnedMonsters();
+  markUnsavedChanges();
+  clearLabInteriorSelections();
+  closeLabOwnedMonsterDetail({ restoreFocus: false });
+  if (els.myHousePanel && !els.myHousePanel.classList.contains("is-hidden")) {
+    ensureMyHouseSelection();
+    renderMyHouse();
+  }
+  if (els.myPartyPanel && !els.myPartyPanel.classList.contains("is-hidden")) {
+    ensureMyPartySelection();
+    renderMyParty();
+  }
+
+  return { ok: true, message: `${memberCharacter?.name || "モンスター"}をLABへ送りました` };
+}
+
+function setLabEditMessage(message, { isError = false } = {}) {
+  state.labInterior.message = message || "";
+  state.labInterior.messageIsError = Boolean(isError);
+}
+
+function openLabOwnedMonsterDetail(ownedId) {
+  const entry = labOwnedMonsterEntryByOwnedId(ownedId);
+  if (!entry) return;
+  state.labInterior.detailOwnedId = entry.ownedId;
+  renderLabOwnedMonsterDetail();
+  els.labDetailOverlay?.classList.remove("is-hidden");
+  els.labDetailPanel?.querySelector("[data-lab-detail-close]")?.focus({ preventScroll: true });
+}
+
+function closeLabOwnedMonsterDetail({ restoreFocus = true } = {}) {
+  const previousOwnedId = state.labInterior.detailOwnedId;
+  state.labInterior.detailOwnedId = null;
+  els.labDetailOverlay?.classList.add("is-hidden");
+  if (els.labDetailPanel) {
+    els.labDetailPanel.innerHTML = "";
+  }
+  if (restoreFocus && previousOwnedId) {
+    labCardButtonByOwnedId(previousOwnedId)?.focus({ preventScroll: true });
+  }
+}
+
+function handleLabDetailOverlayClick(event) {
+  if (event.target === els.labDetailOverlay || event.target.closest("[data-lab-detail-close]")) {
+    closeLabOwnedMonsterDetail();
+  }
+}
+
+function handleLabDetailKeydown(event) {
+  if (event.key !== "Escape") return;
+  if (!state.labInterior.detailOwnedId || els.labDetailOverlay?.classList.contains("is-hidden")) return;
+  event.preventDefault();
+  closeLabOwnedMonsterDetail();
+}
+
+function labOwnedMonsterEntryByOwnedId(ownedId) {
+  const id = safeText(ownedId);
+  if (!id) return null;
+  return myHouseMonsterEntries().find((entry) => entry.ownedId === id) ?? null;
+}
+
+function labCardButtonByOwnedId(ownedId) {
+  const id = safeText(ownedId);
+  const escapedOwnedId = window.CSS?.escape ? window.CSS.escape(id) : id.replace(/"/g, '\\"');
+  return (
+    els.labMembersList?.querySelector(`[data-lab-member-owned-id="${escapedOwnedId}"]`) ||
+    els.labStorageList?.querySelector(`[data-lab-storage-owned-id="${escapedOwnedId}"]`) ||
+    null
+  );
+}
+
+function renderLabOwnedMonsterDetail() {
+  if (!els.labDetailPanel) return;
+  const entry = labOwnedMonsterEntryByOwnedId(state.labInterior.detailOwnedId);
+  if (!entry) {
+    els.labDetailOverlay?.classList.add("is-hidden");
+    els.labDetailPanel.innerHTML = "";
+    return;
+  }
+  els.labDetailPanel.innerHTML = renderLabOwnedMonsterDetailContent(entry);
+}
+
+function renderLabOwnedMonsterDetailContent(entry) {
+  const character = entry.character;
+  const ownedMonster = entry.ownedMonster;
+  const equippedAccessory = equippedAccessoryForOwnedMonster(ownedMonster, character);
+  const displayedCharacter = applyEquipmentBonusesToCharacter(character, equippedAccessory);
+  const storageLabel = labStorageLabel(ownedMonster);
+  return `
+    <div class="lab-detail-header">
+      <div>
+        <div id="labDetailTitle" class="detail-title">${escapeHtml(character.name || "－")}</div>
+        <div class="detail-subtitle">${characterSubtitle(character)}</div>
+      </div>
+      <button class="small-button lab-detail-close-button" type="button" data-lab-detail-close>閉じる</button>
+    </div>
+    <div class="lab-detail-content">
+      <div class="detail-profile-column">
+        <div class="detail-image-frame lab-detail-image-frame">
+          <img class="detail-image" src="${escapeHtml(character.imageSrc)}" alt="${escapeHtml(character.name || "モンスター")}" />
+        </div>
+        <div class="detail-summary lab-detail-summary">
+          ${renderLabDetailRow("個体ID", entry.ownedId)}
+          ${renderLabDetailRow("属性", elementPill(character.element), { html: true })}
+          ${renderLabDetailRow("種族", speciesLabel(character.species_id) || "－")}
+          ${renderLabDetailRow("rank", characterRankLabel(character))}
+          ${renderLabDetailRow("slot", slotMarks(character.slot), { html: true })}
+          ${renderLabDetailRow("EN回復", energyBadge(displayedCharacter.energy_charge), { html: true })}
+          ${renderLabDetailRow("保管場所", storageLabel)}
+        </div>
+        ${renderLabAccessorySummary(equippedAccessory)}
+      </div>
+      <div class="detail-stats lab-detail-stats">
+        ${renderLabDetailStat("HP", "hp", character.hp, displayedCharacter.hp)}
+        ${renderLabDetailStat("物理攻撃", "phy_atk", character.phy_atk, displayedCharacter.phy_atk)}
+        ${renderLabDetailStat("物理防御", "phy_def", character.phy_def, displayedCharacter.phy_def)}
+        ${renderLabDetailStat("特殊攻撃", "sp_atk", character.sp_atk, displayedCharacter.sp_atk)}
+        ${renderLabDetailStat("特殊防御", "sp_def", character.sp_def, displayedCharacter.sp_def)}
+        ${renderLabDetailStat("敏捷", "speed", character.speed, displayedCharacter.speed)}
+        ${renderLabDetailStat("回復力", "regen_value", displayedCharacter.regen_value, character.regen_value)}
+      </div>
+      <div class="detail-resistances">
+        <div class="detail-section-title">属性耐性</div>
+        <div class="resistance-grid">
+          ${ELEMENT_TYPES.map((element) => resistanceCell(displayedCharacter, element)).join("")}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function renderLabDetailRow(label, value, options = {}) {
+  const displayValue = value == null || value === "" ? "－" : value;
+  const valueHtml = options.html ? displayValue : escapeHtml(displayValue);
+  return `<div class="dex-data-row"><span>${escapeHtml(label)}</span><strong>${valueHtml}</strong></div>`;
+}
+
+function renderLabDetailStat(label, statKey, baseValue, displayValue) {
+  const base = number(baseValue);
+  const displayed = number(displayValue);
+  const diff = displayed - base;
+  const breakdown = diff
+    ? `<div class="lab-detail-stat-breakdown">${escapeHtml(displayed)}（基礎${escapeHtml(base)}${diff > 0 ? "＋" : "－"}装備${escapeHtml(Math.abs(diff))}）</div>`
+    : "";
+  return `
+    <div class="lab-detail-stat-item">
+      ${detailStat(label, displayed, statKey, { baseValue: base })}
+      ${breakdown}
+    </div>
+  `;
+}
+
+function renderLabAccessorySummary(equipment) {
+  if (!equipment) {
+    return `
+      <div class="my-house-accessory-panel lab-detail-accessory-panel">
+        <div class="my-house-accessory-header">
+          <div>
+            <div class="my-house-accessory-label">アクセサリー</div>
+            <strong>なし</strong>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  return `
+    <div class="my-house-accessory-panel lab-detail-accessory-panel">
+      <div class="my-house-accessory-header">
+        <div>
+          <div class="my-house-accessory-label">アクセサリー</div>
+          <strong>${escapeHtml(equipment.name || "－")}</strong>
+          ${renderEquipmentBonusList(equipment)}
+          ${equipment.text ? `<span class="accessory-description">${escapeHtml(equipment.text)}</span>` : ""}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function labStorageLabel(ownedMonster) {
+  return partyOwnedIdSet().has(ownedMonster?.ownedId) ? "Members" : "LAB";
+}
+
+function characterRankLabel(character) {
+  return safeText(character?.rank ?? character?.rank_id ?? character?.rankId, "－");
+}
+
+async function showStoryMain({ focus = true } = {}) {
+  if (gameDataPromise) {
+    await gameDataPromise;
+  }
+
   state.story.active = false;
   state.shop.open = false;
   state.shop.confirmEntryId = null;
@@ -1400,7 +2060,7 @@ function renderMyHouse() {
   els.myHousePanel.classList.toggle("my-house-mode-books", activeSection === "books");
   els.myHousePanel.classList.toggle("my-house-mode-party", activeSection === "party");
 
-  const monsterEntries = myHouseMonsterEntries();
+  const monsterEntries = myPartyMonsterEntries();
   const ownedBooks = myHouseOwnedBooks();
   const selectedMonster = monsterEntries.find((entry) => entry.ownedId === state.myHouse.selectedOwnedId);
   const selectedBook = ownedBooks.find((book) => book.book_id === state.myHouse.selectedBookId);
@@ -1415,7 +2075,7 @@ function renderMyHouse() {
   const detailOwnedMonster = state.myHouse.detailMode === "owned" ? selectedMonster?.ownedMonster : null;
 
   els.myHouseMonsterList.innerHTML = monsterEntries.length
-    ? monsterEntries.map((entry) => renderMyHouseMonsterCard(entry)).join("")
+    ? monsterEntries.map((entry, index) => renderMyHousePartyMonsterCard(entry, index)).join("")
     : `<div class="shop-empty">手持ちモンスターはいません。</div>`;
 
   els.myHouseBookList.innerHTML = ownedBooks.length
@@ -1443,10 +2103,11 @@ function renderMyHouse() {
     });
   }
 
-  for (const button of els.myHouseMonsterList.querySelectorAll("[data-my-house-move-first]")) {
+  for (const button of els.myHouseMonsterList.querySelectorAll("[data-party-lead-swap]")) {
     button.addEventListener("click", () => {
       if (button.disabled) return;
-      moveOwnedMonsterToFront(button.dataset.myHouseMoveFirst);
+      const result = swapPartyMemberWithLead(button.dataset.partyLeadSwap);
+      showSaveStatus(result.message, { isError: !result.ok });
     });
   }
 
@@ -1494,11 +2155,11 @@ function renderMyParty() {
 
   ensureMyPartySelection();
 
-  const monsterEntries = myHouseMonsterEntries();
+  const monsterEntries = myPartyMonsterEntries();
   const selectedMonster = monsterEntries.find((entry) => entry.ownedId === state.myParty.selectedOwnedId);
 
   els.myPartyMonsterList.innerHTML = monsterEntries.length
-    ? monsterEntries.map((entry) => renderMyPartyMonsterCard(entry)).join("")
+    ? monsterEntries.map((entry, index) => renderMyPartyMonsterCard(entry, index)).join("")
     : `<div class="shop-empty">手持ちモンスターはいません。</div>`;
 
   els.myPartyDetailPanel.innerHTML = selectedMonster
@@ -1517,10 +2178,10 @@ function renderMyParty() {
     });
   }
 
-  for (const button of els.myPartyMonsterList.querySelectorAll("[data-my-house-move-first]")) {
+  for (const button of els.myPartyMonsterList.querySelectorAll("[data-party-lead-swap]")) {
     button.addEventListener("click", () => {
       if (button.disabled) return;
-      moveOwnedMonsterToFront(button.dataset.myHouseMoveFirst);
+      swapPartyMemberWithLead(button.dataset.partyLeadSwap);
     });
   }
 
@@ -1543,7 +2204,7 @@ function renderMyParty() {
 }
 
 function ensureMyHouseSelection() {
-  const monsterEntries = myHouseMonsterEntries();
+  const monsterEntries = myPartyMonsterEntries();
   if (!monsterEntries.some((entry) => entry.ownedId === state.myHouse.selectedOwnedId)) {
     state.myHouse.selectedOwnedId = monsterEntries[0]?.ownedId ?? null;
   }
@@ -1565,12 +2226,22 @@ function ensureMyHouseSelection() {
 }
 
 function ensureMyPartySelection() {
-  const monsterEntries = myHouseMonsterEntries();
+  const monsterEntries = myPartyMonsterEntries();
   if (!monsterEntries.some((entry) => entry.ownedId === state.myParty.selectedOwnedId)) {
     state.myParty.selectedOwnedId = monsterEntries[0]?.ownedId ?? null;
   }
   state.myHouse.selectedOwnedId = state.myParty.selectedOwnedId;
   state.myHouse.detailMode = "owned";
+}
+
+function myPartyMonsterEntries() {
+  return partyOwnedMonsterEntries()
+    .map((entry) => ({
+      ownedId: entry.ownedId,
+      ownedMonster: entry,
+      character: state.characterMap.get(entry.characterId),
+    }))
+    .filter((entry) => entry.ownedId && entry.character);
 }
 
 function myHouseMonsterEntries() {
@@ -1617,7 +2288,7 @@ function canViewStoryBattleEncyclopedia(characterId) {
 function renderMyHouseMonsterCard(entry) {
   const character = entry.character;
   const selected = state.myHouse.detailMode === "owned" && entry.ownedId === state.myHouse.selectedOwnedId;
-  const isFirst = state.saveData.ownedMonsters[0]?.ownedId === entry.ownedId;
+  const isFirst = currentPartyOwnedIds()[0] === entry.ownedId;
   return `
     <div class="my-house-monster-row">
       <button class="my-house-monster-card ${selected ? "is-selected" : ""}" type="button" data-my-house-owned-id="${escapeHtml(entry.ownedId)}">
@@ -1637,36 +2308,130 @@ function renderMyHouseMonsterCard(entry) {
           </span>
         </span>
       </button>
-      <button class="small-button my-house-first-button" type="button" data-my-house-move-first="${escapeHtml(entry.ownedId)}" ${isFirst ? "disabled" : ""}>
-        先頭にする
+      <button class="small-button my-house-first-button" type="button" data-party-lead-swap="${escapeHtml(entry.ownedId)}" ${isFirst ? "disabled" : ""}>
+        先頭と入替
       </button>
     </div>
   `;
 }
 
-function renderMyPartyMonsterCard(entry) {
-  return renderMyHouseMonsterCard(entry)
-    .replace(/data-my-house-owned-id/g, "data-my-party-owned-id");
+function renderMyHousePartyMonsterCard(entry, index) {
+  const character = entry.character;
+  const selected = state.myHouse.detailMode === "owned" && entry.ownedId === state.myHouse.selectedOwnedId;
+  const isFirst = index === 0;
+  return `
+    <div class="my-house-monster-row">
+      <button class="my-house-monster-card ${selected ? "is-selected" : ""}" type="button" data-my-house-owned-id="${escapeHtml(entry.ownedId)}">
+        <span class="my-house-monster-image-frame">
+          <img class="my-house-monster-image" src="${escapeHtml(character.imageSrc)}" alt="${escapeHtml(character.name)}" />
+        </span>
+        <span class="my-house-monster-info">
+          <strong class="my-house-monster-name">Member ${index + 1}: ${escapeHtml(character.name)}</strong>
+          <span class="my-house-monster-meta">${elementPill(character.element)} <span>slot ${slotMarks(character.slot)}</span></span>
+          <span class="my-house-mini-stats">
+            <span>HP ${escapeHtml(character.hp)}</span>
+            <span>攻 ${escapeHtml(character.phy_atk)}</span>
+            <span>防 ${escapeHtml(character.phy_def)}</span>
+            <span>特攻 ${escapeHtml(character.sp_atk)}</span>
+            <span>特防 ${escapeHtml(character.sp_def)}</span>
+            <span>敏捷 ${escapeHtml(character.speed)}</span>
+          </span>
+        </span>
+      </button>
+      <button class="small-button my-house-first-button" type="button" data-party-lead-swap="${escapeHtml(entry.ownedId)}" ${isFirst ? "disabled" : ""}>
+        先頭と入替
+      </button>
+    </div>
+  `;
+}
+
+function renderMyPartyMonsterCard(entry, index) {
+  const character = entry.character;
+  const selected = entry.ownedId === state.myParty.selectedOwnedId;
+  const isFirst = index === 0;
+  return `
+    <div class="my-house-monster-row">
+      <button class="my-house-monster-card ${selected ? "is-selected" : ""}" type="button" data-my-party-owned-id="${escapeHtml(entry.ownedId)}">
+        <span class="my-house-monster-image-frame">
+          <img class="my-house-monster-image" src="${escapeHtml(character.imageSrc)}" alt="${escapeHtml(character.name)}" />
+        </span>
+        <span class="my-house-monster-info">
+          <strong class="my-house-monster-name">Member ${index + 1}: ${escapeHtml(character.name)}</strong>
+          <span class="my-house-monster-meta">${elementPill(character.element)} <span>slot ${slotMarks(character.slot)}</span></span>
+          <span class="my-house-mini-stats">
+            <span>HP ${escapeHtml(character.hp)}</span>
+            <span>攻 ${escapeHtml(character.phy_atk)}</span>
+            <span>防 ${escapeHtml(character.phy_def)}</span>
+            <span>特攻 ${escapeHtml(character.sp_atk)}</span>
+            <span>特防 ${escapeHtml(character.sp_def)}</span>
+            <span>敏捷 ${escapeHtml(character.speed)}</span>
+          </span>
+        </span>
+      </button>
+      <button class="small-button my-house-first-button" type="button" data-party-lead-swap="${escapeHtml(entry.ownedId)}" ${isFirst ? "disabled" : ""}>
+        先頭と入替
+      </button>
+    </div>
+  `;
 }
 
 function moveOwnedMonsterToFront(ownedId) {
-  const index = state.saveData.ownedMonsters.findIndex((entry) => entry.ownedId === ownedId);
-  if (index <= 0) return;
+  return swapPartyMemberWithLead(ownedId);
+}
 
-  const [ownedMonster] = state.saveData.ownedMonsters.splice(index, 1);
-  state.saveData.ownedMonsters.unshift(ownedMonster);
-  state.myHouse.selectedOwnedId = ownedMonster.ownedId;
-  state.myParty.selectedOwnedId = ownedMonster.ownedId;
+function swapPartyMemberWithLead(ownedId) {
+  const targetOwnedId = safeText(ownedId);
+  const partyIds = currentPartyOwnedIds();
+  const targetIndex = partyIds.indexOf(targetOwnedId);
+
+  if (!targetOwnedId || targetIndex < 0) {
+    return { ok: false, message: "Members側のモンスターを選択してください" };
+  }
+
+  if (targetIndex === 0) {
+    return { ok: false, message: "すでに先頭です" };
+  }
+
+  const leadOwnedId = partyIds[0];
+  if (!leadOwnedId) {
+    return { ok: false, message: "先頭メンバーが見つかりません" };
+  }
+
+  const nextPartyIds = [...partyIds];
+  nextPartyIds[0] = targetOwnedId;
+  nextPartyIds[targetIndex] = leadOwnedId;
+  state.saveData.partyOwnedIds = nextPartyIds;
+  syncOwnedMonsterStorageFromParty();
+  syncSelectedIdsFromOwnedMonsters();
+  markUnsavedChanges();
+
+  state.myHouse.selectedOwnedId = targetOwnedId;
+  state.myParty.selectedOwnedId = targetOwnedId;
   state.myHouse.detailMode = "owned";
   state.myHouse.accessoryEditorOwnedId = null;
-  syncSelectedIdsFromOwnedMonsters();
-  saveGameData();
-  renderSetup();
-  if (els.myHousePanel && !els.myHousePanel.classList.contains("is-hidden")) renderMyHouse();
-  if (els.myPartyPanel && !els.myPartyPanel.classList.contains("is-hidden")) renderMyParty();
+  state.labInterior.selectedMemberSlotIndex = 0;
+  state.labInterior.selectedMemberOwnedId = targetOwnedId;
 
-  const characterName = state.characterMap.get(ownedMonster.characterId)?.name || "モンスター";
-  showSaveStatus(`${characterName}を先頭にしました。手動セーブで保存できます。`);
+  const targetMonster = ownedMonsterByOwnedId(targetOwnedId);
+  const leadMonster = ownedMonsterByOwnedId(leadOwnedId);
+  const targetName = state.characterMap.get(targetMonster?.characterId)?.name || "モンスター";
+  const leadName = state.characterMap.get(leadMonster?.characterId)?.name || "先頭メンバー";
+  const message = `${targetName}と${leadName}を入れ替えました`;
+
+  renderSetup();
+  if (els.myHousePanel && !els.myHousePanel.classList.contains("is-hidden")) {
+    ensureMyHouseSelection();
+    renderMyHouse();
+  }
+  if (els.myPartyPanel && !els.myPartyPanel.classList.contains("is-hidden")) {
+    ensureMyPartySelection();
+    renderMyParty();
+  }
+  if (els.labInteriorScreen && !els.labInteriorScreen.classList.contains("is-hidden")) {
+    renderLabInterior();
+  }
+
+  return { ok: true, message };
 }
 
 function renderMyHouseMonsterDetail(character, ownedMonster = null) {
@@ -1691,7 +2456,7 @@ function renderMyHouseCompleteMonsterDetail(character, ownedMonster = null) {
         </div>
         <div class="detail-summary">
           <div class="dex-data-row"><span>スロット</span><strong>${slotMarks(character.slot)}</strong></div>
-          <div class="dex-data-row"><span>EN回復</span><strong>${energyBadge(character.energy_charge)}</strong></div>
+          <div class="dex-data-row"><span>EN回復</span><strong>${energyBadge(displayedCharacter.energy_charge)}</strong></div>
           <div class="dex-data-row"><span>弱点</span><strong>${renderWeaknessBadges(displayedCharacter)}</strong></div>
         </div>
         ${ownedMonster ? renderOwnedMonsterAccessorySection(ownedMonster, character) : ""}
@@ -1703,7 +2468,7 @@ function renderMyHouseCompleteMonsterDetail(character, ownedMonster = null) {
         ${detailStat("特殊攻撃", displayedCharacter.sp_atk, "sp_atk", { baseValue: character.sp_atk })}
         ${detailStat("特殊防御", displayedCharacter.sp_def, "sp_def", { baseValue: character.sp_def })}
         ${detailStat("敏捷", displayedCharacter.speed, "speed", { baseValue: character.speed })}
-        ${detailStat("回復力", character.regen_value, "regen_value")}
+        ${detailStat("回復力", displayedCharacter.regen_value, "regen_value", { baseValue: character.regen_value })}
       </div>
       <div class="detail-skills">
         <div class="detail-section-title">技</div>
@@ -1881,11 +2646,13 @@ function renderEquipmentBonusList(equipment) {
 function equipmentBonusEntries(equipment) {
   const statEntries = [
     ["HP", equipment?.hp_bonus],
-    ["物理攻撃", equipment?.atk_bonus],
-    ["物理防御", equipment?.def_bonus],
+    ["物理攻撃", equipment?.phy_atk_bonus],
+    ["物理防御", equipment?.phy_def_bonus],
     ["特殊攻撃", equipment?.sp_atk_bonus],
     ["特殊防御", equipment?.sp_def_bonus],
     ["敏捷", equipment?.speed_bonus],
+    ["回復力", equipment?.regen_value_bonus],
+    ["EN回復", equipment?.cost_charge_bonus],
   ]
     .map(([label, value]) => ({ label, value: number(value), element: "" }))
     .filter((entry) => entry.value !== 0);
@@ -1914,17 +2681,23 @@ function applyEquipmentBonusesToCharacter(character, equipment) {
   return {
     ...character,
     hp: adjustedEquipmentStat(character.hp, equipment.hp_bonus),
-    phy_atk: adjustedEquipmentStat(character.phy_atk, equipment.atk_bonus),
-    phy_def: adjustedEquipmentStat(character.phy_def, equipment.def_bonus),
+    phy_atk: adjustedEquipmentStat(character.phy_atk, equipment.phy_atk_bonus),
+    phy_def: adjustedEquipmentStat(character.phy_def, equipment.phy_def_bonus),
     sp_atk: adjustedEquipmentStat(character.sp_atk, equipment.sp_atk_bonus),
     sp_def: adjustedEquipmentStat(character.sp_def, equipment.sp_def_bonus),
     speed: adjustedEquipmentStat(character.speed, equipment.speed_bonus),
+    regen_value: adjustedEquipmentNonNegativeStat(character.regen_value, equipment.regen_value_bonus),
+    energy_charge: adjustedEquipmentNonNegativeStat(character.energy_charge, equipment.cost_charge_bonus),
     weaknesses: adjustedEquipmentWeaknesses(character.weaknesses, equipment),
   };
 }
 
 function adjustedEquipmentStat(baseValue, bonusValue) {
   return Math.max(1, Math.round(number(baseValue, 1) + number(bonusValue)));
+}
+
+function adjustedEquipmentNonNegativeStat(baseValue, bonusValue) {
+  return Math.max(0, Math.round(number(baseValue) + number(bonusValue)));
 }
 
 function adjustedEquipmentWeaknesses(baseWeaknesses = {}, equipment) {
@@ -2282,16 +3055,10 @@ function beginMonsterPurchase(item) {
   const monster = state.characterMap.get(item.content_id);
   if (!monster || shopDisabledReason(item)) return;
 
-  if (ownedPartySlotTotal() + monster.slot <= TEAM_SLOT_LIMIT) {
-    state.shop.confirmEntryId = null;
-    completeMonsterPurchase(item, []);
-    return;
-  }
-
   state.shop.confirmEntryId = null;
-  state.shop.exchangeEntryId = item.shop_entry_id;
+  state.shop.exchangeEntryId = null;
   state.shop.offerOwnedIds = [];
-  renderBusinessShop();
+  completeMonsterPurchase(item);
 }
 
 function renderShopPurchaseConfirm(item) {
@@ -2301,8 +3068,8 @@ function renderShopPurchaseConfirm(item) {
   const isEquipmentItem = EQUIPMENT_ITEM_TYPES.has(item.item_type);
   const monster = isMonster ? state.characterMap.get(item.content_id) : null;
   const equipment = isEquipmentItem ? state.equipmentMap.get(item.content_id) : null;
-  const note = isMonster && monster && ownedPartySlotTotal() + monster.slot > TEAM_SLOT_LIMIT
-    ? "slot上限を超えるため、購入後に手放すモンスターを選びます。"
+  const note = isMonster
+    ? "購入後、研究所（LAB）へ送られます。"
     : "購入してよろしいですか？";
 
   return `
@@ -2479,31 +3246,27 @@ function shopExchangePreview(item) {
   };
 }
 
-function completeMonsterPurchase(item, offerOwnedIds) {
+function completeMonsterPurchase(item) {
   const monster = state.characterMap.get(item.content_id);
   if (!monster || shopDisabledReason(item)) return;
-
-  const offerSet = new Set(offerOwnedIds);
-  const offeredCharacters = state.saveData.ownedMonsters
-    .filter((entry) => offerSet.has(entry.ownedId))
-    .map((entry) => state.characterMap.get(entry.characterId))
-    .filter(Boolean);
-  const nextSlotTotal = ownedPartySlotTotal() - slotTotal(offeredCharacters) + monster.slot;
-  if (nextSlotTotal > TEAM_SLOT_LIMIT) return;
 
   state.saveData.money -= item.price;
   setShopStock(item, currentShopStock(item) - 1);
   state.saveData.purchasedShopEntries.add(item.shop_entry_id);
-  state.saveData.ownedMonsters = state.saveData.ownedMonsters.filter(
-    (entry) => !offerSet.has(entry.ownedId),
-  );
-  state.saveData.ownedMonsters.push(createOwnedMonster(monster.character_id));
+  const purchasedMonster = createOwnedMonster(monster.character_id, {
+    equipment: {},
+    storage: "lab",
+  });
+  state.saveData.ownedMonsters.push(purchasedMonster);
+  syncOwnedMonsterStorageFromParty(state.saveData, { fallbackToOwnedMonsters: false });
   syncSelectedIdsFromOwnedMonsters();
+  markUnsavedChanges();
   state.shop.confirmEntryId = null;
   state.shop.exchangeEntryId = null;
   state.shop.offerOwnedIds = [];
   saveGameData();
   renderSetup();
+  showShopMessage(`${monster.name}を購入しました。研究所（LAB）へ送りました。`);
   renderBusinessShop();
 }
 
@@ -2660,7 +3423,22 @@ function clearStoryWalkTimer() {
   state.story.walkTimer = null;
 }
 
+function clearGameOverReturnTimer() {
+  if (!gameOverReturnTimer) return;
+  window.clearTimeout(gameOverReturnTimer);
+  gameOverReturnTimer = null;
+}
+
+function scheduleGameOverReturnToTitle() {
+  clearGameOverReturnTimer();
+  gameOverReturnTimer = window.setTimeout(() => {
+    gameOverReturnTimer = null;
+    showTitleView();
+  }, 1400);
+}
+
 function returnToSetup() {
+  clearGameOverReturnTimer();
   state.story.active = false;
   state.shop.open = false;
   hideBusinessShop({ restoreTravel: false });
@@ -2833,6 +3611,10 @@ async function loadGameData() {
 }
 
 async function loadCsvText(key, path) {
+  if (window.location.protocol === "file:" && window.MHB_CSV?.[key]) {
+    return window.MHB_CSV[key];
+  }
+
   try {
     const url = `${path}${path.includes("?") ? "&" : "?"}v=${Date.now()}`;
     const response = await fetch(url, { cache: "no-store" });
@@ -2931,6 +3713,7 @@ function normalizeCharacter(row) {
   return {
     character_id: characterId,
     battleNo: safeText(row.battleno ?? row.battle_no ?? row.battleNo ?? row.no),
+    rank: safeText(row.rank ?? row.rank_id ?? row.rankId),
     species_id: safeText(row.species_id),
     name: row.name,
     hp: number(row.hp, 1),
@@ -3120,11 +3903,13 @@ function normalizeEquipment(row) {
     equipment_type: safeText(row.equipment_type).toLowerCase(),
     text: safeText(row.text),
     hp_bonus: number(row.hp_bonus),
-    atk_bonus: number(row.atk_bonus),
-    def_bonus: number(row.def_bonus),
+    phy_atk_bonus: number(row.phy_atk_bonus ?? row.atk_bonus),
+    phy_def_bonus: number(row.phy_def_bonus ?? row.def_bonus),
     sp_atk_bonus: number(row.sp_atk_bonus),
     sp_def_bonus: number(row.sp_def_bonus),
     speed_bonus: number(row.speed_bonus),
+    regen_value_bonus: number(row.regen_value_bonus),
+    cost_charge_bonus: number(row.cost_charge_bonus),
     weak_fire_bonus: number(row.weak_fire_bonus),
     weak_water_bonus: number(row.weak_water_bonus),
     weak_thunder_bonus: number(row.weak_thunder_bonus),
@@ -3855,6 +4640,7 @@ function saveGameData() {
 }
 
 function createSavePayload() {
+  ensurePartyOwnedIds();
   const clearedBattles = [...new Set([...state.story.clearedRankBattleIds].map((id) => safeText(id)).filter(Boolean))];
   return {
     money: state.saveData.money,
@@ -3863,7 +4649,9 @@ function createSavePayload() {
       owned_id: entry.ownedId,
       character_id: entry.characterId,
       equipment: normalizeOwnedMonsterEquipment(entry.equipment),
+      storage: ownedMonsterStorage(entry),
     })),
+    party_owned_ids: normalizePartyOwnedIds(state.saveData.partyOwnedIds, state.saveData.ownedMonsters),
     owned_equipment: Object.fromEntries(state.saveData.ownedEquipment),
     shop_stock: Object.fromEntries(state.saveData.shopStock),
     purchased_shop_entries: [...state.saveData.purchasedShopEntries],
@@ -3887,6 +4675,7 @@ function handleManualSave(slotNumber) {
 
   try {
     setStorageValue(key, JSON.stringify(payload));
+    clearUnsavedChanges();
     renderMyHouseSaveControls();
     showSaveStatus(`セーブ${slotNumber}に保存しました。`);
   } catch {
@@ -3932,6 +4721,7 @@ function applySaveDataFromRaw(raw) {
   state.saveData = normalized.saveData;
   state.story.clearedRankBattleIds = normalized.clearedRankBattleIds;
   state.story.disabledRankBattleIds = new Set(state.story.clearedRankBattleIds);
+  clearUnsavedChanges();
   return { ok: true };
 }
 
@@ -3989,6 +4779,7 @@ function normalizeSavePayload(rawData) {
       ownedId: safeText(entry?.owned_id ?? entry?.ownedId),
       characterId: safeText(entry?.character_id ?? entry?.characterId),
       equipment: normalizeOwnedMonsterEquipment(entry?.equipment),
+      storage: normalizeOwnedMonsterStorage(entry?.storage ?? entry?.location),
     }))
     .filter((entry) => entry.ownedId && entry.characterId);
 
@@ -4001,6 +4792,15 @@ function normalizeSavePayload(rawData) {
     return match ? Math.max(maxValue, Number(match[1]) + 1) : maxValue;
   }, 1);
   nextSaveData.nextOwnedMonsterNumber = Math.max(loadedNextNumber, nextNumberFromIds);
+
+  const rawPartyOwnedIds = rawData.party_owned_ids ?? rawData.partyOwnedIds;
+  const partyOwnedIds = saveArrayField(rawPartyOwnedIds, "party_owned_ids");
+  if (!partyOwnedIds.ok) return partyOwnedIds;
+  nextSaveData.partyOwnedIds =
+    rawPartyOwnedIds == null
+      ? legacyPartyOwnedIdsFromOwnedMonsters(nextSaveData.ownedMonsters)
+      : normalizePartyOwnedIds(partyOwnedIds.value, nextSaveData.ownedMonsters);
+  syncOwnedMonsterStorageFromParty(nextSaveData);
 
   migrateLegacyInitialParty(nextSaveData);
 
@@ -4036,6 +4836,107 @@ function normalizeOwnedMonsterEquipment(value) {
   };
 }
 
+function normalizeOwnedMonsterStorage(value) {
+  return safeText(value).toLowerCase() === "lab" ? "lab" : "party";
+}
+
+function ownedMonsterStorage(ownedMonster) {
+  return normalizeOwnedMonsterStorage(ownedMonster?.storage);
+}
+
+function validOwnedMonsterEntries(ownedMonsters = state.saveData.ownedMonsters) {
+  return (Array.isArray(ownedMonsters) ? ownedMonsters : []).filter(
+    (entry) =>
+      entry?.ownedId &&
+      entry.characterId &&
+      (!state.characterMap.size || state.characterMap.has(entry.characterId)),
+  );
+}
+
+function normalizePartyOwnedIds(partyOwnedIds, ownedMonsters = state.saveData.ownedMonsters, options = {}) {
+  const { fallbackToOwnedMonsters = true } = options;
+  const validOwnedIds = new Set(validOwnedMonsterEntries(ownedMonsters).map((entry) => entry.ownedId));
+  const normalized = [];
+
+  for (const ownedId of Array.isArray(partyOwnedIds) ? partyOwnedIds : []) {
+    const id = safeText(ownedId);
+    if (!id || !validOwnedIds.has(id) || normalized.includes(id)) continue;
+    normalized.push(id);
+    if (normalized.length >= LAB_MEMBER_DISPLAY_LIMIT) break;
+  }
+
+  if (!normalized.length && fallbackToOwnedMonsters) {
+    return legacyPartyOwnedIdsFromOwnedMonsters(ownedMonsters);
+  }
+
+  return normalized;
+}
+
+function legacyPartyOwnedIdsFromOwnedMonsters(ownedMonsters = state.saveData.ownedMonsters) {
+  const validEntries = validOwnedMonsterEntries(ownedMonsters);
+  const partyIds = [];
+
+  for (const entry of validEntries) {
+    if (ownedMonsterStorage(entry) !== "party" || partyIds.includes(entry.ownedId)) continue;
+    partyIds.push(entry.ownedId);
+    if (partyIds.length >= LAB_MEMBER_DISPLAY_LIMIT) return partyIds;
+  }
+
+  if (partyIds.length) return partyIds;
+
+  for (const entry of validEntries) {
+    if (partyIds.includes(entry.ownedId)) continue;
+    partyIds.push(entry.ownedId);
+    if (partyIds.length >= LAB_MEMBER_DISPLAY_LIMIT) break;
+  }
+
+  return partyIds;
+}
+
+function syncOwnedMonsterStorageFromParty(saveData = state.saveData, options = {}) {
+  if (!saveData) return;
+  const { fallbackToOwnedMonsters = true } = options;
+  saveData.partyOwnedIds = normalizePartyOwnedIds(saveData.partyOwnedIds, saveData.ownedMonsters, {
+    fallbackToOwnedMonsters,
+  });
+  const partyOwnedIdSet = new Set(saveData.partyOwnedIds);
+  saveData.ownedMonsters = validOwnedMonsterEntries(saveData.ownedMonsters).map((entry) => ({
+    ...entry,
+    equipment: normalizeOwnedMonsterEquipment(entry.equipment),
+    storage: partyOwnedIdSet.has(entry.ownedId) ? "party" : "lab",
+  }));
+}
+
+function ensurePartyOwnedIds(saveData = state.saveData) {
+  if (!saveData) return [];
+  saveData.partyOwnedIds = normalizePartyOwnedIds(saveData.partyOwnedIds, saveData.ownedMonsters);
+  syncOwnedMonsterStorageFromParty(saveData);
+  return saveData.partyOwnedIds;
+}
+
+function currentPartyOwnedIds(saveData = state.saveData) {
+  return normalizePartyOwnedIds(saveData.partyOwnedIds, saveData.ownedMonsters, {
+    fallbackToOwnedMonsters: false,
+  });
+}
+
+function ownedMonsterByOwnedId(ownedId) {
+  const id = safeText(ownedId);
+  return state.saveData.ownedMonsters.find((entry) => entry.ownedId === id) ?? null;
+}
+
+function partyOwnedIdSet() {
+  return new Set(currentPartyOwnedIds());
+}
+
+function partySlotTotalForOwnedIds(ownedIds) {
+  return slotTotal(
+    normalizePartyOwnedIds(ownedIds, state.saveData.ownedMonsters, { fallbackToOwnedMonsters: false })
+      .map((ownedId) => state.characterMap.get(ownedMonsterByOwnedId(ownedId)?.characterId))
+      .filter(Boolean),
+  );
+}
+
 function findSaveStorageSource(storageKey) {
   const raw = readStorageValue(storageKey);
   if (raw) return { key: storageKey, raw, legacy: false };
@@ -4055,6 +4956,21 @@ function setStorageValue(key, value) {
   window.localStorage?.setItem(key, value);
 }
 
+function markUnsavedChanges() {
+  state.hasUnsavedChanges = true;
+  renderUnsavedChangesNotice();
+}
+
+function clearUnsavedChanges() {
+  state.hasUnsavedChanges = false;
+  renderUnsavedChangesNotice();
+}
+
+function renderUnsavedChangesNotice() {
+  if (!els.labUnsavedNotice) return;
+  els.labUnsavedNotice.classList.toggle("is-hidden", !state.hasUnsavedChanges);
+}
+
 function refreshProgressViews() {
   syncSelectedIdsFromOwnedMonsters();
   renderSetup();
@@ -4063,6 +4979,9 @@ function refreshProgressViews() {
   if (els.myHousePanel && !els.myHousePanel.classList.contains("is-hidden")) {
     ensureMyHouseSelection();
     renderMyHouse();
+  }
+  if (els.labInteriorScreen && !els.labInteriorScreen.classList.contains("is-hidden")) {
+    renderLabInterior();
   }
 }
 
@@ -4111,6 +5030,7 @@ function initializeSaveDataParty({ persist = false } = {}) {
     .map((entry) => ({
       ...entry,
       equipment: normalizeOwnedMonsterEquipment(entry.equipment),
+      storage: ownedMonsterStorage(entry),
     }));
 
   if (!state.saveData.ownedMonsters.length) {
@@ -4119,15 +5039,17 @@ function initializeSaveDataParty({ persist = false } = {}) {
     );
   }
 
+  ensurePartyOwnedIds();
   syncSelectedIdsFromOwnedMonsters();
   if (persist) saveGameData();
 }
 
-function createOwnedMonster(characterId) {
+function createOwnedMonster(characterId, options = {}) {
   return {
     ownedId: nextOwnedMonsterId(),
     characterId,
-    equipment: normalizeOwnedMonsterEquipment(),
+    equipment: options.equipment ?? normalizeOwnedMonsterEquipment(),
+    storage: normalizeOwnedMonsterStorage(options.storage),
   };
 }
 
@@ -4138,7 +5060,7 @@ function nextOwnedMonsterId() {
 }
 
 function syncSelectedIdsFromOwnedMonsters() {
-  state.selectedIds = state.saveData.ownedMonsters
+  state.selectedIds = partyOwnedMonsterEntries()
     .map((entry) => entry.characterId)
     .filter((characterId) => state.characterMap.has(characterId));
 }
@@ -4146,23 +5068,46 @@ function syncSelectedIdsFromOwnedMonsters() {
 function syncOwnedMonsterPartyFromSelectedIds({ persist = true } = {}) {
   const remainingOwnedMonsters = [...state.saveData.ownedMonsters];
   const nextOwnedMonsters = [];
+  const currentPartyOwnedIds = new Set(state.saveData.partyOwnedIds);
 
   for (const characterId of state.selectedIds) {
     if (!state.characterMap.has(characterId)) continue;
-    const existingIndex = remainingOwnedMonsters.findIndex((entry) => entry.characterId === characterId);
+    let existingIndex = remainingOwnedMonsters.findIndex(
+      (entry) => entry.characterId === characterId && currentPartyOwnedIds.has(entry.ownedId),
+    );
+    if (existingIndex < 0) {
+      existingIndex = remainingOwnedMonsters.findIndex((entry) => entry.characterId === characterId);
+    }
     if (existingIndex >= 0) {
-      nextOwnedMonsters.push(remainingOwnedMonsters.splice(existingIndex, 1)[0]);
+      const [ownedMonster] = remainingOwnedMonsters.splice(existingIndex, 1);
+      nextOwnedMonsters.push({ ...ownedMonster, storage: "party" });
     } else {
       nextOwnedMonsters.push(createOwnedMonster(characterId));
     }
   }
 
-  state.saveData.ownedMonsters = nextOwnedMonsters;
+  state.saveData.ownedMonsters = [...nextOwnedMonsters, ...remainingOwnedMonsters];
+  state.saveData.partyOwnedIds = normalizePartyOwnedIds(
+    nextOwnedMonsters.map((entry) => entry.ownedId),
+    state.saveData.ownedMonsters,
+    { fallbackToOwnedMonsters: false },
+  );
+  ensurePartyOwnedIds();
+  syncSelectedIdsFromOwnedMonsters();
+  markUnsavedChanges();
   if (persist) saveGameData();
 }
 
+function partyOwnedMonsterEntries() {
+  const ownedMonsterMap = new Map(state.saveData.ownedMonsters.map((entry) => [entry.ownedId, entry]));
+  return currentPartyOwnedIds()
+    .map((ownedId) => ownedMonsterMap.get(ownedId))
+    .filter(Boolean)
+    .slice(0, LAB_MEMBER_DISPLAY_LIMIT);
+}
+
 function ownedPartyCharacters() {
-  return state.saveData.ownedMonsters
+  return partyOwnedMonsterEntries()
     .map((entry) => state.characterMap.get(entry.characterId))
     .filter(Boolean);
 }
@@ -4438,7 +5383,7 @@ async function startRankBattle(rankBattleId) {
 
   initializeSaveDataParty({ persist: false });
   renderSetup();
-  if (selectedSlotTotal() <= 0 || selectedSlotTotal() > TEAM_SLOT_LIMIT) {
+  if (ownedPartySlotTotal() <= 0 || ownedPartySlotTotal() > TEAM_SLOT_LIMIT) {
     return;
   }
 
@@ -4450,11 +5395,18 @@ async function startRankBattle(rankBattleId) {
 }
 
 function startBattle(options = {}) {
-  if (selectedSlotTotal() <= 0 || selectedSlotTotal() > TEAM_SLOT_LIMIT) return;
+  clearGameOverReturnTimer();
   const requestedStoryBattleId = safeText(options.storyRankBattleId);
   const requestedArenaBattleId =
     safeText(options.arenaBattleId) ||
     (ARENA_BATTLE_ENTRANCE_BY_ID[requestedStoryBattleId] ? requestedStoryBattleId : "");
+  const usesOwnedParty = Boolean(requestedStoryBattleId || requestedArenaBattleId);
+  if (usesOwnedParty) {
+    initializeSaveDataParty({ persist: false });
+    if (ownedPartySlotTotal() <= 0 || ownedPartySlotTotal() > TEAM_SLOT_LIMIT) return;
+  } else if (selectedSlotTotal() <= 0 || selectedSlotTotal() > TEAM_SLOT_LIMIT) {
+    return;
+  }
   const currentBattleId = requestedArenaBattleId ? null : requestedStoryBattleId || null;
   const currentArenaBattleId = requestedArenaBattleId || null;
   const hasProvidedEnemyTeam = Array.isArray(options.enemyCharacterIds);
@@ -4463,7 +5415,7 @@ function startBattle(options = {}) {
   const enemyPool = state.characters.filter(
     (character) => !state.selectedIds.includes(character.character_id),
   );
-  const playerFighterSources = selectedBattleFighterSources();
+  const playerFighterSources = usesOwnedParty ? partyBattleFighterSources() : selectedBattleFighterSources();
   const enemyCharacters = Array.isArray(options.enemyCharacterIds)
     ? options.enemyCharacterIds
         .map((id) => state.characterMap.get(id))
@@ -4493,6 +5445,7 @@ function startBattle(options = {}) {
   state.battleInspectSide = "enemy";
   state.story.currentRankBattleId = currentBattleId;
   state.story.currentArenaBattleId = currentArenaBattleId;
+  state.story.lastDefeatedEnemyId = null;
   state.dex = {
     open: false,
     characterId: null,
@@ -4514,6 +5467,15 @@ function startBattle(options = {}) {
   els.battleView.classList.remove("is-hidden");
   renderBattle();
   showBattleMessage(state.log.at(-1));
+}
+
+function partyBattleFighterSources() {
+  return partyOwnedMonsterEntries()
+    .map((ownedMonster) => {
+      const character = state.characterMap.get(ownedMonster.characterId);
+      return character ? { character, ownedMonster } : null;
+    })
+    .filter(Boolean);
 }
 
 function selectedBattleFighterSources() {
@@ -4984,12 +5946,8 @@ function renderExchangePanel() {
   }
 
   const isStoryRankBattle = Boolean(state.story.currentRankBattleId);
-  if (isStoryRankBattle && state.exchange.storyDecision === "choice") {
-    renderStoryVictoryExchangeChoice();
-    return;
-  }
-  if (isStoryRankBattle && state.exchange.storyDecision === "confirmSkip") {
-    renderStorySkipExchangeConfirm();
+  if (isStoryRankBattle) {
+    renderStoryVictoryLabCapturePanel();
     return;
   }
 
@@ -5042,10 +6000,6 @@ function renderExchangePanel() {
     ${invalidExchange ? `<div class="command-note">${escapeHtml(slotNote)}</div>` : slotNote ? `<div class="command-note">${escapeHtml(slotNote)}</div>` : ""}
   `;
 
-  if (isStoryRankBattle) {
-    els.exchangePanel.querySelector('[data-result-action="rematch"]')?.remove();
-  }
-
   for (const button of els.exchangePanel.querySelectorAll("[data-exchange-side]")) {
     button.addEventListener("click", () => {
       if (state.exchange.completed) return;
@@ -5097,6 +6051,119 @@ function renderArenaBattleResultPanel() {
       returnToArenaAfterBattle();
     }
   });
+}
+
+function renderStoryVictoryLabCapturePanel() {
+  const capture = state.exchange.storyLabCaptureCompleted
+    ? state.exchange.storyLabCapture
+    : null;
+  const candidates = storyVictoryLabCaptureCandidates();
+
+  if (!capture) {
+    els.exchangePanel.innerHTML = `
+      <div class="exchange-title">勝利</div>
+      <div class="command-note">仲間にするモンスターを選んでください。空きslotがあればMembersへ、あふれた場合はLABへ送られます。</div>
+      <div class="exchange-list story-capture-list">
+        ${candidates.map(renderStoryLabCaptureCandidate).join("")}
+      </div>
+      ${candidates.length ? "" : `
+        <div class="command-note">入手できるモンスターが見つかりませんでした。</div>
+        <div class="exchange-actions">
+          <button class="small-button exchange-action" type="button" data-story-lab-capture-action="complete">メイン画面へ戻る</button>
+        </div>
+      `}
+    `;
+
+    for (const button of els.exchangePanel.querySelectorAll("[data-story-lab-capture-character-id]")) {
+      button.addEventListener("click", () => {
+        completeStoryVictoryLabCapture(button.dataset.storyLabCaptureCharacterId);
+        renderBattle();
+      });
+    }
+
+    els.exchangePanel.querySelector("[data-story-lab-capture-action='complete']")?.addEventListener("click", () => {
+      finalizeStoryBattleVictory(state.story.currentRankBattleId);
+    });
+    return;
+  }
+
+  const monsterName = capture?.name || "モンスター";
+  els.exchangePanel.innerHTML = `
+    <div class="exchange-title">勝利</div>
+    <div class="command-note">
+      ${escapeHtml(monsterName)}を仲間にした！<br>
+      ${capture?.storage === "party" ? "Membersに加わった！" : "Membersに入りきらないため、研究所（LAB）へ送られた！"}
+    </div>
+    ${state.hasUnsavedChanges ? `<div class="command-note">My Houseでセーブすると入手内容が保存されます。</div>` : ""}
+    <div class="exchange-actions">
+      <button class="primary-button exchange-action" type="button" data-story-lab-capture-action="complete">メイン画面へ戻る</button>
+    </div>
+  `;
+
+  els.exchangePanel.querySelector("[data-story-lab-capture-action='complete']")?.addEventListener("click", () => {
+    finalizeStoryBattleVictory(state.story.currentRankBattleId);
+  });
+}
+
+function storyVictoryLabCaptureCandidates() {
+  return state.enemyTeam
+    .map((member, index) => {
+      const character = state.characterMap.get(member?.id);
+      return character ? { member, character, index } : null;
+    })
+    .filter(Boolean);
+}
+
+function renderStoryLabCaptureCandidate(candidate) {
+  const { member, character, index } = candidate;
+  const slotText = slotMarks(character.slot);
+  return `
+    <button class="exchange-choice story-capture-choice" type="button" data-story-lab-capture-character-id="${escapeHtml(character.character_id)}" data-story-lab-capture-index="${index}">
+      <span class="switch-name">${escapeHtml(character.name || member.name || character.character_id)}</span>
+      <span class="switch-meta">slot ${slotText} / HP ${Math.max(0, member.hp)}/${member.maxHp}</span>
+    </button>
+  `;
+}
+
+function completeStoryVictoryLabCapture(characterId) {
+  if (state.exchange.storyLabCaptureCompleted) {
+    return state.exchange.storyLabCapture;
+  }
+
+  const id = safeText(characterId);
+  const isEnemyCharacter = state.enemyTeam.some((member) => member?.id === id);
+  const character = isEnemyCharacter ? state.characterMap.get(id) : null;
+  state.exchange.storyLabCaptureCompleted = true;
+
+  if (!character) {
+    state.exchange.storyLabCapture = null;
+    return null;
+  }
+
+  const currentPartyIds = currentPartyOwnedIds();
+  const canAddToMembers =
+    currentPartyIds.length < LAB_MEMBER_DISPLAY_LIMIT &&
+    partySlotTotalForOwnedIds(currentPartyIds) + number(character.slot, 1) <= TEAM_SLOT_LIMIT;
+  const storage = canAddToMembers ? "party" : "lab";
+  const ownedMonster = createOwnedMonster(character.character_id, { equipment: {}, storage });
+  state.saveData.ownedMonsters.push(ownedMonster);
+  if (canAddToMembers) {
+    state.saveData.partyOwnedIds = [...currentPartyIds, ownedMonster.ownedId];
+  }
+  syncOwnedMonsterStorageFromParty(state.saveData, { fallbackToOwnedMonsters: false });
+  syncSelectedIdsFromOwnedMonsters();
+  markUnsavedChanges();
+  saveGameData();
+  if (els.myHousePanel && !els.myHousePanel.classList.contains("is-hidden")) renderMyHouse();
+  if (els.labInteriorScreen && !els.labInteriorScreen.classList.contains("is-hidden")) renderLabInterior();
+
+  state.exchange.storyLabCapture = {
+    ownedId: ownedMonster.ownedId,
+    characterId: character.character_id,
+    name: character.name || character.character_id,
+    storage,
+  };
+  return state.exchange.storyLabCapture;
 }
 
 function renderStoryVictoryExchangeChoice() {
@@ -5551,6 +6618,7 @@ async function executeAction(action) {
     if (result.damage > 0) {
       flashSprite(targetSide);
       pushLog(`${target.name}に ${result.damage} ダメージ！${result.effectText}`);
+      clearSleepOnAttackDamage(target);
     } else {
       pushLog(result.effectText.trim());
     }
@@ -6103,6 +7171,14 @@ function applyEnergyEffect(effect, target) {
   addTimedStatusEffect(effect, target);
 }
 
+function clearSleepOnAttackDamage(target) {
+  if (!target?.statuses?.some((status) => status.id === "sleep")) return;
+  target.statuses = target.statuses.filter((status) => status.id !== "sleep");
+  if (target.hp > 0) {
+    pushLog(`${target.name}は目を覚ました！`);
+  }
+}
+
 function addTimedStatusEffect(effect, target) {
   const current = target.statuses.find((status) => status.id === effect.effect_id);
   if (current) {
@@ -6375,6 +7451,7 @@ async function resolveDelayedBattleEffects() {
       if (result.damage > 0) {
         flashSprite(side);
         pushLog(`${target.name}に ${result.damage} ダメージ！${result.effectText}`);
+        clearSleepOnAttackDamage(target);
       } else {
         pushLog(result.effectText.trim());
       }
@@ -6459,7 +7536,7 @@ async function endRound() {
     await handleFaint(side);
     if (state.gameOver || state.pendingSwitchSide) return;
 
-    const regenValue = Math.max(0, fighter.base.regen_value || 0);
+    const regenValue = effectiveRegenValue(fighter);
     if (!fighter.fainted && regenValue > 0 && fighter.hp < fighter.maxHp) {
       const beforeHp = fighter.hp;
       fighter.hp = Math.min(fighter.maxHp, fighter.hp + regenValue);
@@ -6484,6 +7561,12 @@ function effectiveEnergyCharge(fighter) {
   const baseCharge = Math.max(0, fighter?.base?.energy_charge || 0);
   const modifier = fighterEnergyChargeModifier(fighter);
   return Math.max(0, baseCharge + modifier);
+}
+
+function effectiveRegenValue(fighter) {
+  const baseRegen = Math.max(0, fighter?.base?.regen_value || 0);
+  const modifier = fighter?.statMods?.regen_value || 0;
+  return Math.max(0, Math.round(baseRegen + modifier));
 }
 
 function fighterEnergyChargeModifier(fighter) {
@@ -6523,6 +7606,9 @@ async function handleFaint(side) {
 
   fighter.hp = 0;
   fighter.fainted = true;
+  if (side === "enemy") {
+    state.story.lastDefeatedEnemyId = fighter.id;
+  }
   clearPendingSkill(fighter);
   fighter.battleEffects = fighter.battleEffects.filter(
     (effect) => !TWO_TURN_BATTLE_EFFECT_IDS.has(effect.id),
@@ -6555,13 +7641,13 @@ function finishBattle(winner) {
   state.pendingSwitchSide = null;
   state.battleWinner = winner;
   state.battleAnimation = null;
-  const canShowVictoryExchange = winner === "player" && !state.story.currentArenaBattleId;
-  state.commandMode = canShowVictoryExchange ? "exchange" : "fight";
+  const canShowVictoryResult = winner === "player" && !state.story.currentArenaBattleId;
+  state.commandMode = canShowVictoryResult ? "exchange" : "fight";
   state.exchange = createExchangeState();
-  if (canShowVictoryExchange && state.story.currentRankBattleId) {
-    state.exchange.storyDecision = "choice";
-  }
   pushLog(winner === "player" ? "勝負に勝った！" : "目の前が真っ暗になった...");
+  if (winner !== "player") {
+    scheduleGameOverReturnToTitle();
+  }
 }
 
 function finalizeStoryBattleVictory(rankBattleId) {
@@ -6569,6 +7655,7 @@ function finalizeStoryBattleVictory(rankBattleId) {
   state.story.currentRankBattleId = null;
   state.story.currentArenaBattleId = null;
   state.story.pendingRankBattleId = null;
+  state.story.lastDefeatedEnemyId = null;
   resetRankBattleRuntimeState();
   saveGameData();
   hideRankBattleConfirm();
@@ -6580,6 +7667,7 @@ function finalizeArenaBattleVictory(rankBattleId) {
   state.story.currentRankBattleId = null;
   state.story.currentArenaBattleId = null;
   state.story.pendingRankBattleId = null;
+  state.story.lastDefeatedEnemyId = null;
   state.story.selectedArenaEntranceId = null;
   state.story.selectedArenaBattleId = null;
   resetRankBattleRuntimeState();
@@ -6592,6 +7680,7 @@ function returnToArenaAfterBattle() {
   state.story.currentRankBattleId = null;
   state.story.currentArenaBattleId = null;
   state.story.pendingRankBattleId = null;
+  state.story.lastDefeatedEnemyId = null;
   resetRankBattleRuntimeState();
   hideArenaBattleConfirm({ clearSelection: true, focus: false });
   void showArena();
