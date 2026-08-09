@@ -26,7 +26,7 @@ dragon_weak_up,龍耐性down,resistance,none,25,5,TRUE,weak_dragon
 dragon_weak_down,龍耐性up,resistance,none,25,5,TRUE,weak_dragon
 heal_hp1,体力回復,heal,percent_maxhp,300,0,TRUE,hp
 heal_hp2,体力回復,heal,percent_maxhp,250,0,TRUE,hp
-heal_hp3,体力回復,heal,percent_maxhp,0,0,TRUE,hp
+heal_hp3,体力回復,heal,percent_maxhp,150,0,TRUE,hp
 heal_hp4,体力回復,heal,percent_maxhp,0,0,TRUE,hp
 heal_hp5,体力回復,heal,percent_maxhp,0,0,TRUE,hp
 heal_en,EN回復,heal,none,2,0,TRUE,en
