@@ -14,6 +14,7 @@ paralysis,麻痺,control,none,0,2,FALSE,none
 sleep,睡眠,control,none,0,2,FALSE,none
 burn,火やられ,damage,percent_maxhp,15,5,TRUE,none
 wind,竜巻,damage,percent_maxhp,15,3,TRUE,none
+blood,裂傷,damage,percent_maxhp,25,1,TRUE,none
 fire_weak_up,火耐性down,resistance,none,25,5,TRUE,weak_fire
 fire_weak_down,火耐性up,resistance,none,25,5,TRUE,weak_fire
 water_weak_up,水耐性down,resistance,none,25,5,TRUE,weak_water

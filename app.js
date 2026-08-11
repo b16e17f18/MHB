@@ -7526,7 +7526,11 @@ async function endRound() {
       if (status.group === "damage" && status.damageType === "percent_maxhp") {
         const damage = Math.max(1, Math.round(fighter.maxHp * (status.damageValue / 100)));
         fighter.hp = Math.max(0, fighter.hp - damage);
-        pushLog(`${fighter.name}は${status.name}で ${damage} ダメージ。`);
+        if (status.id === "blood") {
+          pushLog(`${fighter.name}は多量出血した！ ${damage} ダメージ。`);
+        } else {
+          pushLog(`${fighter.name}は${status.name}で ${damage} ダメージ。`);
+        }
         await pause(420);
       }
       status.turns -= 1;
