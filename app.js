@@ -224,6 +224,16 @@ const STAT_LABELS = {
 };
 
 const STAT_MOD_KEYS = ["phy_atk", "phy_def", "sp_atk", "sp_def", "speed", "regen_value"];
+const STAT_MOD_DISPLAY_STEP_UNITS = {
+  up: {
+    default: 10,
+    regen_value: 35,
+  },
+  down: {
+    default: 15,
+    regen_value: 35,
+  },
+};
 
 const GENERATED_SKILLS = {
   basic_strike: {
@@ -4508,8 +4518,10 @@ function resistanceSummaryText(character) {
 }
 
 function statModifierLabel(stat, value) {
-  const steps = Math.min(4, Math.max(1, Math.round(Math.abs(value) / 25)));
   const marker = value > 0 ? "△" : "▼";
+  const direction = value > 0 ? "up" : "down";
+  const unit = STAT_MOD_DISPLAY_STEP_UNITS[direction]?.[stat] ?? STAT_MOD_DISPLAY_STEP_UNITS[direction]?.default ?? 25;
+  const steps = Math.min(4, Math.max(1, Math.round(Math.abs(value) / unit)));
   return `${STAT_LABELS[stat] ?? stat}${marker.repeat(steps)}`;
 }
 
@@ -4521,7 +4533,7 @@ function statusDisplayLabel(status) {
 function resistanceStatusLabel(status) {
   const match = safeText(status?.name).match(/^(.+耐性)(up|down)$/i);
   if (!match) return "";
-  return `${match[1]}${match[2].toLowerCase() === "up" ? "△" : "▼"}`;
+  return `${match[1]} ${match[2].toLowerCase() === "up" ? "+" : "-"}`;
 }
 
 function fighterStatusEntries(fighter) {
