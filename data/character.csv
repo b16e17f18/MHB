@@ -52,6 +52,6 @@ character_047,ウカムルバス,825,390,375,240,240,120,70,2,4,150,50,100,25,50
 character_036,ミラボレアス,1200,475,425,425,425,95,35,2,5,100,100,50,100,150,dragon,skill_001,skill_018,skill_050,skill_055,character_036.png,#ffffff,8,-150,0,elder_dragon,998,patient
 character_048,アルバトリオン,999,400,400,440,360,99,35,2,5,50,100,50,50,50,dragon,skill_049,skill_035,skill_020,skill_075,character_048.png,#ffffff,8,,10,elder_dragon,999,patient
 character_053,ホロロホルル,580,240,280,280,320,180,105,2,2,100,150,100,50,50,none,skill_001,skill_077,skill_067,skill_076,character_053.png,#ffffff,8,,,bird_wyvern,6,balanced
-character_054,セルレギオス,595,345,285,145,280,330,70,2,2,50,100,150,100,50,none,skill_079,skill_077,skill_010,skill_078,character_054.png,#ffffff,8,,,flying_wyvern,62,balanced
-character_055,ゲネル・セルタス,555,305,350,285,235,70,70,1,2,150,25,50,100,25,water,skill_001,skill_026,skill_015,skill_080,character_055.png,#ffffff,8,,,carapaceon,23,balanced
+character_054,セルレギオス,595,330,280,145,280,330,70,1,2,50,100,150,100,50,none,skill_001,skill_023,skill_079,skill_078,character_054.png,#ffffff,8,,,flying_wyvern,62,balanced
+character_055,ゲネル・セルタス,555,305,340,285,235,70,70,1,2,150,25,50,100,25,water,skill_001,skill_026,skill_015,skill_080,character_055.png,#ffffff,8,,,carapaceon,23,balanced
 character_056,バルファルク,799,345,299,299,299,499,70,2,4,150,150,150,150,25,dragon,skill_097,skill_050,skill_098,skill_099,character_056.png,#ffffff,8,,,elder_dragon,206,patient
