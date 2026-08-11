@@ -42,7 +42,7 @@ skill_040,氷ブレス,attack,80,ice,special,normal,speed_down,enemy,50,none,ene
 skill_041,激昂,status,0,thunder,none,normal,phy_atk_up,enemy,100,phy_def_up,enemy,100,sp_def_up,enemy,100,none,0,none,0,self,0,1,物理攻撃と物理防御と特殊防御が10%upする。,attack_beat01,1250,1,,,
 skill_042,龍ブレス,attack,100,dragon,special,normal,sp_atk_down,enemy,100,dragon_weak_up,enemy,100,none,enemy,0,none,0,none,0,enemy,0,3,相手の特殊攻撃を15%downさせる。相手の龍耐性を25%downさせる。,magic_holy02,750,1,,,
 skill_043,竜の牙,attack,60,dragon,physical,guard_break,sp_atk_down,enemy,25,none,enemy,0,none,enemy,0,none,0,none,0,enemy,0,1,25％の確率で相手の特殊攻撃を15%downさせる。相手はダメージをcutできない。,attack_spear01,500,1,,,
-skill_044,ソニックブラスト,attack,140,none,physical,ground_wave,phy_def_down,enemy,100,none,enemy,0,none,enemy,0,charge_attack,100,none,0,enemy,0,2,1ターン目に溜め、2ターン目に攻撃する。相手の物理防御を15%downさせる。相手が地中にいても技が命中する。,magic_sonicwave01,50,10,,,
+skill_044,ソニックブラスト,attack,140,none,physical,guard_break,phy_def_down,enemy,100,none,enemy,0,none,enemy,0,charge_attack,100,none,0,enemy,0,2,1ターン目に溜め、2ターン目に攻撃する。相手の物理防御を15%downさせる。相手はダメージをcutできない。,magic_sonicwave01,50,10,,,
 skill_045,毒ブレス,attack,90,fire,special,normal,poison,enemy,75,none,enemy,0,none,enemy,0,none,0,none,0,enemy,0,2,75％の確率で相手を毒にする。,magic_mist02,750,1,,,
 skill_046,激怒,status,0,fire,none,normal,sp_atk_up,enemy,100,speed_up,enemy,100,none,enemy,0,protect,100,none,0,self,1,2,特殊攻撃と敏捷が10%upする。ダメージを50％cutする。技優先度+1。,attack_beat01,100,5,,,
 skill_047,落雷,attack,70,thunder,special,anti_air,paralysis,enemy,75,none,enemy,0,none,enemy,0,none,0,none,0,enemy,0,2,75％の確率で相手を麻痺にする。相手が上空にいても技が命中する。,magic_lightning01_akira,500,1,,,
