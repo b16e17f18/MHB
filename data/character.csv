@@ -1,7 +1,7 @@
 ﻿character_id,name,hp,phy_atk,phy_def,sp_atk,sp_def,speed,regen_value,cost_charge,slot,weak_fire,weak_water,weak_thunder,weak_ice,weak_dragon,element,skill_1,skill_2,skill_3,skill_4,image,transparent_color,tolerance,render_offset_x,render_offset_y,species_id,display_order,ai_type
 character_001,ドスランポス,420,220,185,70,260,315,105,1,1,100,100,100,100,50,none,skill_001,skill_002,skill_003,skill_004,character_001.png,#ffffff,8,,,bird_wyvern,1,patient
 character_003,ゲリョス,470,230,280,180,190,190,70,2,1,150,100,25,100,50,none,skill_009,skill_007,skill_008,skill_011,character_003.png,#ffffff,8,,,bird_wyvern,2,patient
-character_004,イャンクック,460,235,270,230,180,130,70,1,1,50,50,100,150,50,fire,skill_001,skill_007,skill_010,skill_012,character_004.png,#ffffff,8,,,bird_wyvern,3,balanced
+character_004,イャンクック,460,235,270,230,180,130,70,1,1,50,50,100,150,50,fire,skill_001,skill_007,skill_077,skill_012,character_004.png,#ffffff,8,,,bird_wyvern,3,balanced
 character_010,ドスゲネポス,425,225,185,70,240,320,105,1,1,100,100,150,150,50,none,skill_001,skill_002,skill_003,skill_021,character_010.png,#ffffff,8,,,bird_wyvern,4,aggressive
 character_049,ドスイーオス,430,230,185,105,260,310,105,2,1,50,150,100,100,50,none,skill_001,skill_002,skill_003,skill_008,character_049.png,#ffffff,8,,,bird_wyvern,5,patient
 character_017,イャンガルルガ,525,275,355,265,265,265,70,2,2,50,150,50,100,50,fire,skill_001,skill_007,skill_018,skill_019,character_017.png,#ffffff,8,,,bird_wyvern,7,balanced
@@ -41,7 +41,7 @@ character_045,ザボアザギル,630,260,220,280,390,155,70,1,2,150,50,100,25,50
 character_046,メラルー,250,90,70,70,70,325,105,1,1,25,25,25,25,25,none,skill_072,skill_073,skill_074,,character_046.png,#ffffff,8,,,unknown,131,balanced
 character_051,キングチャチャブー,295,295,105,105,105,295,105,1,1,25,25,25,25,25,none,skill_082,skill_092,skill_012,,character_051.png,#ffffff,8,,,unknown,132,balanced
 character_030,キリン,490,250,365,365,365,440,105,2,2,150,100,25,100,25,thunder,skill_001,skill_035,skill_047,skill_048,character_030.png,#ffffff,8,,,elder_dragon,201,patient
-character_031,ナナテスカトリ,705,370,340,340,340,340,35,1,3,25,100,50,150,100,fire,skill_001,skill_018,skill_049,skill_050,character_031.png,#ffffff,8,,,elder_dragon,202,balanced
+character_031,ナナテスカトリ,705,370,340,340,340,340,35,1,3,25,100,50,150,100,fire,skill_050,skill_018,skill_049,skill_100,character_031.png,#ffffff,8,,,elder_dragon,202,balanced
 character_032,クシャルダオラ,790,355,420,320,320,355,35,1,3,100,100,150,25,150,ice,skill_058,skill_040,skill_050,skill_051,character_032.png,#ffffff,8,,,elder_dragon,203,patient
 character_033,オオナズチ,675,340,390,290,290,290,105,2,3,150,50,50,25,150,dragon,skill_086,skill_008,skill_052,skill_053,character_033.png,#ffffff,8,,,elder_dragon,204,patient
 character_035,テオテスカトル,690,425,360,360,360,360,70,1,4,25,150,50,100,100,fire,skill_054,skill_018,skill_050,skill_084,character_035.png,#ffffff,8,,,elder_dragon,205,patient
