@@ -10,7 +10,7 @@ equip_008,甲殻種の護石,accessory,甲殻種のステータスをUPする。
 equip_009,力の護符,accessory,ステータスをUPする。,0,20,0,0,0,0,0,0,0,0,0,0,0,all,
 equip_010,守の護符,accessory,ステータスをUPする。,20,0,20,0,20,0,0,0,5,5,5,5,5,all,
 equip_011,ランポスの大剛牙,accessory,ドスランポスのステータスが変化する。,40,40,0,-35,0,55,0,0,0,0,0,0,25,bird_wyvern,character_001
-equip_012,大猪の大剛牙,accessory,ドスファンゴのステータスが変化する。,90,60,40,0,-34,0,0,1,0,0,25,0,0,fanged_beast,character_002
+equip_012,大猪の大剛牙,accessory,ドスファンゴのステータスが変化する。,90,60,40,-34,0,0,0,1,0,0,25,0,0,fanged_beast,character_002
 equip_013,怪鳥の重殻,accessory,イャンクックのステータスが変化する。,40,0,50,0,30,-20,0,0,0,25,0,0,0,bird_wyvern,character_004
 equip_014,ニトロダケユニット,accessory,ババコンガのステータスが変化する。,45,0,0,55,0,-25,0,0,25,0,0,0,0,fanged_beast,character_005
 equip_015,錆びた龍鱗,accessory,クシャルダオラのステータスが変化する。,0,15,-100,25,0,15,-35,1,0,0,0,0,25,elder_dragon,character_032
