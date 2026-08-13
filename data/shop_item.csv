@@ -52,7 +52,7 @@ business,shop_entry_205,monster,character_006,0,FALSE,2,battle_f_2,205
 business,shop_entry_206,monster,character_010,0,FALSE,2,battle_e_1,206
 business,shop_entry_207,monster,character_021,70000,FALSE,2,battle_e_2,207
 business,shop_entry_208,monster,character_012,50000,FALSE,1,battle_e_1,208
-business,shop_entry_209,monster,character_022,40000,FALSE,1,battle_b_1,209
+business,shop_entry_209,monster,character_022,40000,FALSE,1,battle_c_2,209
 business,shop_entry_210,monster,character_027,200000,FALSE,1,battle_b_1,210
 business,shop_entry_211,monster,character_037,150000,FALSE,1,arena_g_1,211
 business,shop_entry_212,monster,character_038,100000,FALSE,1,arena_g_1,212
@@ -62,9 +62,11 @@ business,shop_entry_215,monster,character_041,150000,FALSE,1,arena_g_3,215
 business,shop_entry_216,monster,character_042,150000,FALSE,1,arena_g_4,216
 business,shop_entry_217,monster,character_043,100000,FALSE,1,arena_g_4,217
 business,shop_entry_218,monster,character_045,100000,FALSE,1,arena_g_6,218
-business,shop_entry_219,monster,character_046,10000,FALSE,1,arena_g_7,219
-business,shop_entry_220,monster,character_047,250000,FALSE,1,arena_g_7,220
-business,shop_entry_221,monster,character_049,0,FALSE,2,arena_g_6,221
-business,shop_entry_222,monster,character_050,0,FALSE,2,arena_g_3,222
-business,shop_entry_223,monster,character_051,100000,FALSE,2,arena_g_2,223
-business,shop_entry_224,monster,character_052,0,FALSE,2,arena_g_4,224
+business,shop_entry_219,monster,character_054,150000,FALSE,1,arena_g_6,219
+business,shop_entry_220,monster,character_046,10000,FALSE,1,arena_g_7,220
+business,shop_entry_221,monster,character_047,250000,FALSE,1,arena_g_7,221
+business,shop_entry_222,monster,character_049,0,FALSE,2,arena_g_6,222
+business,shop_entry_223,monster,character_050,0,FALSE,2,arena_g_3,223
+business,shop_entry_224,monster,character_051,100000,FALSE,2,arena_g_2,224
+business,shop_entry_225,monster,character_052,0,FALSE,2,arena_g_4,225
+business,shop_entry_226,monster,character_055,150000,FALSE,2,battle_b_2,226

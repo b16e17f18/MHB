@@ -29,7 +29,7 @@ character_027,モノブロス亜種,680,300,350,35,270,270,35,2,2,50,50,100,150,
 character_028,アカムトルム,870,385,250,250,250,125,105,1,4,50,150,100,50,150,none,skill_001,skill_017,skill_026,skill_044,character_028.png,#ffffff,8,,,flying_wyvern,801,patient
 character_029,エスピナス,510,345,345,280,280,200,105,1,2,25,50,50,150,50,fire,skill_001,skill_010,skill_045,skill_046,character_029.png,#ffffff,8,,,flying_wyvern,60,balanced
 character_030,キリン,490,250,365,365,365,440,105,2,2,150,100,25,100,25,thunder,skill_001,skill_035,skill_047,skill_048,character_030.png,#ffffff,8,,,elder_dragon,201,patient
-character_031,ナナテスカトリ,705,370,340,340,340,340,35,2,3,25,100,50,150,100,fire,skill_050,skill_018,skill_049,skill_100,character_031.png,#ffffff,8,,,elder_dragon,202,balanced
+character_031,ナナテスカトリ,705,370,340,340,340,340,35,2,3,25,100,50,150,100,fire,skill_049,skill_018,skill_050,skill_100,character_031.png,#ffffff,8,,,elder_dragon,202,balanced
 character_032,クシャルダオラ,790,355,420,320,320,355,35,1,3,100,100,150,25,150,ice,skill_058,skill_040,skill_050,skill_051,character_032.png,#ffffff,8,,,elder_dragon,203,patient
 character_033,オオナズチ,675,340,390,290,290,290,105,2,3,150,50,50,25,150,dragon,skill_086,skill_008,skill_052,skill_053,character_033.png,#ffffff,8,,,elder_dragon,204,patient
 character_034,ヤマツカミ,950,440,220,220,440,5,70,1,4,100,100,50,150,150,dragon,skill_001,skill_003,skill_050,skill_085,character_034.png,#ffffff,8,-100,90,elder_dragon,301,balanced
