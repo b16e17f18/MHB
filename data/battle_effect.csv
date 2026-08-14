@@ -18,7 +18,7 @@ future_blast8,,,,,,,,,,
 future_blast9,,,,,,,,,,
 protect2,防御態勢(強),guard,none,75,1,TRUE,all_damage,guard_break,75,1
 future_blast_plus,粘菌爆破,delayed_attack,fixed_power,50,2,TRUE,none,none,0,2
-future_blast_plus2,雷玉,delayed_attack,fixed_power,60,1,TRUE,none,none,0,1
+future_blast_plus2,雷光虫弾,delayed_attack,fixed_power,60,1,TRUE,none,none,0,1
 future_blast_plus3,粉塵爆破,delayed_attack,fixed_power,40,1,TRUE,none,none,0,1
 future_blast_plus4,,,,,,,,,,
 future_blast_plus5,,,,,,,,,,
