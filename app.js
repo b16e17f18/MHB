@@ -2291,7 +2291,7 @@ function storyBattleEncyclopediaCharacterIds() {
 function canViewStoryBattleEncyclopedia(characterId) {
   const id = safeText(characterId);
   if (!id) return false;
-  if (!state.story.currentRankBattleId) return true;
+  if (!state.story.currentRankBattleId && !state.story.currentArenaBattleId) return true;
   return storyBattleEncyclopediaCharacterIds().has(id);
 }
 
@@ -4270,7 +4270,7 @@ function renderDexPanel() {
     return;
   }
 
-  const isStoryBattle = Boolean(state.story.currentRankBattleId);
+  const isStoryBattle = Boolean(state.story.currentRankBattleId || state.story.currentArenaBattleId);
   const canViewCharacter = !isStoryBattle || canViewStoryBattleEncyclopedia(character.character_id);
   const dexCharacterName = canViewCharacter ? character.name : "？？？？？";
   const dexCharacterSubtitle = canViewCharacter
