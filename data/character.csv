@@ -21,7 +21,7 @@ character_019,ナルガクルガ,490,290,215,215,320,460,105,2,2,100,50,150,50,5
 character_020,ラギアクルス,700,315,275,310,255,150,70,1,2,150,100,25,100,100,thunder,skill_001,skill_005,skill_024,skill_096,character_020.png,#ffffff,8,,,leviathan,41,balanced
 character_021,ロアルドロス,480,225,190,220,280,160,105,2,1,150,50,100,100,50,water,skill_001,skill_015,skill_026,skill_088,character_021.png,#ffffff,8,,,leviathan,42,aggressive
 character_022,ウラガンキン,540,275,440,255,255,60,70,1,2,25,150,50,100,150,fire,skill_001,skill_026,skill_036,skill_037,character_022.png,#ffffff,8,,,brute_wyvern,81,balanced
-character_023,ジンオウガ,640,305,305,250,250,250,70,1,2,100,100,25,150,50,thunder,skill_056,skill_010,skill_085,skill_038,character_023.png,#ffffff,8,,,fanged_wyvern,91,balanced
+character_023,ジンオウガ,640,305,305,250,250,250,70,1,2,100,100,25,150,50,thunder,skill_056,skill_026,skill_085,skill_038,character_023.png,#ffffff,8,,,fanged_wyvern,91,balanced
 character_024,ベリオロス,540,310,240,270,270,305,35,2,2,150,100,100,25,50,ice,skill_001,skill_004,skill_039,skill_040,character_024.png,#ffffff,8,,,flying_wyvern,58,balanced
 character_025,ラージャン,555,380,300,300,300,220,70,1,2,50,100,25,150,50,thunder,skill_004,skill_024,skill_038,skill_041,character_025.png,#ffffff,8,,,fanged_beast,17,patient
 character_026,イビルジョー,770,365,260,330,220,100,0,2,2,50,100,100,50,150,dragon,skill_046,skill_010,skill_042,skill_043,character_026.png,#ffffff,8,,,brute_wyvern,82,patient
