@@ -10,7 +10,7 @@ equip_008,甲殻種の護石,accessory,甲殻種のステータスをUPする。
 equip_009,力の護符,accessory,ステータスをUPする。,0,20,0,0,0,0,0,0,0,0,0,0,0,all,
 equip_010,守の護符,accessory,ステータスをUPする。,20,0,20,0,20,0,0,0,5,5,5,5,5,all,
 equip_011,ランポスの大剛牙,accessory,ドスランポスのステータスが変化する。,40,40,0,-35,0,55,0,0,0,0,0,0,25,bird_wyvern,character_001
-equip_012,大猪の大剛牙,accessory,ドスファンゴのステータスが変化する。,90,60,40,-34,0,0,0,1,0,0,25,0,0,fanged_beast,character_002
+equip_012,大猪の大剛牙,accessory,ドスファンゴのステータスが変化する。,90,60,40,-35,0,0,0,1,0,0,25,0,0,fanged_beast,character_002
 equip_013,怪鳥の重殻,accessory,イャンクックのステータスが変化する。,40,0,50,0,30,-20,0,0,0,25,0,0,0,bird_wyvern,character_004
 equip_014,ニトロダケユニット,accessory,ババコンガのステータスが変化する。,45,0,0,55,0,-25,0,0,25,0,0,0,0,fanged_beast,character_005
 equip_015,錆びた龍鱗,accessory,クシャルダオラのステータスが変化する。,0,15,-100,25,0,15,-35,1,0,0,0,0,25,elder_dragon,character_032
@@ -19,7 +19,7 @@ equip_017,鬼神手甲,accessory,ラージャンのステータスが変化す�
 equip_018,斬竜の獄炎状殻,accessory,ディノバルドのステータスが変化する。,0,0,40,0,0,15,0,0,0,25,0,0,0,brute_wyvern,character_040
 equip_019,巨獣の重殻,accessory,ガムートのステータスが変化する。,0,0,50,-80,45,-20,0,0,25,0,0,0,0,fanged_beast,character_041
 equip_020,電竜の重棘殻,accessory,ライゼクスのステータスが変化する。,0,0,40,0,40,-10,0,0,0,0,0,0,25,flying_wyvern,character_042
-equip_021,鏖魔の凄惨な角,accessory,ディアブロスのステータスが変化する。,120,45,10,-34,0,-30,-35,0,0,50,0,-50,0,flying_wyvern,character_015
+equip_021,鏖魔の凄惨な角,accessory,ディアブロスのステータスが変化する。,120,45,10,-35,0,-30,-35,0,0,-50,0,50,0,flying_wyvern,character_015
 equip_022,銀火竜の重殻,accessory,リオレウスのステータスが変化する。,0,0,25,60,25,-40,0,0,0,-25,0,0,25,flying_wyvern,character_016
 equip_023,氷結晶,accessory,ザボアザギルのステータスが変化する。,0,20,0,20,0,0,35,0,0,25,0,0,0,amphibian,character_045
 equip_024,オトモ装備,accessory,メラルーのステータスが変化する。,150,60,60,0,80,-95,0,0,5,5,5,5,5,unknown,character_046
