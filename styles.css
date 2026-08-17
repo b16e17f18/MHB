@@ -1686,6 +1686,18 @@ button {
   background: #48c7ff;
 }
 
+.effect-phy-protect {
+  border-color: #111111;
+  background: #ff9d28;
+  color: #111111;
+}
+
+.effect-sp-protect {
+  border-color: #111111;
+  background: #ff8fc7;
+  color: #111111;
+}
+
 .effect-resistance-fire {
   background: #e64234;
 }
@@ -3000,10 +3012,38 @@ button {
 }
 
 .story-location-button:hover,
-.story-location-button:focus-visible {
+.story-location-button:focus-visible,
+.story-location-button.is-label-visible {
   outline: 4px solid #ffe600;
   outline-offset: 2px;
   background: rgba(255, 230, 0, 0.12);
+}
+
+.story-location-button[data-location-label]::after {
+  content: attr(data-location-label);
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 8px);
+  z-index: 8;
+  display: none;
+  min-width: max-content;
+  padding: 2px 5px;
+  transform: translateX(-50%);
+  border: 1px solid #1f1f1f;
+  background: #fffdf7;
+  color: #000;
+  font-family: Arial, "Yu Gothic", Meiryo, sans-serif;
+  font-size: clamp(0.68rem, 1.3vw, 0.8rem);
+  font-weight: 400;
+  line-height: 1.2;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.story-location-button[data-location-label]:hover::after,
+.story-location-button[data-location-label]:focus-visible::after,
+.story-location-button[data-location-label].is-label-visible::after {
+  display: block;
 }
 
 .travel-my-house-button {
@@ -3041,6 +3081,13 @@ button {
   height: 22.7%;
 }
 
+.travel-guide-button {
+  left: 52.7%;
+  top: 44.2%;
+  width: 12%;
+  height: 13%;
+}
+
 .travel-second-map-button {
   left: 38.6%;
   top: 33.3%;
@@ -3055,6 +3102,13 @@ button {
   height: 12.1%;
 }
 
+.travel2-chief-button {
+  left: 36.6%;
+  top: 30%;
+  width: 16.5%;
+  height: 20%;
+}
+
 .travel2-lab-button {
   left: 28.6%;
   top: 63.8%;
@@ -3067,6 +3121,53 @@ button {
   top: 46.8%;
   width: 10.8%;
   height: 13.3%;
+}
+
+.guide-book-button {
+  left: 7.8%;
+  top: 12.5%;
+  width: 30.3%;
+  height: 42%;
+}
+
+.guide-menu-panel {
+  position: absolute;
+  left: 3.4%;
+  top: 3.2%;
+  z-index: 6;
+  display: grid;
+  width: 44.6%;
+  height: 88.2%;
+  padding: 3% 2.8%;
+  gap: 2.6%;
+  background: #4349c9;
+}
+
+.guide-menu-panel.is-hidden {
+  display: none;
+}
+
+.guide-menu-option {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  min-width: 0;
+  min-height: 0;
+  padding: 0 5%;
+  border: 4px solid #91e6ff;
+  border-radius: 0;
+  background: #4349c9;
+  color: #9befff;
+  font-size: clamp(1rem, 3.8vw, 2.1rem);
+  font-weight: 900;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.guide-menu-option:hover,
+.guide-menu-option:focus-visible {
+  background: #5260e6;
+  color: #d9fbff;
 }
 
 .lab-interior-panel {
@@ -3971,11 +4072,18 @@ button {
   height: 25.5%;
 }
 
-.business2-equipment-button {
-  left: 50.3%;
+.business2-change-equipment-button {
+  left: 25.6%;
   top: 23.3%;
-  width: 43%;
-  height: 61.6%;
+  width: 26.5%;
+  height: 50.7%;
+}
+
+.business2-equipment-button {
+  left: 62.3%;
+  top: 43%;
+  width: 27.4%;
+  height: 45.6%;
 }
 
 .my-party-panel {

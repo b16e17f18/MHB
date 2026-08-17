@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>MonsterHunterBreeder</title>
-    <link rel="stylesheet" href="./styles.css?v=20260809-lab-swap-label" />
+    <link rel="stylesheet" href="./styles.css?v=20260816-guard-effects" />
   </head>
   <body>
     <main class="app-shell">
@@ -21,19 +21,21 @@
         <div class="story-main-shell">
           <div id="storyTravelStage" class="story-location-stage">
             <img class="story-location-image" src="./assets/移動画面.png" alt="移動画面" />
-            <button id="travelMyHouseButton" class="story-location-button travel-my-house-button" type="button" aria-label="My House"></button>
-            <button id="travelBusinessButton" class="story-location-button travel-business-button" type="button" aria-label="モンスター取引所"></button>
-            <button id="travelBusiness2Button" class="story-location-button travel-business2-button" type="button" aria-label="工房"></button>
-            <button id="travelArenaButton" class="story-location-button travel-arena-button" type="button" aria-label="Arena"></button>
-            <button id="travelSecondMapButton" class="story-location-button travel-second-map-button" type="button" aria-label="移動画面2へ移動"></button>
-            <button id="travelMainButton" class="story-location-button travel-main-button" type="button" aria-label="メイン画面"></button>
+            <button id="travelMyHouseButton" class="story-location-button travel-my-house-button" type="button" aria-label="My House" data-location-label="MyHouse"></button>
+            <button id="travelBusinessButton" class="story-location-button travel-business-button" type="button" aria-label="モンスター取引所" data-location-label="取引所"></button>
+            <button id="travelBusiness2Button" class="story-location-button travel-business2-button" type="button" aria-label="工房" data-location-label="鍛冶屋"></button>
+            <button id="travelArenaButton" class="story-location-button travel-arena-button" type="button" aria-label="Arena" data-location-label="ARENA"></button>
+            <button id="travelGuideButton" class="story-location-button travel-guide-button" type="button" aria-label="案内人" data-location-label="案内人"></button>
+            <button id="travelSecondMapButton" class="story-location-button travel-second-map-button" type="button" aria-label="移動画面2へ移動" data-location-label="トンネル"></button>
+            <button id="travelMainButton" class="story-location-button travel-main-button" type="button" aria-label="メイン画面" data-location-label="集会場"></button>
           </div>
           <button id="travelBackButton" class="small-button story-back-button" type="button">タイトルへ戻る</button>
 
           <div id="storyTravel2Stage" class="story-location-stage is-hidden">
             <img class="story-location-image" src="./assets/移動画面2.png" alt="移動画面2" />
-            <button id="travel2BackTunnelButton" class="story-location-button travel2-back-tunnel-button" type="button" aria-label="移動画面へ移動"></button>
-            <button id="travel2LabButton" class="story-location-button travel2-lab-button" type="button" aria-label="LABへ移動"></button>
+            <button id="travel2ChiefButton" class="story-location-button travel2-chief-button" type="button" aria-label="村長宅へ移動" data-location-label="村長宅"></button>
+            <button id="travel2BackTunnelButton" class="story-location-button travel2-back-tunnel-button" type="button" aria-label="移動画面へ移動" data-location-label="トンネル"></button>
+            <button id="travel2LabButton" class="story-location-button travel2-lab-button" type="button" aria-label="LABへ移動" data-location-label="研究所"></button>
           </div>
 
           <div id="storyMainStage" class="story-main-stage">
@@ -41,7 +43,7 @@
             <button id="storyMyPartyButton" class="story-rank-button story-my-party-button" type="button" aria-label="My Party"></button>
             <div id="storyRankBattleButtons" class="story-rank-battle-buttons"></div>
           </div>
-          <button id="storyBackButton" class="small-button story-back-button" type="button">移動画面へ戻る</button>
+          <button id="storyBackButton" class="small-button story-back-button" type="button">島に戻る</button>
 
           <section id="myPartyPanel" class="my-party-panel is-hidden" aria-label="My Party">
             <div class="my-house-header">
@@ -62,7 +64,7 @@
 
           <div id="businessScreen" class="story-location-stage story-room-stage is-hidden">
             <img class="story-location-image" src="./assets/business.png" alt="モンスター取引所" />
-            <button id="businessBackButton" class="small-button story-room-back-button" type="button">移動画面へ戻る</button>
+            <button id="businessBackButton" class="small-button story-room-back-button" type="button">島に戻る</button>
             <button id="businessBookButton" class="story-location-button business-hotspot business-book-button" type="button" aria-label="図鑑の購入"></button>
             <button id="businessMonsterButton" class="story-location-button business-hotspot business-monster-button" type="button" aria-label="モンスターの取引"></button>
             <section id="businessShopPanel" class="business-shop-panel is-hidden" aria-label="モンスター取引所">
@@ -84,7 +86,8 @@
 
           <div id="business2Screen" class="story-location-stage story-room-stage is-hidden">
             <img class="story-location-image" src="./assets/business2.png" alt="工房" />
-            <button id="business2BackButton" class="small-button story-room-back-button" type="button">移動画面へ戻る</button>
+            <button id="business2BackButton" class="small-button story-room-back-button" type="button">島に戻る</button>
+            <button id="business2ChangeEquipmentButton" class="story-location-button business-hotspot business2-change-equipment-button" type="button" aria-label="装備を変更"></button>
             <button id="business2EquipmentButton" class="story-location-button business-hotspot business2-equipment-button" type="button" aria-label="装備アイテム購入"></button>
           </div>
 
@@ -104,7 +107,7 @@
 
           <div id="labScreen" class="story-location-stage story-room-stage is-hidden">
             <img class="story-location-image" src="./assets/LAB.png" alt="LAB" />
-            <button id="labBackButton" class="small-button story-room-back-button" type="button">移動画面2へ戻る</button>
+            <button id="labBackButton" class="small-button story-room-back-button" type="button">島に戻る</button>
             <button id="labEntranceButton" class="story-location-button lab-entrance-button" type="button" aria-label="LAB内へ移動"></button>
           </div>
 
@@ -127,9 +130,26 @@
             <button id="labInteriorBackButton" class="small-button story-room-back-button" type="button">エントランスに戻る</button>
           </div>
 
+          <div id="guideHouseScreen" class="story-location-stage story-room-stage guide-house-screen is-hidden">
+            <img class="story-location-image" src="./assets/案内人の家.png" alt="案内人の家" />
+            <button id="guideHouseBackButton" class="small-button story-room-back-button" type="button">島に戻る</button>
+            <button id="guideBookButton" class="story-location-button guide-book-button" type="button" aria-label="案内人の本"></button>
+            <section id="guideMenuPanel" class="guide-menu-panel is-hidden" aria-label="案内人メニュー">
+              <button class="guide-menu-option" type="button" data-guide-dialogue-id="guide_welcome1">ヨシモ島について</button>
+              <button class="guide-menu-option" type="button" data-guide-dialogue-id="guide_rank1">集会場について</button>
+              <button class="guide-menu-option" type="button" data-guide-dialogue-id="guide_party1">使役について</button>
+              <button class="guide-menu-option" type="button" data-guide-dialogue-id="guide_arena1">ARENAについて</button>
+            </section>
+          </div>
+
+          <div id="chiefHouseScreen" class="story-location-stage story-room-stage chief-house-screen is-hidden">
+            <img class="story-location-image" src="./assets/村長宅.png" alt="村長宅" />
+            <button id="chiefHouseBackButton" class="small-button story-room-back-button" type="button">島に戻る</button>
+          </div>
+
           <div id="myHouseScreen" class="story-location-stage story-room-stage is-hidden">
             <img class="story-location-image" src="./assets/MyHouse.png" alt="My House" />
-            <button id="myHouseScreenBackButton" class="small-button story-room-back-button" type="button">移動画面へ戻る</button>
+            <button id="myHouseScreenBackButton" class="small-button story-room-back-button" type="button">島に戻る</button>
             <button id="myHouseSaveLoadButton" class="story-location-button my-house-hotspot my-house-save-load-button" type="button" aria-label="セーブとロード"></button>
             <button id="myHouseBookButton" class="story-location-button my-house-hotspot my-house-books-hotspot-button" type="button" aria-label="図鑑"></button>
             <button id="myHousePartyButton" class="story-location-button my-house-hotspot my-house-party-button" type="button" aria-label="所持モンスターと装備"></button>
@@ -276,7 +296,7 @@
       </div>
     </main>
 
-    <script src="./data-inline.js?v=20260811-character-offline"></script>
-    <script src="./app.js?v=20260814-arena-dex-lock"></script>
+    <script src="./data-inline.js?v=20260817-stun-wish"></script>
+    <script src="./app.js?v=20260817-stun-wish"></script>
   </body>
 </html>

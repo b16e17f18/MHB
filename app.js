@@ -94,6 +94,17 @@ const BUSINESS2_SHOP_ID = "business2";
 const DIALOGUE_DATA_DIRECTORY = "./data/dialogue";
 const NPC_IMAGE_DIRECTORY = "./assets/npc_image";
 const DIALOGUE_WINDOW_IMAGE = "./assets/dialogue_window.png";
+const DIALOGUE_CONDITION_ALWAYS = "always";
+const DIALOGUE_CONDITION_BATTLE_AVAILABLE = "battle_available";
+const DIALOGUE_CONDITION_BATTLE_CLEARED = "battle_cleared";
+const STORY_LOCATION_TAP_LABEL_MS = 700;
+const NPC_DEFAULT_DIALOGUE_IDS = {
+  guide: "guide_welcome1",
+  merchant: "merchant_welcome",
+  blacksmith: "blacksmith_welcome",
+  battlemaster: "battlemaster_welcome",
+  chief: "chief_welcome",
+};
 const SHOP_ITEM_FILTER_BOOK = "book";
 const SHOP_ITEM_FILTER_MONSTER = "monster";
 const SHOP_ITEM_FILTER_EQUIPMENT = "equipment";
@@ -169,6 +180,8 @@ const DELAYED_ATTACK_SETUP_ONLY_EFFECT_IDS = new Set([
   "future_blast8",
   "future_blast9",
 ]);
+const STUN_BATTLE_EFFECT_ID = "stun";
+const DELAYED_HEAL_BATTLE_EFFECT_GROUP = "delayed_heal";
 const BATTLE_MESSAGE_DURATION = 1400;
 const BATTLE_TEXT_SPEED_SCALE = 2;
 const ANIMATION_FRAME_WIDTH = 250;
@@ -286,22 +299,29 @@ class DialogueManager {
   constructor() {
     this.npcs = new Map();
     this.dialogues = new Map();
+    this.dialoguesById = new Map();
     this.elements = {};
     this.active = false;
     this.resolveClose = null;
     this.previousFocus = null;
+    this.currentNpcId = "";
+    this.currentDialogueId = "";
+    this.startDialogueId = "";
+    this.visitedDialogueIds = new Set();
+    this.onComplete = null;
     this.boundKeydown = (event) => this.handleKeydown(event);
   }
 
   mount(elements) {
     this.elements = elements;
-    this.elements.overlay?.addEventListener("click", () => this.close());
+    this.elements.overlay?.addEventListener("click", () => this.advanceOrClose());
     document.addEventListener("keydown", this.boundKeydown, true);
   }
 
   async load(npcText) {
     this.npcs.clear();
     this.dialogues.clear();
+    this.dialoguesById.clear();
 
     const npcs = rowsFromCsv(npcText)
       .map(normalizeNpc)
@@ -326,7 +346,15 @@ class DialogueManager {
       const { npc, text } = result.value;
       for (const dialogue of rowsFromCsv(text).map((row) => normalizeDialogue(row, npc.npc_id))) {
         if (dialogue.dialogue_id) {
+          if (this.dialoguesById.has(dialogue.dialogue_id)) {
+            console.warn("[Dialogue] duplicate dialogue_id skipped", {
+              dialogueId: dialogue.dialogue_id,
+              npcId: dialogue.npc_id,
+            });
+            continue;
+          }
           this.dialogues.set(this.dialogueKey(dialogue.npc_id, dialogue.dialogue_id), dialogue);
+          this.dialoguesById.set(dialogue.dialogue_id, dialogue);
         }
       }
     }
@@ -336,9 +364,13 @@ class DialogueManager {
     return `${safeText(npcId)}:${safeText(dialogueId)}`;
   }
 
-  show(npcId, dialogueId) {
-    const npc = this.npcs.get(safeText(npcId));
-    const dialogue = this.dialogues.get(this.dialogueKey(npcId, dialogueId));
+  show(npcId, dialogueId, options = {}) {
+    const normalizedNpcId = safeText(npcId);
+    const normalizedDialogueId = safeText(dialogueId);
+    const dialogue =
+      this.dialoguesById.get(normalizedDialogueId) ||
+      this.dialogues.get(this.dialogueKey(normalizedNpcId, normalizedDialogueId));
+    const npc = this.npcs.get(dialogue?.npc_id || normalizedNpcId);
     if (!npc || !dialogue || !this.elements.overlay) {
       return Promise.resolve(false);
     }
@@ -346,6 +378,24 @@ class DialogueManager {
     this.close({ silent: true });
     this.active = true;
     this.previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    this.currentNpcId = dialogue.npc_id;
+    this.currentDialogueId = dialogue.dialogue_id;
+    this.startDialogueId = dialogue.dialogue_id;
+    this.visitedDialogueIds = new Set([dialogue.dialogue_id]);
+    this.onComplete = typeof options.onComplete === "function" ? options.onComplete : null;
+
+    this.renderDialogue(dialogue);
+    this.elements.overlay.classList.remove("is-hidden");
+    this.elements.overlay.focus({ preventScroll: true });
+
+    return new Promise((resolve) => {
+      this.resolveClose = resolve;
+    });
+  }
+
+  renderDialogue(dialogue) {
+    const npc = this.npcs.get(dialogue?.npc_id);
+    if (!npc || !dialogue) return false;
 
     if (this.elements.portrait) {
       this.elements.portrait.src = npcImagePath(npc.image);
@@ -357,17 +407,45 @@ class DialogueManager {
     if (this.elements.windowFrame) {
       this.elements.windowFrame.src = DIALOGUE_WINDOW_IMAGE;
     }
-
-    this.elements.overlay.classList.remove("is-hidden");
-    this.elements.overlay.focus({ preventScroll: true });
-
-    return new Promise((resolve) => {
-      this.resolveClose = resolve;
-    });
+    return true;
   }
 
-  close({ silent = false } = {}) {
+  advanceOrClose() {
+    if (!this.active) return;
+    const current = this.dialoguesById.get(this.currentDialogueId);
+    const nextId = safeText(current?.next_id);
+    if (!nextId) {
+      this.close({ completed: true });
+      return;
+    }
+    if (this.visitedDialogueIds.has(nextId)) {
+      console.warn("[Dialogue] circular next_id detected", {
+        dialogueId: this.currentDialogueId,
+        nextId,
+      });
+      this.close();
+      return;
+    }
+
+    const nextDialogue = this.dialoguesById.get(nextId);
+    if (nextDialogue) {
+      this.visitedDialogueIds.add(nextId);
+      this.currentNpcId = nextDialogue.npc_id;
+      this.currentDialogueId = nextId;
+      this.renderDialogue(nextDialogue);
+      return;
+    }
+    console.warn("[Dialogue] next_id not found", {
+      dialogueId: this.currentDialogueId,
+      nextId,
+    });
+    this.close();
+  }
+
+  close({ silent = false, completed = false } = {}) {
     if (!this.active && !this.resolveClose) return;
+    const startDialogueId = this.startDialogueId;
+    const onComplete = this.onComplete;
     this.active = false;
     this.elements.overlay?.classList.add("is-hidden");
     if (this.elements.text) {
@@ -380,10 +458,30 @@ class DialogueManager {
 
     const resolve = this.resolveClose;
     this.resolveClose = null;
+    this.currentNpcId = "";
+    this.currentDialogueId = "";
+    this.startDialogueId = "";
+    this.visitedDialogueIds = new Set();
+    this.onComplete = null;
+    if (completed && startDialogueId) {
+      onComplete?.(startDialogueId);
+    }
     resolve?.(!silent);
     if (!silent) {
       this.previousFocus?.focus?.({ preventScroll: true });
     }
+  }
+
+  getDialogue(dialogueId) {
+    return this.dialoguesById.get(safeText(dialogueId)) ?? null;
+  }
+
+  conditionalStartDialogues(npcId) {
+    const id = safeText(npcId);
+    if (!id) return [];
+    return [...this.dialoguesById.values()].filter((dialogue) =>
+      dialogue.npc_id === id && Boolean(dialogue.condition_type),
+    );
   }
 
   handleKeydown(event) {
@@ -392,7 +490,7 @@ class DialogueManager {
     event.stopPropagation();
     event.stopImmediatePropagation();
     if (event.key === "Enter") {
-      this.close();
+      this.advanceOrClose();
     }
   }
 }
@@ -488,6 +586,7 @@ const state = {
 };
 
 const els = {};
+const storyLocationLabelTimers = new WeakMap();
 let battleMessageTimer = null;
 let gameOverReturnTimer = null;
 let gameDataPromise = null;
@@ -524,6 +623,7 @@ function createSaveData() {
     ownedEquipment: new Map(),
     shopStock: new Map(),
     purchasedShopEntries: new Set(),
+    seenDialogueIds: new Set(),
     nextOwnedMonsterNumber: 1,
     initialMoneyVersion: 1,
     initialPartyVersion: INITIAL_PARTY_VERSION,
@@ -557,8 +657,10 @@ document.addEventListener("DOMContentLoaded", () => {
     travelBusinessButton: document.querySelector("#travelBusinessButton"),
     travelBusiness2Button: document.querySelector("#travelBusiness2Button"),
     travelArenaButton: document.querySelector("#travelArenaButton"),
+    travelGuideButton: document.querySelector("#travelGuideButton"),
     travelSecondMapButton: document.querySelector("#travelSecondMapButton"),
     travel2BackTunnelButton: document.querySelector("#travel2BackTunnelButton"),
+    travel2ChiefButton: document.querySelector("#travel2ChiefButton"),
     travel2LabButton: document.querySelector("#travel2LabButton"),
     travelMainButton: document.querySelector("#travelMainButton"),
     storyBackButton: document.querySelector("#storyBackButton"),
@@ -581,6 +683,7 @@ document.addEventListener("DOMContentLoaded", () => {
     businessMonsterButton: document.querySelector("#businessMonsterButton"),
     business2Screen: document.querySelector("#business2Screen"),
     business2BackButton: document.querySelector("#business2BackButton"),
+    business2ChangeEquipmentButton: document.querySelector("#business2ChangeEquipmentButton"),
     business2EquipmentButton: document.querySelector("#business2EquipmentButton"),
     arenaScreen: document.querySelector("#arenaScreen"),
     arenaBackButton: document.querySelector("#arenaBackButton"),
@@ -606,6 +709,12 @@ document.addEventListener("DOMContentLoaded", () => {
     labDetailOverlay: document.querySelector("#labDetailOverlay"),
     labDetailPanel: document.querySelector("#labDetailPanel"),
     labInteriorBackButton: document.querySelector("#labInteriorBackButton"),
+    guideHouseScreen: document.querySelector("#guideHouseScreen"),
+    guideHouseBackButton: document.querySelector("#guideHouseBackButton"),
+    guideBookButton: document.querySelector("#guideBookButton"),
+    guideMenuPanel: document.querySelector("#guideMenuPanel"),
+    chiefHouseScreen: document.querySelector("#chiefHouseScreen"),
+    chiefHouseBackButton: document.querySelector("#chiefHouseBackButton"),
     businessShopPanel: document.querySelector("#businessShopPanel"),
     businessShopBackButton: document.querySelector("#businessShopBackButton"),
     businessShopTitle: document.querySelector("#businessShopTitle"),
@@ -682,13 +791,17 @@ document.addEventListener("DOMContentLoaded", () => {
 function bindEvents() {
   els.storyModeButton.addEventListener("click", startStoryMode);
   els.battleModeButton.addEventListener("click", showBattleSetup);
+  els.storyTravelStage?.addEventListener("pointerdown", handleStoryLocationLabelPointerDown);
+  els.storyTravel2Stage?.addEventListener("pointerdown", handleStoryLocationLabelPointerDown);
   els.travelBackButton?.addEventListener("click", showTitleView);
   els.travelMyHouseButton?.addEventListener("click", showMyHouse);
   els.travelBusinessButton?.addEventListener("click", showBusinessShop);
   els.travelBusiness2Button?.addEventListener("click", showBusiness2);
   els.travelArenaButton?.addEventListener("click", showArena);
+  els.travelGuideButton?.addEventListener("click", showGuideHouse);
   els.travelSecondMapButton?.addEventListener("click", showStoryTravel2);
   els.travel2BackTunnelButton?.addEventListener("click", showStoryTravel);
+  els.travel2ChiefButton?.addEventListener("click", showChiefHouse);
   els.travel2LabButton?.addEventListener("click", showLab);
   els.travelMainButton?.addEventListener("click", showStoryMain);
   els.storyBackButton.addEventListener("click", showStoryTravel);
@@ -699,6 +812,7 @@ function bindEvents() {
   els.businessBookButton?.addEventListener("click", () => openBusinessShop(SHOP_ITEM_FILTER_BOOK));
   els.businessMonsterButton?.addEventListener("click", () => openBusinessShop(SHOP_ITEM_FILTER_MONSTER));
   els.business2BackButton?.addEventListener("click", leaveBusiness2);
+  els.business2ChangeEquipmentButton?.addEventListener("click", openBusiness2EquipmentChange);
   els.business2EquipmentButton?.addEventListener("click", openBusiness2Shop);
   els.businessShopBackButton?.addEventListener("click", closeBusinessShopPanel);
   els.arenaBackButton?.addEventListener("click", hideArena);
@@ -714,6 +828,10 @@ function bindEvents() {
   els.labLeadButton?.addEventListener("click", handleLabLeadClick);
   els.labDetailOverlay?.addEventListener("click", handleLabDetailOverlayClick);
   els.labInteriorBackButton?.addEventListener("click", showLab);
+  els.guideHouseBackButton?.addEventListener("click", hideGuideHouse);
+  els.guideBookButton?.addEventListener("click", toggleGuideMenu);
+  els.guideMenuPanel?.addEventListener("click", handleGuideMenuClick);
+  els.chiefHouseBackButton?.addEventListener("click", hideChiefHouse);
   document.addEventListener("keydown", handleLabDetailKeydown);
   els.myHouseScreenBackButton?.addEventListener("click", hideMyHouse);
   els.myHouseSaveLoadButton?.addEventListener("click", () => showMyHouseSection("save"));
@@ -795,6 +913,25 @@ function bindEvents() {
   els.restartButton.addEventListener("click", () => {
     returnToSetup();
   });
+}
+
+function handleStoryLocationLabelPointerDown(event) {
+  const button = event.target.closest(".story-location-button[data-location-label]");
+  if (!button || !event.currentTarget.contains(button)) return;
+  showStoryLocationTapLabel(button);
+}
+
+function showStoryLocationTapLabel(button) {
+  button.classList.add("is-label-visible");
+  const previousTimer = storyLocationLabelTimers.get(button);
+  if (previousTimer) {
+    clearTimeout(previousTimer);
+  }
+  const timer = setTimeout(() => {
+    button.classList.remove("is-label-visible");
+    storyLocationLabelTimers.delete(button);
+  }, STORY_LOCATION_TAP_LABEL_MS);
+  storyLocationLabelTimers.set(button, timer);
 }
 
 function showTitleView() {
@@ -883,7 +1020,12 @@ function setStoryStage(stage) {
   els.arenaScreen?.classList.toggle("is-hidden", stage !== "arena");
   els.labScreen?.classList.toggle("is-hidden", stage !== "lab");
   els.labInteriorScreen?.classList.toggle("is-hidden", stage !== "labInterior");
+  els.guideHouseScreen?.classList.toggle("is-hidden", stage !== "guideHouse");
+  els.chiefHouseScreen?.classList.toggle("is-hidden", stage !== "chiefHouse");
   els.myHouseScreen?.classList.toggle("is-hidden", stage !== "myHouse");
+  if (stage !== "guideHouse") {
+    hideGuideMenu();
+  }
 }
 
 function showStoryFrame() {
@@ -967,6 +1109,80 @@ async function showLabInterior({ focus = true } = {}) {
   setStoryStage("labInterior");
   renderLabInterior();
   if (focus) els.labInteriorBackButton?.focus({ preventScroll: true });
+}
+
+async function showGuideHouse({ focus = true } = {}) {
+  if (gameDataPromise) {
+    await gameDataPromise;
+  }
+
+  state.story.active = false;
+  state.shop.open = false;
+  state.shop.confirmEntryId = null;
+  state.shop.exchangeEntryId = null;
+  state.shop.offerOwnedIds = [];
+  clearStoryWalkTimer();
+  hideRankBattleConfirm();
+  els.businessShopPanel?.classList.add("is-hidden");
+  els.myHousePanel?.classList.add("is-hidden");
+  els.myPartyPanel?.classList.add("is-hidden");
+  hideArenaBattleConfirm({ clearSelection: true, focus: false });
+  if (els.arenaMessage) els.arenaMessage.textContent = "";
+  hideGuideMenu();
+  showStoryFrame();
+  setStoryStage("guideHouse");
+  if (focus) els.guideHouseBackButton?.focus({ preventScroll: true });
+}
+
+function hideGuideHouse() {
+  hideGuideMenu();
+  showStoryTravel();
+}
+
+function toggleGuideMenu() {
+  els.guideMenuPanel?.classList.toggle("is-hidden");
+}
+
+function hideGuideMenu() {
+  els.guideMenuPanel?.classList.add("is-hidden");
+}
+
+async function handleGuideMenuClick(event) {
+  const button = event.target.closest("[data-guide-dialogue-id]");
+  if (!button || !els.guideMenuPanel?.contains(button)) return;
+  event.preventDefault();
+  const dialogueId = button.dataset.guideDialogueId;
+  hideGuideMenu();
+  await showDialogue("guide", dialogueId);
+  els.guideBookButton?.focus({ preventScroll: true });
+}
+
+async function showChiefHouse({ focus = true } = {}) {
+  if (gameDataPromise) {
+    await gameDataPromise;
+  }
+
+  state.story.active = false;
+  state.shop.open = false;
+  state.shop.confirmEntryId = null;
+  state.shop.exchangeEntryId = null;
+  state.shop.offerOwnedIds = [];
+  clearStoryWalkTimer();
+  hideRankBattleConfirm();
+  els.businessShopPanel?.classList.add("is-hidden");
+  els.myHousePanel?.classList.add("is-hidden");
+  els.myPartyPanel?.classList.add("is-hidden");
+  hideArenaBattleConfirm({ clearSelection: true, focus: false });
+  if (els.arenaMessage) els.arenaMessage.textContent = "";
+  showStoryFrame();
+  setStoryStage("chiefHouse");
+  if (focus) els.chiefHouseBackButton?.focus({ preventScroll: true });
+  void showDialogue("chief", "chief_welcome");
+}
+
+async function hideChiefHouse() {
+  await showDialogue("chief", "chief_goodbye");
+  showStoryTravel2();
 }
 
 function renderLabInterior() {
@@ -1581,7 +1797,7 @@ async function showBusinessShop() {
   setStoryStage("business");
   els.businessShopPanel?.classList.add("is-hidden");
   els.businessBackButton?.focus({ preventScroll: true });
-  void showDialogue("merchant", "merchant_welcome");
+  void showNpcDialogue("merchant");
 }
 
 async function openBusinessShop(itemFilter) {
@@ -1644,7 +1860,7 @@ async function showBusiness2() {
   setStoryStage("business2");
   els.businessShopPanel?.classList.add("is-hidden");
   els.business2BackButton?.focus({ preventScroll: true });
-  void showDialogue("blacksmith", "blacksmith_welcome");
+  void showNpcDialogue("blacksmith");
 }
 
 async function openBusiness2Shop() {
@@ -1653,6 +1869,7 @@ async function openBusiness2Shop() {
   }
 
   attachBusinessShopPanel(els.business2Screen);
+  hideMyHousePanel({ focus: false });
   state.shop.open = true;
   state.shop.currentShopId = BUSINESS2_SHOP_ID;
   state.shop.itemFilter = SHOP_ITEM_FILTER_EQUIPMENT;
@@ -1664,6 +1881,22 @@ async function openBusiness2Shop() {
   els.businessShopBackButton?.focus({ preventScroll: true });
 }
 
+async function openBusiness2EquipmentChange() {
+  if (gameDataPromise) {
+    await gameDataPromise;
+  }
+
+  attachMyHousePanel(els.business2Screen);
+  state.story.active = false;
+  state.shop.open = false;
+  state.shop.confirmEntryId = null;
+  state.shop.exchangeEntryId = null;
+  state.shop.offerOwnedIds = [];
+  els.businessShopPanel?.classList.add("is-hidden");
+  initializeSaveDataParty({ persist: false });
+  showMyHouseSection("party");
+}
+
 function hideBusiness2({ restoreTravel = true } = {}) {
   state.shop.open = false;
   state.shop.itemFilter = "";
@@ -1671,6 +1904,7 @@ function hideBusiness2({ restoreTravel = true } = {}) {
   state.shop.exchangeEntryId = null;
   state.shop.offerOwnedIds = [];
   els.businessShopPanel?.classList.add("is-hidden");
+  hideMyHousePanel({ focus: false });
   if (restoreTravel) showStoryTravel();
 }
 
@@ -1681,6 +1915,7 @@ async function leaveBusiness2() {
   state.shop.exchangeEntryId = null;
   state.shop.offerOwnedIds = [];
   els.businessShopPanel?.classList.add("is-hidden");
+  hideMyHousePanel({ focus: false });
   await showDialogue("blacksmith", "blacksmith_goodbye");
   showStoryTravel();
 }
@@ -1703,6 +1938,13 @@ function attachBusinessShopPanel(container) {
   if (!container || !els.businessShopPanel) return;
   if (els.businessShopPanel.parentElement !== container) {
     container.appendChild(els.businessShopPanel);
+  }
+}
+
+function attachMyHousePanel(container) {
+  if (!container || !els.myHousePanel) return;
+  if (els.myHousePanel.parentElement !== container) {
+    container.appendChild(els.myHousePanel);
   }
 }
 
@@ -1900,7 +2142,7 @@ function renderRankBattleUnlockShopItems(rankBattleId) {
 
   return `
     <div class="arena-shop-unlock-section">
-      <div class="arena-shop-unlock-title">\u89e3\u653e\u3055\u308c\u308b\u5546\u54c1</div>
+      <div class="arena-shop-unlock-title">\u89e3\u653e\u3055\u308c\u308b\u30e9\u30a4\u30bb\u30f3\u30b9</div>
       <div class="arena-shop-unlock-list">
         ${items.map(renderRankBattleUnlockShopItem).join("")}
       </div>
@@ -2008,8 +2250,81 @@ function warnArenaDataMissing(details) {
   });
 }
 
-function showDialogue(npcId, dialogueId) {
-  return dialogueManager.show(npcId, dialogueId);
+function showDialogue(npcId, dialogueId, options = {}) {
+  return dialogueManager.show(npcId, dialogueId, options);
+}
+
+function markDialogueSeenOnComplete(dialogueId) {
+  const id = safeText(dialogueId);
+  const dialogue = dialogueManager.getDialogue(id);
+  if (!id || !dialogue?.once || state.saveData.seenDialogueIds.has(id)) return;
+  state.saveData.seenDialogueIds.add(id);
+  markUnsavedChanges();
+  saveGameData();
+}
+
+function dialogueConditionMatches(dialogue) {
+  const conditionType = safeText(dialogue?.condition_type).toLowerCase();
+  const conditionValue = safeText(dialogue?.condition_value);
+  if (!conditionType) return false;
+  if (conditionType === DIALOGUE_CONDITION_ALWAYS) return true;
+  if (!conditionValue) return false;
+  if (conditionType === DIALOGUE_CONDITION_BATTLE_AVAILABLE) {
+    return isStoryRankBattleUnlocked(conditionValue) && !isStoryRankBattleCleared(conditionValue);
+  }
+  if (conditionType === DIALOGUE_CONDITION_BATTLE_CLEARED) {
+    return isStoryRankBattleCleared(conditionValue);
+  }
+  console.warn("[Dialogue] unknown condition_type", {
+    dialogueId: dialogue?.dialogue_id,
+    conditionType,
+  });
+  return false;
+}
+
+function selectNpcConditionalDialogue(npcId, options = {}) {
+  const conditionType = safeText(options.conditionType).toLowerCase();
+  const conditionValue = safeText(options.conditionValue);
+  const candidates = dialogueManager.conditionalStartDialogues(npcId)
+    .filter((dialogue) => !conditionType || dialogue.condition_type === conditionType)
+    .filter((dialogue) => !conditionValue || dialogue.condition_value === conditionValue)
+    .filter(dialogueConditionMatches)
+    .sort((a, b) => b.priority - a.priority);
+
+  const selected = candidates[0] ?? null;
+  if (!selected) return null;
+  if (selected.once && state.saveData.seenDialogueIds.has(selected.dialogue_id)) {
+    return null;
+  }
+  return selected;
+}
+
+async function showNpcDialogue(npcId, options = {}) {
+  const selected = selectNpcConditionalDialogue(npcId, options);
+  const fallbackId = safeText(options.fallbackId, NPC_DEFAULT_DIALOGUE_IDS[safeText(npcId)] || "");
+  const fallback = options.allowFallback === false ? null : dialogueManager.getDialogue(fallbackId);
+  const dialogue = selected || fallback;
+  if (!dialogue) return false;
+  return showDialogue(dialogue.npc_id, dialogue.dialogue_id, {
+    onComplete: markDialogueSeenOnComplete,
+  });
+}
+
+function showNpcConditionalDialogue(npcId, options = {}) {
+  return showNpcDialogue(npcId, { ...options, allowFallback: false });
+}
+
+async function showRankBattleVictoryDialogues(rankBattleId) {
+  const id = safeText(rankBattleId);
+  if (!id) return;
+  await showNpcConditionalDialogue("guide", {
+    conditionType: DIALOGUE_CONDITION_BATTLE_CLEARED,
+    conditionValue: id,
+  });
+  await showNpcConditionalDialogue("chief", {
+    conditionType: DIALOGUE_CONDITION_BATTLE_CLEARED,
+    conditionValue: id,
+  });
 }
 
 async function showMyHouse() {
@@ -2017,6 +2332,7 @@ async function showMyHouse() {
     await gameDataPromise;
   }
 
+  attachMyHousePanel(els.myHouseScreen);
   hideBusinessShop({ restoreTravel: false });
   hideBusiness2({ restoreTravel: false });
   initializeSaveDataParty({ persist: false });
@@ -2039,7 +2355,12 @@ function hideMyHousePanel({ focus = true } = {}) {
   state.myHouse.activeSection = null;
   state.myHouse.accessoryEditorOwnedId = null;
   els.myHousePanel?.classList.add("is-hidden");
-  if (focus) els.myHouseScreenBackButton?.focus({ preventScroll: true });
+  if (focus) {
+    const fallbackFocus = els.business2Screen && !els.business2Screen.classList.contains("is-hidden")
+      ? els.business2BackButton
+      : els.myHouseScreenBackButton;
+    fallbackFocus?.focus({ preventScroll: true });
+  }
 }
 
 function showMyHouseSection(section) {
@@ -3951,6 +4272,10 @@ function normalizeDialogue(row, fallbackNpcId = "") {
     npc_id: safeText(row.npc_id, fallbackNpcId),
     text: csvText(row.text),
     next_id: safeText(row.next_id),
+    condition_type: safeText(row.condition_type).toLowerCase(),
+    condition_value: safeText(row.condition_value),
+    priority: number(row.priority),
+    once: parseBoolean(row.once),
   };
 }
 
@@ -4667,6 +4992,7 @@ function createSavePayload() {
     owned_equipment: Object.fromEntries(state.saveData.ownedEquipment),
     shop_stock: Object.fromEntries(state.saveData.shopStock),
     purchased_shop_entries: [...state.saveData.purchasedShopEntries],
+    seen_dialogue_ids: [...state.saveData.seenDialogueIds],
     cleared_battles: clearedBattles,
     cleared_rank_battle_ids: clearedBattles,
     next_owned_monster_number: state.saveData.nextOwnedMonsterNumber,
@@ -4759,6 +5085,13 @@ function normalizeSavePayload(rawData) {
   for (const entryId of purchasedEntries.value) {
     const id = safeText(entryId);
     if (id) nextSaveData.purchasedShopEntries.add(id);
+  }
+
+  const seenDialogueIds = saveArrayField(rawData.seen_dialogue_ids ?? rawData.seenDialogueIds, "seen_dialogue_ids");
+  if (!seenDialogueIds.ok) return seenDialogueIds;
+  for (const dialogueId of seenDialogueIds.value) {
+    const id = safeText(dialogueId);
+    if (id) nextSaveData.seenDialogueIds.add(id);
   }
 
   const stockData = rawData.shop_stock ?? rawData.shopStock;
@@ -5165,6 +5498,11 @@ async function showRankBattleConfirm(rankBattleId) {
     warnArenaDataMissing(details);
     return;
   }
+
+  await showNpcConditionalDialogue("guide", {
+    conditionType: DIALOGUE_CONDITION_BATTLE_AVAILABLE,
+    conditionValue: rankBattleId,
+  });
 
   state.story.pendingRankBattleId = rankBattleId;
   els.storyBattleConfirmLayout?.classList.add("is-rich-confirm");
@@ -6584,6 +6922,13 @@ async function executeAction(action) {
     return;
   }
 
+  const stunText = consumeStunForMoveAction(actor);
+  if (stunText) {
+    pushLog(stunText);
+    await pause(520);
+    return;
+  }
+
   if (!completingTwoTurnMove) {
     actor.energy = clamp(actor.energy - move.cost, 0, actor.maxEnergy);
   }
@@ -7019,7 +7364,7 @@ function dealDamage(attacker, target, move) {
 function applyIncomingBattleEffects(target, damage, move) {
   let adjusted = damage;
   const protect = target.battleEffects
-    .filter((effect) => effect.group === "guard")
+    .filter((effect) => effect.group === "guard" && guardAppliesToMove(effect, move))
     .reduce((best, effect) => {
       if (!best || number(effect.damage_cut) > number(best.damage_cut)) {
         return effect;
@@ -7037,6 +7382,14 @@ function applyIncomingBattleEffects(target, damage, move) {
   }
 
   return adjusted;
+}
+
+function guardAppliesToMove(effect, move) {
+  const guardType = safeText(effect?.guard_type, "all_damage");
+  if (guardType === "all_damage") return true;
+  if (guardType === "phy_damage") return move?.attack_type === "physical";
+  if (guardType === "sp_damage") return move?.attack_type === "special";
+  return true;
 }
 
 function canHitTarget(target, move) {
@@ -7299,7 +7652,16 @@ function applyBattleEffects(move, actor, target, skipEffectIds = null) {
       continue;
     }
 
-    const recipient = actor;
+    if (battleEffect.battle_effect_group === DELAYED_HEAL_BATTLE_EFFECT_GROUP) {
+      const actorSide = sideForActiveFighter(actor);
+      if (!actorSide) continue;
+      addFieldEffect(actorSide, battleEffect);
+      pushLog(battleEffectStartText(actor, battleEffect, actor));
+      appliedBattleEffects.push(battleEffect);
+      continue;
+    }
+
+    const recipient = battleEffect.battle_effect_id === STUN_BATTLE_EFFECT_ID ? target : actor;
     if (!recipient) continue;
     addBattleEffect(recipient, battleEffect);
     pushLog(battleEffectStartText(actor, battleEffect, recipient));
@@ -7362,6 +7724,14 @@ function battleEffectStartText(actor, battleEffect, recipient = actor) {
     return `${actor.name}は${recipient.name}に${battleEffect.name}を仕掛けた！`;
   }
 
+  if (battleEffect.battle_effect_group === DELAYED_HEAL_BATTLE_EFFECT_GROUP) {
+    return `${actor.name}は${battleEffect.name}を用意した！`;
+  }
+
+  if (battleEffect.battle_effect_id === STUN_BATTLE_EFFECT_ID) {
+    return `${recipient.name}はスタンした！`;
+  }
+
   if (battleEffect.battle_effect_id === "protect") {
     return `${actor.name}は防御態勢をとっている！`;
   }
@@ -7388,8 +7758,11 @@ function addBattleEffect(fighter, battleEffect, extra = {}) {
     group: battleEffect.battle_effect_group,
     turns: battleEffect.turn,
     createdTurn: state.turn,
+    damage_type: battleEffect.damage_type,
     damage_value: battleEffect.damage_value,
     damage_cut: battleEffect.damage_cut,
+    guard_type: battleEffect.guard_type,
+    can_move: battleEffect.can_move,
     animation: battleEffect.animation,
     animation_duration_ms: battleEffect.animation_duration_ms,
     ...extra,
@@ -7425,8 +7798,11 @@ function addFieldEffect(side, battleEffect, extra = {}) {
     group: battleEffect.battle_effect_group,
     turns: battleEffect.turn,
     createdTurn: state.turn,
+    damage_type: battleEffect.damage_type,
     damage_value: battleEffect.damage_value,
     damage_cut: battleEffect.damage_cut,
+    guard_type: battleEffect.guard_type,
+    can_move: battleEffect.can_move,
     animation: battleEffect.animation,
     animation_duration_ms: battleEffect.animation_duration_ms,
     ...extra,
@@ -7443,35 +7819,70 @@ function removeFieldEffect(side, effectToRemove) {
 
 async function resolveDelayedBattleEffects() {
   for (const side of ["player", "enemy"]) {
-    if (!activeBySide(side) || activeBySide(side).fainted) continue;
-
     const delayedEffects = fieldEffectsForSide(side).filter(
-      (effect) => effect.group === "delayed_attack" && delayedBattleEffectReady(effect),
+      (effect) =>
+        (effect.group === "delayed_attack" || effect.group === DELAYED_HEAL_BATTLE_EFFECT_GROUP) &&
+        delayedBattleEffectReady(effect),
     );
     for (const effect of delayedEffects) {
-      const target = activeBySide(side);
-      if (!target || target.fainted) break;
-      removeFieldEffect(side, effect);
-      const attacker = delayedEffectAttacker(effect, side);
-      const move = delayedEffectMove(effect);
-      if (!attacker || !move) continue;
-
-      pushLog(`${target.name}に${effect.name}が炸裂した！`);
-      await pause(420);
-      await playSkillAnimation(move, side);
-      const result = dealDamage(attacker, target, move);
-      if (result.damage > 0) {
-        flashSprite(side);
-        pushLog(`${target.name}に ${result.damage} ダメージ！${result.effectText}`);
-        clearSleepOnAttackDamage(target);
+      if (effect.group === DELAYED_HEAL_BATTLE_EFFECT_GROUP) {
+        await resolveDelayedHealEffect(side, effect);
       } else {
-        pushLog(result.effectText.trim());
+        await resolveDelayedAttackEffect(side, effect);
       }
-      await pause(520);
-      await handleFaint(side);
       if (state.gameOver || state.pendingSwitchSide) return;
     }
   }
+}
+
+async function resolveDelayedAttackEffect(side, effect) {
+  const target = activeBySide(side);
+  if (!target || target.fainted) return;
+  removeFieldEffect(side, effect);
+  const attacker = delayedEffectAttacker(effect, side);
+  const move = delayedEffectMove(effect);
+  if (!attacker || !move) return;
+
+  pushLog(`${target.name}に${effect.name}が炸裂した！`);
+  await pause(420);
+  await playSkillAnimation(move, side);
+  const result = dealDamage(attacker, target, move);
+  if (result.damage > 0) {
+    flashSprite(side);
+    pushLog(`${target.name}に ${result.damage} ダメージ！${result.effectText}`);
+    clearSleepOnAttackDamage(target);
+  } else {
+    pushLog(result.effectText.trim());
+  }
+  await pause(520);
+  await handleFaint(side);
+}
+
+async function resolveDelayedHealEffect(side, effect) {
+  const target = activeBySide(side);
+  removeFieldEffect(side, effect);
+  if (!target || target.fainted) return;
+
+  const healAmount = delayedHealAmount(effect, target);
+  const beforeHp = target.hp;
+  target.hp = Math.min(target.maxHp, target.hp + healAmount);
+  const healed = target.hp - beforeHp;
+
+  pushLog(`${effect.name}を食べた！`);
+  await pause(420);
+  if (healed > 0) {
+    pushLog(`${target.name}のHPが ${healed} 回復した！`);
+  } else {
+    pushLog(`${target.name}のHPは満タンだ！`);
+  }
+  await pause(520);
+}
+
+function delayedHealAmount(effect, target) {
+  if (effect.damage_type === "percent_maxhp") {
+    return Math.max(0, Math.round(target.maxHp * ((effect.damage_value || 0) / 100)));
+  }
+  return Math.max(0, Math.round(effect.damage_value || 0));
 }
 
 function delayedBattleEffectReady(effect) {
@@ -7519,11 +7930,19 @@ function blockedByControl(fighter) {
   if (sleep) return `${fighter.name}は眠っている。`;
 
   const paralysis = fighter.statuses.find((status) => status.id === "paralysis");
-  if (paralysis && Math.random() < 0.35) {
+  if (paralysis && Math.random() < 0.5) {
     return `${fighter.name}はしびれて動けない！`;
   }
 
   return "";
+}
+
+function consumeStunForMoveAction(fighter) {
+  if (!fighter?.battleEffects?.some((effect) => effect.id === STUN_BATTLE_EFFECT_ID)) {
+    return "";
+  }
+  removeBattleEffect(fighter, STUN_BATTLE_EFFECT_ID);
+  return `${fighter.name}はスタンして動けない！`;
 }
 
 async function endRound() {
@@ -7602,7 +8021,8 @@ function tickBattleEffectsAfterRound(battleEffects) {
       if (
         effect.group === "position" ||
         effect.group === "charge" ||
-        effect.group === "delayed_attack"
+        effect.group === "delayed_attack" ||
+        effect.id === STUN_BATTLE_EFFECT_ID
       ) {
         return effect;
       }
@@ -7612,6 +8032,7 @@ function tickBattleEffectsAfterRound(battleEffects) {
       effect.group === "position" ||
       effect.group === "charge" ||
       effect.group === "delayed_attack" ||
+      effect.id === STUN_BATTLE_EFFECT_ID ||
       effect.turns > 0
     ));
 }
@@ -7666,8 +8087,9 @@ function finishBattle(winner) {
   }
 }
 
-function finalizeStoryBattleVictory(rankBattleId) {
-  if (!applyRankBattleVictory(rankBattleId)) return;
+async function finalizeStoryBattleVictory(rankBattleId) {
+  const clearedRankBattleId = applyRankBattleVictory(rankBattleId);
+  if (!clearedRankBattleId) return;
   state.story.currentRankBattleId = null;
   state.story.currentArenaBattleId = null;
   state.story.pendingRankBattleId = null;
@@ -7676,6 +8098,7 @@ function finalizeStoryBattleVictory(rankBattleId) {
   saveGameData();
   hideRankBattleConfirm();
   showStoryMain();
+  await showRankBattleVictoryDialogues(clearedRankBattleId);
 }
 
 function finalizeArenaBattleVictory(rankBattleId) {
@@ -8150,6 +8573,8 @@ function effectChipClass(effectId) {
   if (effectId === "paralysis") return "effect-paralysis";
   if (effectId === "poison") return "effect-poison";
   if (effectId === "burn") return "effect-burn";
+  if (effectId === "phy_protect") return "effect-phy-protect";
+  if (effectId === "sp_protect") return "effect-sp-protect";
   const resistanceClass = resistanceEffectChipClass(effectId);
   if (resistanceClass) return resistanceClass;
   if (effectId.endsWith("_up")) return "effect-up";
