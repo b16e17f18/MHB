@@ -21,8 +21,9 @@ arena_g_3,G,異国の竜人族ブリーダー,arena_g_3,70000,arena_g_6,arena_g_
 arena_g_4,G,ベテランブリーダー,arena_g_4,70000,arena_g_5,none,none,none
 arena_g_5,G,地元トップランクブリーダー,arena_g_5,200000,arena_m_1,none,none,none
 arena_g_6,G,異国の商人,arena_g_6,70000,none,none,none,none
-arena_g_7,G,スランプ中のブリーダー,arena_g_7,200000,none,none,none,none
+arena_g_7,G,スランプ中のブリーダー,arena_g_7,200000,arena_x_1,none,none,none
 arena_g_8,G,,arena_g_8,0,none,none,none,none
 arena_g_9,G,,arena_g_9,0,none,none,none,none
-arena_m_1,master,？？？,arena_m_1,0,arena_m_2,none,none,none
-arena_m_2,master,？？？,arena_m_2,0,none,none,none,none
+arena_m_1,master,？？？,arena_m_1,200000,arena_m_2,none,none,none
+arena_m_2,master,？？？,arena_m_2,200000,none,none,none,none
+arena_x_1,X,？？？,arena_x_1,400000,none,none,none,none

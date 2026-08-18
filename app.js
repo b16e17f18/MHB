@@ -1,6 +1,7 @@
 const DATA_PATHS = {
   characters: "./data/character.csv",
   skills: "./data/skill.csv",
+  powerRules: "./data/power_rule.csv",
   battleEffects: "./data/battle_effect.csv",
   effects: "./data/effect.csv",
   hitTypes: "./data/hit_type.csv",
@@ -62,6 +63,7 @@ const STORY_RANK_ORDER_INDEX = new Map(STORY_RANK_ORDER.map((rank, index) => [ra
 const INITIAL_STORY_RANK_BATTLE_IDS = new Set(["battle_f_1", "arena_g_1"]);
 const ARENA_STAGE_AREAS = [
   { id: "G1", left: 3.1, top: 15, width: 18.5, height: 31.8 },
+  { id: "X1", left: 1.2, top: 48.2, width: 16.4, height: 26 },
   { id: "G2", left: 25.5, top: 34.4, width: 16.7, height: 30.1 },
   { id: "G3", left: 19.7, top: 65.9, width: 17.5, height: 30.3 },
   { id: "G4", left: 45.7, top: 4.9, width: 18, height: 28.5 },
@@ -73,6 +75,7 @@ const ARENA_STAGE_AREAS = [
 ];
 const ARENA_BATTLE_MAP = {
   G1: "arena_g_1",
+  X1: "arena_x_1",
   G2: "arena_g_2",
   G3: "arena_g_3",
   G4: "arena_g_4",
@@ -501,6 +504,7 @@ const state = {
   characters: [],
   characterMap: new Map(),
   skills: new Map(),
+  powerRules: new Map(),
   effects: new Map(),
   battleEffects: new Map(),
   hitTypes: new Map(),
@@ -3807,6 +3811,7 @@ async function loadGameData() {
     const [
       characterText,
       skillText,
+      powerRuleText,
       battleEffectText,
       effectText,
       hitTypeText,
@@ -3821,6 +3826,7 @@ async function loadGameData() {
     ] = await Promise.all([
       loadCsvText("characters", DATA_PATHS.characters),
       loadCsvText("skills", DATA_PATHS.skills),
+      loadOptionalCsvText("powerRules", DATA_PATHS.powerRules),
       loadCsvText("battleEffects", DATA_PATHS.battleEffects),
       loadCsvText("effects", DATA_PATHS.effects),
       loadCsvText("hitTypes", DATA_PATHS.hitTypes),
@@ -3849,6 +3855,14 @@ async function loadGameData() {
 
     for (const skill of Object.values(GENERATED_SKILLS)) {
       state.skills.set(skill.skill_id, skill);
+    }
+
+    state.powerRules.clear();
+    for (const powerRule of rowsFromCsv(powerRuleText).map(normalizePowerRule)) {
+      if (!powerRule.power_rule_id || !powerRule.power_rule_group) continue;
+      const rules = state.powerRules.get(powerRule.power_rule_group) ?? [];
+      rules.push(powerRule);
+      state.powerRules.set(powerRule.power_rule_group, rules);
     }
 
     for (const effect of rowsFromCsv(effectText).map(normalizeEffect)) {
@@ -4107,6 +4121,18 @@ function normalizeSkill(row) {
     animation: animationAssetName(row.animation),
     animation_duration_ms: Math.max(0, number(row.animation_duration_ms)),
     repeat_count: Math.max(0, Math.floor(number(row.repeat_count, 1))),
+    power_rule: safeText(row.power_rule),
+    power_cap: optionalNumber(row.power_cap),
+  };
+}
+
+function normalizePowerRule(row) {
+  return {
+    power_rule_id: safeText(row.power_rule_id),
+    power_rule_group: safeText(row.power_rule_group),
+    min_ratio: number(row.min_ratio),
+    max_ratio: optionalNumber(row.max_ratio),
+    power_multiplier: number(row.power_multiplier, 1),
   };
 }
 
@@ -4342,6 +4368,13 @@ function cssToken(value, fallback = "") {
 function number(value, fallback = 0) {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+function optionalNumber(value) {
+  const text = safeText(value);
+  if (!text) return null;
+  const parsed = Number(text);
+  return Number.isFinite(parsed) ? parsed : null;
 }
 
 function parseBoolean(value) {
@@ -6906,14 +6939,17 @@ async function executeAction(action) {
 
   const pendingSkill = pendingSkillFor(actor);
   const selectedMoveId = pendingSkill?.skillId || pendingSkill?.moveId || action.moveId;
-  const move = moveForFighter(actor, selectedMoveId);
-  const completingTwoTurnMove = Boolean(pendingSkill && selectedMoveId === move?.skill_id);
-  if (!move || (!completingTwoTurnMove && actor.energy < move.cost)) return;
+  const baseMove = moveForFighter(actor, selectedMoveId);
+  const completingTwoTurnMove = Boolean(pendingSkill && selectedMoveId === baseMove?.skill_id);
+  if (!baseMove || (!completingTwoTurnMove && actor.energy < baseMove.cost)) return;
   const positionBeforeAction = positionEffectId(actor);
 
   const targetSide = pendingSkill?.targetSide ?? (action.side === "player" ? "enemy" : "player");
-  const target = move.target === "self" ? actor : activeBySide(targetSide);
+  const target = baseMove.target === "self" ? actor : activeBySide(targetSide);
   if (!target || target.fainted) return;
+  const move = completingTwoTurnMove
+    ? moveWithPendingPower(baseMove, pendingSkill, actor, target)
+    : moveWithEffectivePower(baseMove, actor, target);
 
   const blockText = blockedByControl(actor);
   if (blockText) {
@@ -7189,9 +7225,10 @@ function scoreEnemySaveEnergy(enemy, target, allMoves, usableMoveScores, aiConfi
     .map((move) => {
       const hitCheck = target ? canHitTarget(target, move) : { canHit: false };
       if (!hitCheck.canHit) return null;
+      const futureEnemy = { ...enemy, energy: nextEnergy };
       return {
         move,
-        estimatedDamage: estimateMoveDamage(enemy, target, move, aiConfig),
+        estimatedDamage: estimateMoveDamage(futureEnemy, target, move, aiConfig),
       };
     })
     .filter(Boolean)
@@ -7270,11 +7307,110 @@ function pickEnemyAiCandidate(candidates, aiConfig = ENEMY_AI_CONFIG) {
   return best;
 }
 
+function moveWithEffectivePower(move, actor, target) {
+  const effectivePower = effectiveMovePower(move, actor, target);
+  return effectivePower === number(move?.power) ? move : { ...move, power: effectivePower };
+}
+
+function moveWithPendingPower(move, pendingSkill, actor, target) {
+  const pendingPower = optionalNumber(pendingSkill?.power);
+  return pendingPower === null ? moveWithEffectivePower(move, actor, target) : { ...move, power: pendingPower };
+}
+
+function effectiveMovePower(move, actor, target) {
+  const basePower = number(move?.power);
+  const ruleGroup = safeText(move?.power_rule);
+  if (!ruleGroup) return basePower;
+
+  const multiplier = powerRuleMultiplier(ruleGroup, move, actor, target);
+  const uncappedPower = Math.round(basePower * multiplier);
+  return Number.isFinite(move?.power_cap) ? Math.min(uncappedPower, move.power_cap) : uncappedPower;
+}
+
+function powerRuleMultiplier(ruleGroup, move, actor, target) {
+  const rules = state.powerRules.get(ruleGroup);
+  if (!rules?.length) {
+    warnPowerRuleFallback(ruleGroup, move, "rule group not found");
+    return 1;
+  }
+
+  const value = powerRuleValue(ruleGroup, move, actor, target);
+  if (!Number.isFinite(value)) return 1;
+
+  const matchedRule = rules.find((rule) => powerRuleMatchesValue(ruleGroup, rule, value));
+  if (!matchedRule) {
+    warnPowerRuleFallback(ruleGroup, move, "matching range not found", { value });
+    return 1;
+  }
+
+  return number(matchedRule.power_multiplier, 1);
+}
+
+function powerRuleValue(ruleGroup, move, actor, target) {
+  if (ruleGroup === "speed_ratio") {
+    return speedRatioValue(actor, target, ruleGroup, move);
+  }
+  if (ruleGroup === "inverse_speed_ratio") {
+    return speedRatioValue(target, actor, ruleGroup, move);
+  }
+  if (ruleGroup === "en_value") {
+    if (!actor) {
+      warnPowerRuleFallback(ruleGroup, move, "actor not found");
+      return Number.NaN;
+    }
+    return number(actor.energy);
+  }
+  if (ruleGroup === "hp_ratio") {
+    if (!actor || actor.maxHp <= 0) {
+      warnPowerRuleFallback(ruleGroup, move, "actor hp not available");
+      return Number.NaN;
+    }
+    return clamp(Math.floor((actor.hp / actor.maxHp) * 100), 0, 100);
+  }
+
+  warnPowerRuleFallback(ruleGroup, move, "rule value calculation not implemented");
+  return Number.NaN;
+}
+
+function speedRatioValue(numeratorFighter, denominatorFighter, ruleGroup, move) {
+  const numeratorSpeed = numeratorFighter ? effectiveStat(numeratorFighter, "speed") : 0;
+  const denominatorSpeed = denominatorFighter ? effectiveStat(denominatorFighter, "speed") : 0;
+  if (denominatorSpeed <= 0) {
+    warnPowerRuleFallback(ruleGroup, move, "speed denominator is zero or below", {
+      numeratorSpeed,
+      denominatorSpeed,
+    });
+    return Number.NaN;
+  }
+  return (numeratorSpeed / denominatorSpeed) * 100;
+}
+
+function powerRuleMatchesValue(ruleGroup, rule, value) {
+  if (rule.max_ratio !== null && rule.min_ratio === rule.max_ratio) {
+    return value === rule.min_ratio;
+  }
+  if (value < rule.min_ratio) return false;
+  if (rule.max_ratio === null) return true;
+  if (ruleGroup === "hp_ratio") return value <= rule.max_ratio;
+  return value < rule.max_ratio;
+}
+
+function warnPowerRuleFallback(ruleGroup, move, reason, details = {}) {
+  console.warn("[PowerRule] falling back to multiplier 1", {
+    skill_id: move?.skill_id,
+    name: move?.name,
+    power_rule: ruleGroup,
+    reason,
+    ...details,
+  });
+}
+
 function estimateMoveDamage(attacker, target, move, aiConfig = ENEMY_AI_CONFIG) {
   if (!attacker || !target || !move) return 0;
   const hitCheck = canHitTarget(target, move);
   if (!hitCheck.canHit) return 0;
 
+  const damageMove = moveWithEffectivePower(move, attacker, target);
   const physical = move.attack_type !== "special";
   const attackStat = effectiveStat(attacker, physical ? "phy_atk" : "sp_atk");
   const defenseStat = effectiveStat(target, physical ? "phy_def" : "sp_def");
@@ -7282,10 +7418,10 @@ function estimateMoveDamage(attacker, target, move, aiConfig = ENEMY_AI_CONFIG) 
   const elementMultiplier = weaknessMultiplier(target, move.element);
   const sameElementBonus =
     move.element !== "none" && move.element === attacker.base.element ? 1.15 : 1;
-  let damage = (move.power * 1.45 + attackStat * 0.48) * ratio;
+  let damage = (damageMove.power * 1.45 + attackStat * 0.48) * ratio;
 
   damage *= elementMultiplier * sameElementBonus * aiConfig.AVERAGE_DAMAGE_VARIANCE;
-  damage = applyIncomingBattleEffects(target, damage, move);
+  damage = applyIncomingBattleEffects(target, damage, damageMove);
   return Math.max(1, Math.round(damage));
 }
 
@@ -7580,6 +7716,7 @@ function startTwoTurnMove(actor, move, effectId, targetSide) {
   setPendingSkill(actor, {
     skillId: move.skill_id,
     moveId: move.skill_id,
+    power: move.power,
     effectId,
     target: move.target,
     targetSide,

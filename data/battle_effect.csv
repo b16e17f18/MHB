@@ -8,7 +8,7 @@ sp_protect,特殊軽減,guard,none,25,3,TRUE,sp_damage,guard_break,25
 ,,,,,,,,,
 endure,こらえる,trigger,none,1,1,TRUE,hp,none,0
 revenge,反撃準備,trigger,received_damage_rate,150,1,TRUE,none,none,0
-
+,,,,,,,,,
 stun,スタン,control,none,0,1,FALSE,none,none,0
 wish,猫飯,delayed_heal,percent_maxhp,75,2,TRUE,none,none,0
 ,,,,,,,,,
@@ -19,7 +19,7 @@ ghost_phase,消失,position,none,0,1,FALSE,all_damage,sure_hit,0
 charge_attack,溜め攻撃,charge,none,0,1,FALSE,none,none,0
 ,,,,,,,,,
 future_blast,粉塵爆破,delayed_attack,fixed_power,40,2,TRUE,none,none,0
-future_blast2,泡玉,delayed_attack,fixed_power,90,2,TRUE,none,none,0
+future_blast2,泡玉,delayed_attack,fixed_power,80,2,TRUE,none,none,0
 future_blast3,鱗粉,delayed_attack,fixed_power,70,1,TRUE,none,none,0
 future_blast4,,,,,,,,,
 future_blast5,,,,,,,,,
