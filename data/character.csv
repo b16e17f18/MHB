@@ -57,5 +57,5 @@ character_055,ゲネル・セルタス,585,300,355,285,255,35,35,1,2,150,50,50,1
 character_056,バルファルク,799,345,299,299,299,499,70,2,4,150,150,150,150,25,dragon,skill_097,skill_114,skill_098,skill_099,character_056.png,#ffffff,8,,,elder_dragon,206,patient
 character_057,ボルボロス,560,250,390,170,230,65,70,1,1,50,150,25,100,25,none,skill_001,skill_101,skill_026,skill_102,character_057.png,#ffffff,8,,,brute_wyvern,85,patient
 character_058,アグナコトル亜種,590,290,320,320,260,175,70,2,2,150,50,100,25,150,ice,skill_103,skill_104,skill_010,skill_105,character_058.png,#ffffff,8,,,leviathan,44,patient
-character_059,ケチャワチャ,490,230,180,170,230,320,105,2,1,150,50,100,50,25,water,skill_001,skill_002,skill_106,skill_107,character_059.png,#ffffff,8,50,,fanged_beast,16,patient
-character_060,シェンガオレン,920,395,440,310,310,10,35,1,4,100,50,100,25,150,none,skill_108,skill_109,skill_110,skill_111,character_060.png,#ffffff,8,,,carapaceon,24,patient
+character_059,ケチャワチャ,490,230,180,170,230,320,105,1,1,150,50,100,50,25,water,skill_001,skill_002,skill_106,skill_107,character_059.png,#ffffff,8,50,,fanged_beast,16,patient
+character_060,シェンガオレン,925,395,445,315,315,15,35,1,4,100,50,100,25,150,none,skill_108,skill_109,skill_110,skill_111,character_060.png,#ffffff,8,,,carapaceon,24,patient
