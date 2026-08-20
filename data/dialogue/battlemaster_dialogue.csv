@@ -1,0 +1,4 @@
+﻿dialogue_id,npc_id,text,next_id,condition_type,condition_value,priority,once
+
+battlemaster_welcome,battlemaster,喧嘩売りたいなら買ってやる。,,,,,
+battlemaster_goodbye,battlemaster,・・・。,,,,,

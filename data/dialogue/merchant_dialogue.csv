@@ -1,0 +1,12 @@
+﻿dialogue_id,npc_id,text,next_id,condition_type,condition_value,priority,once
+,,,,,,,
+merchant_welcome,merchant,いらっしゃいませ!!!!,,,,,
+merchant_goodbye,merchant,またお越しください!!!!,,,,,
+,,,,,,,
+merchant_before_d_2,merchant,どうもー。いつもおおきにです。,guide_before_d_2_2,,,,
+,,,,,,,
+merchant_after_e_1,merchant,ライセンス商品がたくさんありますので、見ていってください!!!!,,battle_cleared,battle_e_1,2,TRUE
+,,,,,,,
+merchant_after_b_1,merchant,珍しいのが入ってるんで見てってください!!!!,,battle_cleared,battle_b_1,3,TRUE
+,,,,,,,
+merchant_after_g_1,merchant,海外の商品が入ってます!!!!,,battle_cleared,arena_g_1,4,TRUE

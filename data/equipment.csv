@@ -1,6 +1,6 @@
 ﻿equipment_id,name,equipment_type,text,hp_bonus,phy_atk_bonus,phy_def_bonus,sp_atk_bonus,sp_def_bonus,speed_bonus,regen_value_bonus,cost_charge_bonus,weak_fire_bonus,weak_water_bonus,weak_thunder_bonus,weak_ice_bonus,weak_dragon_bonus,species_id,character_id
 equip_001,鳥竜種の護石,accessory,鳥竜種のステータスをUPする。,20,20,0,20,0,0,0,0,0,0,0,25,0,bird_wyvern,
-equip_002,魚竜種の護石,accessory,魚竜種のステータスをUPする。,0,0,0,30,0,0,35,0,0,0,25,0,0,piscine_wyvern,
+equip_002,魚竜種の護石,accessory,魚竜種のステータスをUPする。,0,0,0,20,0,0,35,0,0,0,25,0,0,piscine_wyvern,
 equip_003,飛竜種の護石,accessory,飛竜種のステータスをUPする。,10,0,20,0,20,0,0,0,0,0,0,0,25,flying_wyvern,
 equip_004,獣竜種の護石,accessory,獣竜種のステータスをUPする。,20,0,40,0,40,0,0,0,0,25,0,0,0,brute_wyvern,
 equip_005,牙獣種の護石,accessory,牙獣種のステータスをUPする。,50,0,0,0,0,0,0,0,5,5,5,5,5,fanged_beast,
@@ -9,7 +9,7 @@ equip_007,海竜種の護石,accessory,海竜種のステータスをUPする。
 equip_008,甲殻種の護石,accessory,甲殻種のステータスをUPする。,0,0,50,0,0,0,35,0,10,0,15,0,0,carapaceon,
 equip_009,力の護符,accessory,ステータスをUPする。,0,20,0,0,0,0,0,0,0,0,0,0,0,all,
 equip_010,守の護符,accessory,ステータスをUPする。,20,0,20,0,20,0,0,0,5,5,5,5,5,all,
-equip_011,ランポスの大剛牙,accessory,ドスランポスのステータスが変化する。,40,40,0,-35,0,55,0,0,0,0,0,0,25,bird_wyvern,character_001
+equip_011,ランポスの大剛牙,accessory,ドスランポスのステータスが変化する。,60,60,0,-35,0,15,0,0,0,0,0,0,25,bird_wyvern,character_001
 equip_012,大猪の大剛牙,accessory,ドスファンゴのステータスが変化する。,90,60,40,-35,0,0,0,1,0,0,25,0,0,fanged_beast,character_002
 equip_013,怪鳥の重殻,accessory,イャンクックのステータスが変化する。,40,0,50,0,30,-20,0,0,0,25,0,0,0,bird_wyvern,character_004
 equip_014,ニトロダケユニット,accessory,ババコンガのステータスが変化する。,45,0,0,55,0,-25,0,0,25,0,0,0,0,fanged_beast,character_005
@@ -20,11 +20,11 @@ equip_018,斬竜の獄炎状殻,accessory,ディノバルドのステータス�
 equip_019,巨獣の重殻,accessory,ガムートのステータスが変化する。,0,0,50,-80,45,-20,0,0,25,0,0,0,0,fanged_beast,character_041
 equip_020,電竜の重棘殻,accessory,ライゼクスのステータスが変化する。,0,0,40,0,40,-10,0,0,0,0,0,0,25,flying_wyvern,character_042
 equip_021,鏖魔の凄惨な角,accessory,ディアブロスのステータスが変化する。,120,45,10,-35,0,-30,-35,0,0,-50,0,50,0,flying_wyvern,character_015
-equip_022,銀火竜の重殻,accessory,リオレウスのステータスが変化する。,0,0,25,60,25,-40,0,0,0,-25,0,0,25,flying_wyvern,character_016
+equip_022,銀火竜の重殻,accessory,リオレウスのステータスが変化する。,0,0,25,60,25,-40,0,0,0,-50,0,0,50,flying_wyvern,character_016
 equip_023,氷結晶,accessory,ザボアザギルのステータスが変化する。,0,20,0,20,0,0,35,0,0,25,0,0,0,amphibian,character_045
 equip_024,オトモ装備,accessory,メラルーのステータスが変化する。,150,60,60,0,80,-95,0,0,5,5,5,5,5,unknown,character_046
-equip_025,深紅の角,accessory,モノブロス亜種のステータスが変化する。,0,60,40,0,25,0,0,0,0,25,0,0,0,flying_wyvern,character_027
-equip_026,超雷電光虫,accessory,ジンオウガのステータスが変化する。,0,20,20,25,25,0,0,0,0,0,0,0,25,fanged_wyvern,character_023
+equip_025,深紅の角,accessory,モノブロスのステータスが変化する。,0,60,30,0,25,0,0,0,0,25,0,0,0,flying_wyvern,character_027
+equip_026,超雷電光虫,accessory,ジンオウガのステータスが変化する。,0,20,20,20,20,0,0,0,0,0,0,0,25,fanged_wyvern,character_023
 equip_027,力の爪,accessory,ステータスをUPする。,0,30,0,30,0,0,0,0,0,0,0,0,0,all,
 equip_028,守の爪,accessory,ステータスをUPする。,0,0,30,0,0,0,0,0,15,15,15,15,15,all,
 equip_029,女の肉焼きセット,accessory,キングチャチャブーのステータスが変化する。,0,0,0,190,0,0,0,0,5,5,5,5,5,unknown,character_051

@@ -1,0 +1,16 @@
+﻿dialogue_id,npc_id,text,next_id,condition_type,condition_value,priority,once
+,,,,,,,
+blacksmith_welcome,blacksmith,よおきたな。,,always,,,
+blacksmith_goodbye,blacksmith,またきてや。,,always,,,
+,,,,,,,
+blacksmith_after_e_1,blacksmith,ええのが出来てるで。見てってや。,,battle_cleared,battle_e_1,1,TRUE
+,,,,,,,
+blacksmith_after_e_2,blacksmith,こらええのが出来たわ。見てや。,,battle_cleared,battle_e_2,2,TRUE
+,,,,,,,
+blacksmith_after_g_1,blacksmith,海の向こうのもんが入ってな。見てってや。,,battle_cleared,arena_g_1,3,TRUE
+,,,,,,,
+blacksmith_after_g_2,blacksmith,海外のもんはええもんもあるんやな。,,battle_cleared,arena_g_2,4,TRUE
+,,,,,,,
+blacksmith_after_g_5,blacksmith,ごっつええ感じのもんが出来たで。,,battle_cleared,arena_g_5,5,TRUE
+,,,,,,,
+blacksmith_after_g_6,blacksmith,ええの入っとるで。,,battle_cleared,arena_g_6,6,TRUE

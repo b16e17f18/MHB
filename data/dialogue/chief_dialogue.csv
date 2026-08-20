@@ -1,0 +1,7 @@
+﻿dialogue_id,npc_id,text,next_id,condition_type,condition_value,priority,once
+,,,,,,,
+chief_welcome,chief,頑張りや。SSrankになったら頼みあるねん。,,always,,,
+chief_goodbye,chief,ほなな。,,always,,,
+,,,,,,,
+chief_after_ss_1,chief,来たか。準備できとるな。,chief_after_ss_1_2,battle_cleared,battle_ss_1,10,TRUE
+chief_after_ss_1_2,chief,ほな行くで。,,,,,
