@@ -35,7 +35,7 @@ skill_033,月影,attack,70,none,physical,guard_break,none,enemy,0,none,enemy,0,n
 skill_034,レッドアイズ,status,0,none,none,normal,phy_atk_up,enemy,100,phy_atk_up,enemy,100,energy_charge_down,enemy,100,protect2,100,none,0,self,0,4,物理攻撃が20%upする。ダメージを75%cutするが、3ターンの間、EN回復が1downする。,attack_beat01,750,1,,,,,
 skill_035,雷撃,attack,50,thunder,special,water_wave,sp_atk_down,enemy,50,none,enemy,0,none,enemy,0,none,0,none,0,enemy,0,1,50%の確率で相手の特殊攻撃を15%downさせる。相手が水中にいても技が命中する。,magic_lightning01_akira,100,3,,,,,
 skill_036,可燃ガス,attack,50,fire,special,normal,burn,enemy,75,ice_weak_up,enemy,100,none,enemy,0,none,0,none,0,enemy,0,1,75%の確率で相手を火やられにする。相手の氷耐性を25%downさせる。,magic_mist02,1000,1,,,,,
-skill_037,大車輪,attack,80,fire,physical,normal,ice_weak_up,enemy,100,phy_atk_up,self,100,none,enemy,0,none,0,none,0,enemy,0,2,相手の氷耐性を25%downさせる。,attack_hit01,250,3,,,,,
+skill_037,大車輪,attack,80,fire,physical,normal,ice_weak_up,enemy,100,phy_atk_up,self,100,none,enemy,0,none,0,none,0,enemy,0,2,相手の氷耐性を25%downさせる。攻撃後、自分の物理攻撃が10%upする。,attack_hit01,250,3,,,,,
 skill_038,雷拳,attack,120,thunder,physical,normal,sp_def_down,self,100,phy_def_down,self,100,none,enemy,0,none,0,none,0,enemy,0,2,攻撃後、自分の物理防御と特殊防御が15%下がる。,magic_lightning01_akira,250,1,,,,,
 skill_039,氷結牙,attack,90,ice,physical,normal,phy_def_down,enemy,50,none,enemy,0,none,enemy,0,none,0,none,0,enemy,0,3,50%の確率で相手の物理防御を15%downさせる。ENが高い程威力が上がる。最大120。,attack_spear01,500,1,en_value,120,,,
 skill_040,氷ブレス,attack,80,ice,special,normal,phy_atk_down,enemy,50,none,enemy,0,none,enemy,0,none,0,none,0,enemy,0,2,50%の確率で相手の物理攻撃を15%downさせる。,magic_ice01,750,1,,,,,
