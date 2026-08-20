@@ -1,6 +1,6 @@
 ﻿skill_id,name,category,power,element,attack_type,hit_type,effect1,effect_target1,effect_chance1,effect2,effect_target2,effect_chance2,effect3,effect_target3,effect_chance3,battle_effect1,battle_effect_chance1,battle_effect2,battle_effect_chance2,target,priority,cost,text,animation_id,animation_duration_ms,repeat_count,power_rule,power_cap,learn_species,learn_elemenr,learn_character
 skill_001,防御態勢,status,0,none,none,normal,none,enemy,0,none,enemy,0,none,enemy,0,protect,100,none,0,self,4,0,ダメージを50%cutする。技優先度+4。,magic_enhance02,500,1,,,,,
-skill_002,飛びかかる,attack,50,none,physical,normal,phy_atk_down,enemy,50,phy_atk_down,enemy,25,none,enemy,0,none,0,none,0,enemy,0,1,50%の確率で相手の物理攻撃を10%downさせる。10%の確率で相手の物理攻撃を20%downさせる。,attack_slash03,500,1,,,,,
+skill_002,飛びかかる,attack,50,none,physical,normal,phy_atk_down,enemy,50,phy_atk_down,enemy,25,none,enemy,0,none,0,none,0,enemy,0,1,50%の確率で相手の物理攻撃を15%downさせる。10%の確率で相手の物理攻撃を30%downさせる。,attack_slash03,500,1,,,,,
 skill_003,噛みつき,attack,80,none,physical,normal,phy_def_down,enemy,50,none,enemy,0,none,enemy,0,none,0,none,0,enemy,0,2,50%の確率で相手の物理防御を15%downさせる。,attack_spear01,500,1,,,,,
 skill_004,威嚇,status,0,none,none,normal,phy_def_down,enemy,100,none,enemy,0,none,enemy,0,none,0,none,0,enemy,0,0,相手の物理防御を15%downさせる。,attack_beat01,500,1,,,,,
 skill_005,薙ぎ払い,attack,70,none,physical,normal,none,enemy,0,none,enemy,0,none,enemy,0,none,0,none,0,enemy,0,1,無属性攻撃。,attack_slash04,750,1,,,,,
