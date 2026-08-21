@@ -39,7 +39,7 @@ skill_037,大車輪,attack,80,fire,physical,normal,ice_weak_up,enemy,100,phy_atk
 skill_038,雷拳,attack,120,thunder,physical,normal,sp_def_down,self,100,phy_def_down,self,100,none,enemy,0,none,0,none,0,enemy,0,2,攻撃後、自分の物理防御と特殊防御が15%下がる。,magic_lightning01_akira,250,1,,,,,
 skill_039,氷結牙,attack,90,ice,physical,normal,phy_def_down,enemy,50,none,enemy,0,none,enemy,0,none,0,none,0,enemy,0,3,50%の確率で相手の物理防御を15%downさせる。ENが高い程威力が上がる。最大120。,attack_spear01,500,1,en_value,120,,,
 skill_040,氷ブレス,attack,80,ice,special,normal,phy_atk_down,enemy,50,none,enemy,0,none,enemy,0,none,0,none,0,enemy,0,2,50%の確率で相手の物理攻撃を15%downさせる。,magic_ice01,750,1,,,,,
-skill_041,激昂,status,0,thunder,none,normal,phy_atk_up,enemy,100,phy_def_up,enemy,100,sp_def_up,enemy,0,protect3,100,none,0,self,0,,物理攻撃と物理防御が10%upする。3ターンの間、ダメージを25%cutする(重複しない)。技優先度+4。,attack_beat01,1250,1,,,,,
+skill_041,激昂,status,0,thunder,none,normal,phy_atk_up,enemy,100,phy_def_up,enemy,100,sp_def_up,enemy,0,protect3,100,none,0,self,0,3,物理攻撃と物理防御が10%upする。3ターンの間、ダメージを25%cutする(重複しない)。,attack_beat01,1250,1,,,,,
 skill_042,龍ブレス,attack,100,dragon,special,normal,sp_atk_down,enemy,100,none,enemy,0,none,enemy,0,none,0,none,0,enemy,0,3,相手の特殊攻撃を15%downさせる。ENが多い程威力が上がる。最大140。,magic_holy02,750,1,en_value,140,,,
 skill_043,竜の牙,attack,60,dragon,physical,guard_break,sp_atk_down,enemy,25,dragon_weak_up,enemy,100,none,enemy,0,none,0,none,0,enemy,0,1,25%の確率で相手の特殊攻撃を15%downさせる。相手の龍耐性を25%downさせる。相手はダメージをcutできない。,attack_spear01,500,1,,,,,
 skill_044,ソニックブラスト,attack,140,none,physical,guard_break,none,enemy,0,none,enemy,0,none,enemy,0,charge_attack,100,stun,25,enemy,0,2,1ターン目に溜め、2ターン目に攻撃する。25%の確率で相手を怯ませる。相手はダメージをcutできない。,magic_sonicwave01,50,10,,,,,
