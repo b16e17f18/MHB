@@ -240,6 +240,8 @@ const STAT_LABELS = {
 };
 
 const STAT_MOD_KEYS = ["phy_atk", "phy_def", "sp_atk", "sp_def", "speed", "regen_value"];
+const STAT_STAGE_MOD_KEYS = ["phy_atk", "phy_def", "sp_atk", "sp_def", "speed"];
+const STAT_STAGE_MOD_KEY_SET = new Set(STAT_STAGE_MOD_KEYS);
 const STAT_MOD_DISPLAY_STEP_UNITS = {
   up: {
     default: 10,
@@ -4876,9 +4878,11 @@ function resistanceSummaryText(character) {
 }
 
 function statModifierLabel(stat, value) {
-  const marker = value > 0 ? "△" : "▼";
   const direction = value > 0 ? "up" : "down";
-  const unit = STAT_MOD_DISPLAY_STEP_UNITS[direction]?.[stat] ?? STAT_MOD_DISPLAY_STEP_UNITS[direction]?.default ?? 25;
+  const marker = direction === "up" ? "△" : "▼";
+  const unit = STAT_STAGE_MOD_KEY_SET.has(stat)
+    ? STAT_MOD_DISPLAY_STEP_UNITS[direction].default
+    : STAT_MOD_DISPLAY_STEP_UNITS[direction]?.[stat] ?? STAT_MOD_DISPLAY_STEP_UNITS[direction]?.default ?? 25;
   const steps = Math.min(4, Math.max(1, Math.round(Math.abs(value) / unit)));
   return `${STAT_LABELS[stat] ?? stat}${marker.repeat(steps)}`;
 }
