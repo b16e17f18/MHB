@@ -17,7 +17,7 @@ equip_015,錆びた龍鱗,accessory,クシャルダオラのステータスが�
 equip_016,影蜘蛛の秘棘,accessory,ネルスキュラのステータスが変化する。,0,0,0,-120,265,0,-35,0,-25,0,25,0,0,temnoceran,character_038
 equip_017,鬼神手甲,accessory,ラージャンのステータスが変化する。,45,20,0,0,0,-20,0,0,0,25,0,0,0,fanged_beast,character_025
 equip_018,斬竜の獄炎状殻,accessory,ディノバルドのステータスが変化する。,0,0,40,0,0,15,0,0,0,25,0,0,0,brute_wyvern,character_040
-equip_019,巨獣の重殻,accessory,ガムートのステータスが変化する。,0,0,50,-80,45,-20,0,0,25,0,0,0,0,fanged_beast,character_041
+equip_019,巨獣の重殻,accessory,ガムートのステータスが変化する。,0,0,50,-80,45,-10,0,0,25,0,0,0,0,fanged_beast,character_041
 equip_020,電竜の重棘殻,accessory,ライゼクスのステータスが変化する。,0,0,40,0,40,-10,0,0,0,0,0,0,25,flying_wyvern,character_042
 equip_021,鏖魔の凄惨な角,accessory,ディアブロスのステータスが変化する。,120,45,10,-35,0,-30,-35,0,0,-50,0,50,0,flying_wyvern,character_015
 equip_022,銀火竜の重殻,accessory,リオレウスのステータスが変化する。,0,0,25,60,25,-40,0,0,0,-50,0,0,50,flying_wyvern,character_016
