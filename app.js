@@ -136,6 +136,8 @@ const ELEMENT_LABELS = {
 };
 
 const ELEMENT_TYPES = ["fire", "water", "thunder", "ice", "dragon"];
+const TEMP_WEAK_MOD_MIN = -50;
+const TEMP_WEAK_MOD_MAX = 50;
 const DISAPPEAR_POSITION_EFFECT_ID = "ghost_phase";
 const DEFAULT_POSITION_ANIMATIONS = {
   fly: {
@@ -185,6 +187,7 @@ const DELAYED_ATTACK_SETUP_ONLY_EFFECT_IDS = new Set([
 ]);
 const STUN_BATTLE_EFFECT_ID = "stun";
 const DELAYED_HEAL_BATTLE_EFFECT_GROUP = "delayed_heal";
+const SWITCH_PERSISTENT_BATTLE_EFFECT_IDS = new Set(["phy_protect", "sp_protect"]);
 const BATTLE_MESSAGE_DURATION = 1400;
 const BATTLE_TEXT_SPEED_SCALE = 2;
 const ANIMATION_FRAME_WIDTH = 250;
@@ -242,16 +245,6 @@ const STAT_LABELS = {
 const STAT_MOD_KEYS = ["phy_atk", "phy_def", "sp_atk", "sp_def", "speed", "regen_value"];
 const STAT_STAGE_MOD_KEYS = ["phy_atk", "phy_def", "sp_atk", "sp_def", "speed"];
 const STAT_STAGE_MOD_KEY_SET = new Set(STAT_STAGE_MOD_KEYS);
-const STAT_MOD_DISPLAY_STEP_UNITS = {
-  up: {
-    default: 10,
-    regen_value: 35,
-  },
-  down: {
-    default: 15,
-    regen_value: 35,
-  },
-};
 
 const GENERATED_SKILLS = {
   basic_strike: {
@@ -4877,33 +4870,84 @@ function resistanceSummaryText(character) {
     .join(" / ");
 }
 
-function statModifierLabel(stat, value) {
-  const direction = value > 0 ? "up" : "down";
-  const marker = direction === "up" ? "△" : "▼";
-  const unit = STAT_STAGE_MOD_KEY_SET.has(stat)
-    ? STAT_MOD_DISPLAY_STEP_UNITS[direction].default
-    : STAT_MOD_DISPLAY_STEP_UNITS[direction]?.[stat] ?? STAT_MOD_DISPLAY_STEP_UNITS[direction]?.default ?? 25;
-  const steps = Math.min(4, Math.max(1, Math.round(Math.abs(value) / unit)));
-  return `${STAT_LABELS[stat] ?? stat}${marker.repeat(steps)}`;
+function battleStatModifierLabel(stat, value) {
+  const marker = value > 0 ? "△" : "▼";
+  const suffix = STAT_STAGE_MOD_KEY_SET.has(stat) ? "%" : "";
+  return `${STAT_LABELS[stat] ?? stat}${marker}${Math.abs(value)}${suffix}`;
 }
 
-function statusDisplayLabel(status) {
-  const resistanceLabel = resistanceStatusLabel(status);
+function battleStatusDisplayLabel(status) {
+  const resistanceLabel = battleResistanceStatusLabel(status);
   return resistanceLabel || status.name;
 }
 
-function resistanceStatusLabel(status) {
-  const match = safeText(status?.name).match(/^(.+耐性)(up|down)$/i);
-  if (!match) return "";
-  return `${match[1]} ${match[2].toLowerCase() === "up" ? "+" : "-"}`;
+function battleResistanceStatusLabel(status) {
+  if (status?.group !== "resistance") return "";
+  const element = resistanceEffectElement(status);
+  if (!element) return "";
+  const delta = resistanceWeakModDelta(status);
+  if (!delta) return "";
+  return battleWeakModLabel(element, delta);
 }
 
-function fighterStatusEntries(fighter) {
+function elementFromWeakTargetStat(targetStat) {
+  const match = safeText(targetStat).match(/^weak_(fire|water|thunder|ice|dragon)$/);
+  return match?.[1] ?? "";
+}
+
+function elementFromResistanceEffectId(effectId) {
+  const match = safeText(effectId).match(/^(fire|water|thunder|ice|dragon)_weak_(?:up|down)$/);
+  return match?.[1] ?? "";
+}
+
+function resistanceEffectElement(effect) {
+  return (
+    elementFromWeakTargetStat(effect?.target_stat ?? effect?.targetStat) ||
+    elementFromResistanceEffectId(effect?.effect_id ?? effect?.id)
+  );
+}
+
+function resistanceWeakModDelta(effect) {
+  const effectId = safeText(effect?.effect_id ?? effect?.id);
+  const amount = Math.abs(number(effect?.damage_value ?? effect?.damageValue));
+  if (effectId.endsWith("_weak_up")) return amount;
+  if (effectId.endsWith("_weak_down")) return -amount;
+
+  const name = safeText(effect?.name).toLowerCase();
+  if (name.endsWith("down")) return amount;
+  if (name.endsWith("up")) return -amount;
+  return 0;
+}
+
+function battleWeakModLabel(element, value) {
+  const direction = value > 0 ? "+" : "-";
+  return `${elementName(element)}属性${direction}${Math.abs(value)}%`;
+}
+
+function fighterWeakModEntries(fighter) {
   if (!fighter) return [];
-  const statusEntries = fighter.statuses.map((status) => ({
-    label: statusDisplayLabel(status),
-    className: effectChipClass(status.id),
-  }));
+  const weakMods = ensureFighterWeakMods(fighter);
+  return ELEMENT_TYPES
+    .map((element) => ({
+      element,
+      value: weakMods[element].value,
+    }))
+    .filter((entry) => entry.value !== 0)
+    .map((entry) => ({
+      label: battleWeakModLabel(entry.element, entry.value),
+      className: `effect-resistance-${entry.element}`,
+    }));
+}
+
+function fighterBattleStatusEntries(fighter) {
+  if (!fighter) return [];
+  const statusEntries = fighter.statuses
+    .filter((status) => status.group !== "resistance")
+    .map((status) => ({
+      label: battleStatusDisplayLabel(status),
+      className: effectChipClass(status.id),
+    }));
+  const weakModEntries = fighterWeakModEntries(fighter);
   const battleEffectEntries = fighter.battleEffects.map((effect) => ({
     label: effect.name,
     className: effectChipClass(effect.id),
@@ -4918,15 +4962,15 @@ function fighterStatusEntries(fighter) {
   const statEntries = Object.entries(fighter.statMods)
     .filter(([, value]) => value !== 0)
     .map(([stat, value]) => ({
-      label: statModifierLabel(stat, value),
+      label: battleStatModifierLabel(stat, value),
       className: value > 0 ? "effect-up" : "effect-down",
     }));
 
-  return [...statusEntries, ...battleEffectEntries, ...fieldEffectEntries, ...statEntries];
+  return [...statusEntries, ...weakModEntries, ...battleEffectEntries, ...fieldEffectEntries, ...statEntries];
 }
 
 function renderFighterStatusChips(fighter) {
-  const entries = fighterStatusEntries(fighter);
+  const entries = fighterBattleStatusEntries(fighter);
   if (!entries.length) {
     return `<span class="effect-chip effect-none">なし</span>`;
   }
@@ -4943,7 +4987,7 @@ function renderFighterStatusChips(fighter) {
 }
 
 function fighterStatusSummary(fighter) {
-  const entries = fighterStatusEntries(fighter).map((entry) => entry.label);
+  const entries = fighterBattleStatusEntries(fighter).map((entry) => entry.label);
   return entries.length ? entries.join("、") : "なし";
 }
 
@@ -5894,6 +5938,7 @@ function createFighter(character, options = {}) {
     energy: START_ENERGY,
     fainted: false,
     statMods: createEmptyStatMods(),
+    weakMods: createEmptyWeakMods(),
     statuses: [],
     battleEffects: [],
     pendingMove: null,
@@ -5927,6 +5972,38 @@ function createEmptyStatMods() {
     mods[stat] = 0;
     return mods;
   }, {});
+}
+
+function createEmptyWeakMods() {
+  return ELEMENT_TYPES.reduce((mods, element) => {
+    mods[element] = { value: 0, turns: 0 };
+    return mods;
+  }, {});
+}
+
+function ensureFighterWeakMods(fighter) {
+  if (!fighter.weakMods || typeof fighter.weakMods !== "object") {
+    fighter.weakMods = createEmptyWeakMods();
+  }
+
+  for (const element of ELEMENT_TYPES) {
+    const current = fighter.weakMods[element];
+    if (typeof current === "number") {
+      fighter.weakMods[element] = {
+        value: clamp(Math.round(current), TEMP_WEAK_MOD_MIN, TEMP_WEAK_MOD_MAX),
+        turns: 0,
+      };
+      continue;
+    }
+    if (!current || typeof current !== "object") {
+      fighter.weakMods[element] = { value: 0, turns: 0 };
+      continue;
+    }
+    current.value = clamp(Math.round(number(current.value)), TEMP_WEAK_MOD_MIN, TEMP_WEAK_MOD_MAX);
+    current.turns = Math.max(0, Math.floor(number(current.turns)));
+  }
+
+  return fighter.weakMods;
 }
 
 function renderBattle() {
@@ -7611,6 +7688,11 @@ function applyEffect(effectId, actor, target) {
     return;
   }
 
+  if (effect.effect_group === "resistance") {
+    applyResistanceEffect(effect, target);
+    return;
+  }
+
   const current = target.statuses.find((status) => status.id === effect.effect_id);
   if (current) {
     current.turns = Math.max(current.turns, effect.turn);
@@ -7625,6 +7707,18 @@ function applyEffect(effectId, actor, target) {
       turns: effect.turn,
     });
   }
+  pushLog(`${target.name}は${effect.name}になった！`);
+}
+
+function applyResistanceEffect(effect, target) {
+  const element = resistanceEffectElement(effect);
+  const delta = resistanceWeakModDelta(effect);
+  if (!element || !delta) return;
+
+  const weakMods = ensureFighterWeakMods(target);
+  const current = weakMods[element];
+  current.value = clamp(current.value + delta, TEMP_WEAK_MOD_MIN, TEMP_WEAK_MOD_MAX);
+  current.turns = Math.max(0, Math.floor(number(effect.turn)));
   pushLog(`${target.name}は${effect.name}になった！`);
 }
 
@@ -8109,6 +8203,7 @@ async function endRound() {
     }
 
     fighter.statuses = fighter.statuses.filter((status) => status.turns > 0);
+    tickWeakModsAfterRound(fighter);
     await handleFaint(side);
     if (state.gameOver || state.pendingSwitchSide) return;
 
@@ -8125,11 +8220,15 @@ async function endRound() {
   }
 
   for (const side of ["player", "enemy"]) {
-    const fighter = activeBySide(side);
-    if (!fighter || fighter.fainted) continue;
-    const energyCharge = energyChargeThisRound.get(fighter) ?? effectiveEnergyCharge(fighter);
-    fighter.energy = clamp(fighter.energy + energyCharge, 0, fighter.maxEnergy);
-    fighter.battleEffects = tickBattleEffectsAfterRound(fighter.battleEffects);
+    const activeFighter = activeBySide(side);
+    for (const fighter of teamBySide(side)) {
+      if (!fighter || fighter.fainted) continue;
+      if (fighter === activeFighter) {
+        const energyCharge = energyChargeThisRound.get(fighter) ?? effectiveEnergyCharge(fighter);
+        fighter.energy = clamp(fighter.energy + energyCharge, 0, fighter.maxEnergy);
+      }
+      fighter.battleEffects = tickBattleEffectsAfterRound(fighter.battleEffects);
+    }
   }
 }
 
@@ -8154,6 +8253,20 @@ function fighterEnergyChargeModifier(fighter) {
     if (status.group === "energy_down") return total - amount;
     return total;
   }, 0);
+}
+
+function tickWeakModsAfterRound(fighter) {
+  if (!fighter) return;
+  const weakMods = ensureFighterWeakMods(fighter);
+  for (const element of ELEMENT_TYPES) {
+    const current = weakMods[element];
+    if (current.turns <= 0) continue;
+    current.turns -= 1;
+    if (current.turns <= 0) {
+      current.value = 0;
+      current.turns = 0;
+    }
+  }
 }
 
 function tickBattleEffectsAfterRound(battleEffects) {
@@ -8318,7 +8431,9 @@ function switchActive(side, index, options = {}) {
 
 function clearSwitchVolatileState(fighter) {
   clearPendingSkill(fighter);
-  fighter.battleEffects = [];
+  fighter.battleEffects = fighter.fainted
+    ? []
+    : fighter.battleEffects.filter((effect) => SWITCH_PERSISTENT_BATTLE_EFFECT_IDS.has(effect.id));
   fighter.statMods = createEmptyStatMods();
 }
 
@@ -8356,7 +8471,17 @@ function effectiveStat(fighter, stat) {
 
 function weaknessMultiplier(target, element) {
   if (!element || element === "none") return 1;
-  return target.base.weaknesses[element] ?? 1;
+  return effectiveWeakPercent(target, element) / 100;
+}
+
+function effectiveWeakPercent(target, element) {
+  const baseWeak = Math.round(number(target?.base?.weaknesses?.[element], 1) * 100);
+  return baseWeak + temporaryWeakModValue(target, element);
+}
+
+function temporaryWeakModValue(target, element) {
+  if (!target || !ELEMENT_TYPES.includes(element)) return 0;
+  return ensureFighterWeakMods(target)[element].value;
 }
 
 function effectivenessText(multiplier) {
@@ -8366,7 +8491,7 @@ function effectivenessText(multiplier) {
 }
 
 function statusLabels(fighter) {
-  return fighterStatusEntries(fighter).map((entry) => entry.label).slice(0, 5);
+  return fighterBattleStatusEntries(fighter).map((entry) => entry.label).slice(0, 5);
 }
 
 function pushLog(message) {
