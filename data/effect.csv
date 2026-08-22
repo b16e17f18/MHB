@@ -10,8 +10,8 @@ sp_atk_down,特殊攻撃down,debuff,none,15,99,TRUE,sp_atk
 sp_def_down,特殊防御down,debuff,none,15,99,TRUE,sp_def
 speed_down,敏捷down,debuff,none,15,99,TRUE,speed
 poison,毒,damage,percent_maxhp,10,7,TRUE,none
-paralysis,麻痺,control,none,0,2,FALSE,none
-sleep,睡眠,control,none,0,2,FALSE,none
+paralysis,麻痺,control,none,0,3,FALSE,none
+sleep,睡眠,control,none,0,3,FALSE,none
 burn,火やられ,damage,percent_maxhp,15,5,TRUE,none
 wind,竜巻,damage,percent_maxhp,15,3,TRUE,none
 blood,裂傷,damage,percent_maxhp,25,1,TRUE,none
