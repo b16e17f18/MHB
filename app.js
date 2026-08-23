@@ -4131,10 +4131,6 @@ function normalizePowerRule(row) {
   };
 }
 
-function normalizeEffectTarget(value) {
-  return safeText(value, "enemy").toLowerCase() === "self" ? "self" : "enemy";
-}
-
 function normalizeEffect(row) {
   return {
     effect_id: safeText(row.effect_id),
@@ -4888,35 +4884,6 @@ function battleResistanceStatusLabel(status) {
   const delta = resistanceWeakModDelta(status);
   if (!delta) return "";
   return battleWeakModLabel(element, delta);
-}
-
-function elementFromWeakTargetStat(targetStat) {
-  const match = safeText(targetStat).match(/^weak_(fire|water|thunder|ice|dragon)$/);
-  return match?.[1] ?? "";
-}
-
-function elementFromResistanceEffectId(effectId) {
-  const match = safeText(effectId).match(/^(fire|water|thunder|ice|dragon)_weak_(?:up|down)$/);
-  return match?.[1] ?? "";
-}
-
-function resistanceEffectElement(effect) {
-  return (
-    elementFromWeakTargetStat(effect?.target_stat ?? effect?.targetStat) ||
-    elementFromResistanceEffectId(effect?.effect_id ?? effect?.id)
-  );
-}
-
-function resistanceWeakModDelta(effect) {
-  const effectId = safeText(effect?.effect_id ?? effect?.id);
-  const amount = Math.abs(number(effect?.damage_value ?? effect?.damageValue));
-  if (effectId.endsWith("_weak_up")) return amount;
-  if (effectId.endsWith("_weak_down")) return -amount;
-
-  const name = safeText(effect?.name).toLowerCase();
-  if (name.endsWith("down")) return amount;
-  if (name.endsWith("up")) return -amount;
-  return 0;
 }
 
 function battleWeakModLabel(element, value) {
@@ -7022,7 +6989,14 @@ async function executeAction(action) {
       : null;
     if (startedBattleEffect) {
       const auxiliaryBattleEffects = applyBattleEffects(move, actor, target, new Set([twoTurnEffectId]));
-      applySkillEffects(move, actor, target, { targets: ["self"] });
+      applyBattleCoreEvents(applySkillEffects(
+        move,
+        actor,
+        target,
+        state.effects,
+        STAT_LABELS,
+        { targets: ["self"] },
+      ));
       renderBattle();
       await playBattleEffectAnimation(startedBattleEffect, action.side);
       await playBattleEffectAnimations(auxiliaryBattleEffects, action.side);
@@ -7054,7 +7028,7 @@ async function executeAction(action) {
     if (result.damage > 0) {
       flashSprite(targetSide);
       pushLog(`${target.name}に ${result.damage} ダメージ！${result.effectText}`);
-      clearSleepOnAttackDamage(target);
+      applyBattleCoreEvents(clearSleepOnAttackDamage(target));
     } else {
       pushLog(result.effectText.trim());
     }
@@ -7069,13 +7043,20 @@ async function executeAction(action) {
 
     await handleFaint(targetSide);
     if (!target.fainted && result.damage > 0) {
-      applySkillEffects(move, actor, target, completingTwoTurnMove ? { targets: ["enemy"] } : {});
+      applyBattleCoreEvents(applySkillEffects(
+        move,
+        actor,
+        target,
+        state.effects,
+        STAT_LABELS,
+        completingTwoTurnMove ? { targets: ["enemy"] } : {},
+      ));
       const appliedDamageBattleEffects = applyDamageLinkedStun(move, actor, target);
       await playBattleEffectAnimations(appliedDamageBattleEffects, action.side);
       await pause(300);
     }
   } else {
-    applySkillEffects(move, actor, target);
+    applyBattleCoreEvents(applySkillEffects(move, actor, target, state.effects, STAT_LABELS));
     await pause(360);
   }
 
@@ -7382,175 +7363,6 @@ function debugEnemyAI(enemy, details) {
   ].join("\n"));
 }
 
-function applySkillEffects(move, actor, target, options = {}) {
-  const allowedTargets = Array.isArray(options.targets)
-    ? new Set(options.targets.map(normalizeEffectTarget))
-    : null;
-  const pairs = [
-    [move.effect1, move.effect_chance1, move.effect_target1],
-    [move.effect2, move.effect_chance2, move.effect_target2],
-    [move.effect3, move.effect_chance3, move.effect_target3],
-  ];
-
-  for (const [effectId, chance, effectTarget] of pairs) {
-    if (!effectId || effectId === "none" || chance <= 0) continue;
-    const normalizedTarget = normalizeEffectTarget(effectTarget);
-    if (allowedTargets && !allowedTargets.has(normalizedTarget)) continue;
-    if (Math.random() * 100 <= chance) {
-      applyEffect(effectId, actor, skillEffectRecipient(normalizedTarget, actor, target));
-    }
-  }
-}
-
-function skillEffectRecipient(effectTarget, actor, target) {
-  return normalizeEffectTarget(effectTarget) === "self" ? actor : target;
-}
-
-function applyEffect(effectId, actor, target) {
-  if (!target) return;
-
-  if (effectId === "def_down") {
-    applyEffect("phy_def_down", actor, target);
-    applyEffect("sp_def_down", actor, target);
-    return;
-  }
-
-  const effect = state.effects.get(effectId);
-  if (!effect) return;
-
-  if (effect.effect_group === "heal") {
-    applyHealEffect(effect, target);
-    return;
-  }
-
-  if (effect.effect_group === "energy_up" || effect.effect_group === "energy_down") {
-    applyEnergyEffect(effect, target);
-    return;
-  }
-
-  if (effect.effect_group === "buff" || effect.effect_group === "debuff") {
-    const stat = effect.target_stat;
-    if (!target.statMods[stat] && target.statMods[stat] !== 0) return;
-    const amount = effect.effect_group === "buff" ? effect.damage_value : -effect.damage_value;
-    const before = target.statMods[stat];
-    const stageLimit = Math.max(0, Math.abs(effect.damage_value) * 4);
-    target.statMods[stat] = clamp(target.statMods[stat] + amount, -stageLimit, stageLimit);
-    if (target.statMods[stat] !== before) {
-      pushLog(`${target.name}の${STAT_LABELS[stat]}が${amount > 0 ? "上がった" : "下がった"}！`);
-    }
-    return;
-  }
-
-  if (effect.effect_group === "resistance") {
-    applyResistanceEffect(effect, target);
-    return;
-  }
-
-  const current = target.statuses.find((status) => status.id === effect.effect_id);
-  if (current) {
-    current.turns = Math.max(current.turns, effect.turn);
-  } else {
-    target.statuses.push({
-      id: effect.effect_id,
-      name: effect.name,
-      group: effect.effect_group,
-      damageType: effect.damage_type,
-      damageValue: effect.damage_value,
-      targetStat: effect.target_stat,
-      turns: effect.turn,
-    });
-  }
-  pushLog(`${target.name}は${effect.name}になった！`);
-}
-
-function applyResistanceEffect(effect, target) {
-  const element = resistanceEffectElement(effect);
-  const delta = resistanceWeakModDelta(effect);
-  if (!element || !delta) return;
-
-  const weakMods = ensureFighterWeakMods(target);
-  const current = weakMods[element];
-  current.value = clamp(current.value + delta, TEMP_WEAK_MOD_MIN, TEMP_WEAK_MOD_MAX);
-  current.turns = Math.max(0, Math.floor(number(effect.turn)));
-  pushLog(`${target.name}は${effect.name}になった！`);
-}
-
-function applyHealEffect(effect, target) {
-  const amount = Math.max(0, Math.abs(effect.damage_value));
-  if (amount <= 0) return;
-
-  if (effect.target_stat === "hp") {
-    const beforeHp = target.hp;
-    target.hp = Math.min(target.maxHp, target.hp + amount);
-    const healed = target.hp - beforeHp;
-    if (healed > 0) {
-      pushLog(`${target.name}は ${healed} 回復した！`);
-    }
-    return;
-  }
-
-  if (effect.target_stat === "en") {
-    const beforeEnergy = target.energy;
-    target.energy = clamp(target.energy + amount, 0, target.maxEnergy);
-    const recovered = target.energy - beforeEnergy;
-    if (recovered > 0) {
-      pushLog(`${target.name}のENが ${recovered} 回復した！`);
-    }
-  }
-}
-
-function applyEnergyEffect(effect, target) {
-  if (effect.target_stat !== "en") return;
-
-  const amount = Math.max(0, Math.abs(effect.damage_value));
-  if (amount <= 0) return;
-
-  if (effect.turn <= 0) {
-    const beforeEnergy = target.energy;
-    const nextEnergy = effect.effect_group === "energy_up"
-      ? target.energy + amount
-      : target.energy - amount;
-    target.energy = clamp(nextEnergy, 0, target.maxEnergy);
-    const changed = target.energy - beforeEnergy;
-    if (changed > 0) {
-      pushLog(`${target.name}のENが ${changed} 増えた！`);
-    } else if (changed < 0) {
-      pushLog(`${target.name}のENが ${Math.abs(changed)} 減った！`);
-    }
-    return;
-  }
-
-  addTimedStatusEffect(effect, target);
-}
-
-function clearSleepOnAttackDamage(target) {
-  if (!target?.statuses?.some((status) => status.id === "sleep")) return;
-  target.statuses = target.statuses.filter((status) => status.id !== "sleep");
-  if (target.hp > 0) {
-    pushLog(`${target.name}は目を覚ました！`);
-  }
-}
-
-function addTimedStatusEffect(effect, target) {
-  const current = target.statuses.find((status) => status.id === effect.effect_id);
-  if (current) {
-    current.turns = Math.max(current.turns, effect.turn);
-    current.damageValue = effect.damage_value;
-    current.targetStat = effect.target_stat;
-  } else {
-    target.statuses.push({
-      id: effect.effect_id,
-      name: effect.name,
-      group: effect.effect_group,
-      damageType: effect.damage_type,
-      damageValue: effect.damage_value,
-      targetStat: effect.target_stat,
-      turns: effect.turn,
-    });
-  }
-  pushLog(`${target.name}は${effect.name}になった！`);
-}
-
 function startTwoTurnMove(actor, move, effectId, targetSide) {
   const battleEffect = state.battleEffects.get(effectId);
   if (!battleEffect) return null;
@@ -7845,7 +7657,7 @@ async function resolveDelayedAttackEffect(side, effect) {
   if (result.damage > 0) {
     flashSprite(side);
     pushLog(`${target.name}に ${result.damage} ダメージ！${result.effectText}`);
-    clearSleepOnAttackDamage(target);
+    applyBattleCoreEvents(clearSleepOnAttackDamage(target));
   } else {
     pushLog(result.effectText.trim());
   }
@@ -8178,6 +7990,14 @@ function pushLog(message) {
   state.log.push(message);
   if (state.log.length > 12) state.log = state.log.slice(-12);
   showBattleMessage(message);
+}
+
+function applyBattleCoreEvents(events) {
+  for (const event of events ?? []) {
+    if (event?.type === "log") {
+      pushLog(event.text);
+    }
+  }
 }
 
 function isPositionHidden(fighter) {
