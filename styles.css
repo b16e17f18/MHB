@@ -1963,7 +1963,22 @@ button {
 }
 
 .hud-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
   font-size: clamp(1rem, 1.8vw, 1.3rem);
+}
+
+.hud-character-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hud-element-badge {
+  flex: 0 0 auto;
 }
 
 .hud-level {

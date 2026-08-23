@@ -6019,8 +6019,8 @@ function renderBattle() {
   const inspectSide = state.battleInspectSide === "player" ? "player" : "enemy";
   const inspectFighter = inspectSide === "player" ? player : enemy;
 
-  els.enemyHud.innerHTML = renderHud(enemy, state.enemyTeam, state.enemyActiveIndex, "相手", "enemy");
-  els.playerHud.innerHTML = renderHud(player, state.playerTeam, state.playerActiveIndex, "自分", "player");
+  els.enemyHud.innerHTML = renderHud(enemy, state.enemyTeam, state.enemyActiveIndex, "enemy");
+  els.playerHud.innerHTML = renderHud(player, state.playerTeam, state.playerActiveIndex, "player");
   els.enemySprite.innerHTML = renderSprite(enemy, "enemy", state.enemyActiveIndex);
   els.playerSprite.innerHTML = renderSprite(player, "player", state.playerActiveIndex);
   applyPositionEffectClass(els.enemySprite, enemy);
@@ -6055,13 +6055,13 @@ function renderBattle() {
   renderExchangePanel();
 }
 
-function renderHud(fighter, team, activeIndex, label, side) {
+function renderHud(fighter, team, activeIndex, side) {
   const hpRate = fighter ? clamp(fighter.hp / fighter.maxHp, 0, 1) : 0;
   const hpText = fighter && side === "player" ? `${Math.max(0, fighter.hp)}/${fighter.maxHp}` : "";
 
   return `
     <div class="hud-row">
-      <div class="hud-name">${escapeHtml(label)} ${fighter ? escapeHtml(fighter.name) : ""}</div>
+      <div class="hud-name">${renderHudElementBadge(fighter)}<span class="hud-character-name">${fighter ? escapeHtml(fighter.name) : ""}</span></div>
       <div class="hud-level">${fighter ? escapeHtml(fighter.name) : ""}</div>
     </div>
     <div class="hp-line">
@@ -6094,6 +6094,17 @@ function renderHud(fighter, team, activeIndex, label, side) {
   `;
 }
 
+function renderHudElementBadge(fighter) {
+  const element = fighter?.originalBase?.element ?? fighter?.base?.element ?? "none";
+  const normalized = elementClass(element);
+  const label = elementName(normalized);
+  return `
+    <span class="element-pill hud-element-badge element-${normalized}" title="${escapeHtml(label)}" aria-label="${escapeHtml(label)}属性">
+      ${escapeHtml(label)}
+    </span>
+  `;
+}
+
 function renderEnergySegments(fighter) {
   const maxEnergy = fighter?.maxEnergy ?? 7;
   const currentEnergy = fighter ? Math.floor(fighter.energy) : 0;
@@ -6106,7 +6117,9 @@ function renderEnergySegments(fighter) {
 function renderBattleStatusPanel(player, enemy) {
   const labels = [
     ...statusLabels(player).map((label) => `自:${label}`),
+    ...benchPersistentBattleEffectLabels(state.playerTeam, player).map((label) => `自:${label}`),
     ...statusLabels(enemy).map((label) => `相:${label}`),
+    ...benchPersistentBattleEffectLabels(state.enemyTeam, enemy).map((label) => `相:${label}`),
   ];
 
   if (!labels.length) {
@@ -6117,6 +6130,15 @@ function renderBattleStatusPanel(player, enemy) {
     .slice(0, 4)
     .map((label) => `<div class="battle-status-line">${escapeHtml(label)}</div>`)
     .join("");
+}
+
+function benchPersistentBattleEffectLabels(team, activeFighter) {
+  return (team ?? []).flatMap((member) => {
+    if (!member || member === activeFighter || member.fainted) return [];
+    return (member.battleEffects ?? [])
+      .filter((effect) => SWITCH_PERSISTENT_BATTLE_EFFECT_IDS.has(effect.id))
+      .map((effect) => `${member.name} ${effect.name}`);
+  });
 }
 
 function renderCommandLights() {
@@ -7108,6 +7130,8 @@ async function executeAction(action) {
     await handleFaint(targetSide);
     if (!target.fainted && result.damage > 0) {
       applySkillEffects(move, actor, target, completingTwoTurnMove ? { targets: ["enemy"] } : {});
+      const appliedDamageBattleEffects = applyDamageLinkedStun(move, actor, target);
+      await playBattleEffectAnimations(appliedDamageBattleEffects, action.side);
       await pause(300);
     }
   } else {
@@ -7859,6 +7883,7 @@ function applyBattleEffects(move, actor, target, skipEffectIds = null) {
   for (const [battleEffectId, chance] of pairs) {
     if (!battleEffectId || battleEffectId === "none" || chance <= 0) continue;
     if (skipEffectIds?.has(battleEffectId)) continue;
+    if (move.category === "attack" && battleEffectId === STUN_BATTLE_EFFECT_ID) continue;
     if (Math.random() * 100 > chance) continue;
 
     if (battleEffectId === "charge_attack") {
@@ -7902,6 +7927,30 @@ function applyBattleEffects(move, actor, target, skipEffectIds = null) {
     pushLog(battleEffectStartText(actor, battleEffect, recipient));
     appliedBattleEffects.push(battleEffect);
   }
+  return appliedBattleEffects;
+}
+
+function applyDamageLinkedStun(move, actor, target) {
+  const appliedBattleEffects = [];
+  if (move.category !== "attack" || !target) return appliedBattleEffects;
+
+  const stunEffect = state.battleEffects.get(STUN_BATTLE_EFFECT_ID);
+  if (!stunEffect) return appliedBattleEffects;
+
+  const pairs = [
+    [move.battle_effect1, move.battle_effect_chance1],
+    [move.battle_effect2, move.battle_effect_chance2],
+  ];
+
+  for (const [battleEffectId, chance] of pairs) {
+    if (battleEffectId !== STUN_BATTLE_EFFECT_ID || chance <= 0) continue;
+    if (Math.random() * 100 > chance) continue;
+
+    addBattleEffect(target, stunEffect);
+    pushLog(battleEffectStartText(actor, stunEffect, target));
+    appliedBattleEffects.push(stunEffect);
+  }
+
   return appliedBattleEffects;
 }
 
