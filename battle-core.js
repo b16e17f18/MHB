@@ -252,6 +252,26 @@ function guardAppliesToMove(effect, move) {
   return true;
 }
 
+function canHitTarget(target, move) {
+  const position = target.battleEffects.find((effect) => POSITION_EFFECT_IDS.includes(effect.id));
+  if (!position || move.hit_type === "sure_hit") {
+    return { canHit: true, reason: "" };
+  }
+
+  const requiredHitType = {
+    fly: "anti_air",
+    underground: "ground_wave",
+    underwater: "water_wave",
+    ghost_phase: "sure_hit",
+  }[position.id];
+
+  if (move.hit_type === requiredHitType) {
+    return { canHit: true, reason: "" };
+  }
+
+  return { canHit: false, reason: `${target.name}に届かなかった！` };
+}
+
 function twoTurnBattleEffectId(move) {
   return [
     [move.battle_effect1, move.battle_effect_chance1],
