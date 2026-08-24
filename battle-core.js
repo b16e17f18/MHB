@@ -161,7 +161,14 @@ function warnPowerRuleFallback(ruleGroup, move, reason, details = {}) {
   });
 }
 
-function estimateMoveDamage(attacker, target, move, aiConfig = ENEMY_AI_CONFIG, powerRules) {
+function estimateMoveDamage(
+  attacker,
+  target,
+  move,
+  aiConfig = ENEMY_AI_CONFIG,
+  powerRules,
+  targetFieldEffects = [],
+) {
   if (!attacker || !target || !move) return 0;
   const hitCheck = canHitTarget(target, move);
   if (!hitCheck.canHit) return 0;
@@ -177,11 +184,11 @@ function estimateMoveDamage(attacker, target, move, aiConfig = ENEMY_AI_CONFIG, 
   let damage = (damageMove.power * 1.45 + attackStat * 0.48) * ratio;
 
   damage *= elementMultiplier * sameElementBonus * aiConfig.AVERAGE_DAMAGE_VARIANCE;
-  damage = applyIncomingBattleEffects(target, damage, damageMove);
+  damage = applyIncomingBattleEffects(target, damage, damageMove, targetFieldEffects);
   return Math.max(1, Math.round(damage));
 }
 
-function dealDamage(attacker, target, move) {
+function dealDamage(attacker, target, move, targetFieldEffects = []) {
   const hitCheck = canHitTarget(target, move);
   if (!hitCheck.canHit) {
     return {
@@ -203,7 +210,7 @@ function dealDamage(attacker, target, move) {
   let effectText = effectivenessText(elementMultiplier);
 
   damage *= elementMultiplier * sameElementBonus * variance;
-  damage = applyIncomingBattleEffects(target, damage, move);
+  damage = applyIncomingBattleEffects(target, damage, move, targetFieldEffects);
   damage = Math.max(1, Math.round(damage));
 
   const endure = target.battleEffects.find((effect) => effect.id === "endure");
@@ -342,6 +349,68 @@ function applyStandardBattleEffect(actor, target, battleEffect, currentTurn) {
   events.push({ type: "log", text: battleEffectStartText(actor, battleEffect, recipient) });
   appliedBattleEffects.push(battleEffect);
   return { appliedBattleEffects, events };
+}
+
+function isSideGuardBattleEffectId(effectId) {
+  return effectId === "phy_protect" || effectId === "sp_protect";
+}
+
+function applySideGuardBattleEffect(
+  fieldEffects,
+  actorSide,
+  actor,
+  battleEffect,
+  currentTurn,
+  nextFieldEffectId,
+) {
+  const appliedBattleEffects = [];
+  const events = [];
+  if (!actorSide) {
+    return {
+      applied: false,
+      appliedBattleEffects,
+      events,
+      nextFieldEffectId,
+    };
+  }
+
+  const effects = fieldEffectsForSide(fieldEffects, actorSide);
+  const current = effects.find((effect) => effect.id === battleEffect.battle_effect_id);
+  let updatedNextFieldEffectId = nextFieldEffectId;
+  if (current) {
+    Object.assign(current, {
+      id: battleEffect.battle_effect_id,
+      name: battleEffect.name,
+      group: battleEffect.battle_effect_group,
+      turns: battleEffect.turn,
+      createdTurn: currentTurn,
+      damage_type: battleEffect.damage_type,
+      damage_value: battleEffect.damage_value,
+      damage_cut: battleEffect.damage_cut,
+      guard_type: battleEffect.guard_type,
+      can_move: battleEffect.can_move,
+      animation: battleEffect.animation,
+      animation_duration_ms: battleEffect.animation_duration_ms,
+    });
+  } else {
+    const fieldEffectResult = addFieldEffect(
+      fieldEffects,
+      actorSide,
+      battleEffect,
+      currentTurn,
+      nextFieldEffectId,
+    );
+    updatedNextFieldEffectId = fieldEffectResult.nextFieldEffectId;
+  }
+
+  events.push({ type: "log", text: battleEffectStartText(actor, battleEffect, actor) });
+  appliedBattleEffects.push(battleEffect);
+  return {
+    applied: true,
+    appliedBattleEffects,
+    events,
+    nextFieldEffectId: updatedNextFieldEffectId,
+  };
 }
 
 function applyChargeAttackBattleEffect(actor) {
@@ -613,6 +682,22 @@ function applyBattleEffects(
     const battleEffect = battleEffects?.get(battleEffectId);
     if (!battleEffect) continue;
 
+    if (isSideGuardBattleEffectId(battleEffectId) && actorSide) {
+      const sideGuardResult = applySideGuardBattleEffect(
+        fieldEffects,
+        actorSide,
+        actor,
+        battleEffect,
+        currentTurn,
+        updatedNextFieldEffectId,
+      );
+      if (!sideGuardResult.applied) continue;
+      updatedNextFieldEffectId = sideGuardResult.nextFieldEffectId;
+      events.push(...sideGuardResult.events);
+      appliedBattleEffects.push(...sideGuardResult.appliedBattleEffects);
+      continue;
+    }
+
     if (battleEffect.battle_effect_group === "delayed_attack") {
       const delayedBattleEffectResult = applyDelayedAttackBattleEffect(
         fieldEffects,
@@ -664,9 +749,13 @@ function applyBattleEffects(
   };
 }
 
-function applyIncomingBattleEffects(target, damage, move) {
+function applyIncomingBattleEffects(target, damage, move, targetFieldEffects = []) {
   let adjusted = damage;
-  const protect = target.battleEffects
+  const incomingBattleEffects = [
+    ...(target?.battleEffects ?? []),
+    ...(targetFieldEffects ?? []),
+  ];
+  const protect = incomingBattleEffects
     .filter((effect) => effect.group === "guard" && guardAppliesToMove(effect, move))
     .reduce((best, effect) => {
       if (!best || number(effect.damage_cut) > number(best.damage_cut)) {

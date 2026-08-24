@@ -187,7 +187,7 @@ const DELAYED_ATTACK_SETUP_ONLY_EFFECT_IDS = new Set([
 ]);
 const STUN_BATTLE_EFFECT_ID = "stun";
 const DELAYED_HEAL_BATTLE_EFFECT_GROUP = "delayed_heal";
-const SWITCH_PERSISTENT_BATTLE_EFFECT_IDS = new Set(["phy_protect", "sp_protect"]);
+const SWITCH_PERSISTENT_BATTLE_EFFECT_IDS = new Set();
 const BATTLE_MESSAGE_DURATION = 1400;
 const BATTLE_TEXT_SPEED_SCALE = 2;
 const ANIMATION_FRAME_WIDTH = 250;
@@ -6048,10 +6048,30 @@ function renderBattleStatusPanel(player, enemy) {
 function benchPersistentBattleEffectLabels(team, activeFighter) {
   return (team ?? []).flatMap((member) => {
     if (!member || member === activeFighter || member.fainted) return [];
-    return (member.battleEffects ?? [])
-      .filter((effect) => SWITCH_PERSISTENT_BATTLE_EFFECT_IDS.has(effect.id))
-      .map((effect) => `${member.name} ${effect.name}`);
+    return fighterPersistentBattleEffectLabels(member).map((label) => `${member.name} ${label}`);
   });
+}
+
+function fighterPersistentBattleEffectLabels(fighter) {
+  if (!fighter || fighter.fainted) return [];
+  return (fighter.battleEffects ?? [])
+    .filter((effect) => SWITCH_PERSISTENT_BATTLE_EFFECT_IDS.has(effect.id))
+    .map((effect) => effect.name);
+}
+
+function switchPersistentBattleEffectSummary(fighter) {
+  const labels = [
+    ...fighterPersistentBattleEffectLabels(fighter),
+    ...sideGuardBattleEffectLabels("player"),
+  ];
+  const uniqueLabels = [...new Set(labels)];
+  return uniqueLabels.length ? ` / ${uniqueLabels.map(escapeHtml).join("、")}` : "";
+}
+
+function sideGuardBattleEffectLabels(side) {
+  return fieldEffectsForSide(state.fieldEffects, side)
+    .filter((effect) => isSideGuardBattleEffectId(effect.id))
+    .map((effect) => effect.name);
 }
 
 function renderCommandLights() {
@@ -6315,7 +6335,7 @@ function renderSwitchGrid() {
       return `
         <button class="switch-button ${active ? "is-active-member" : ""} ${member.fainted ? "is-fainted-member" : ""}" type="button" data-member-index="${index}" ${disabled ? "disabled" : ""}>
           <span class="switch-name">${escapeHtml(member.name)}</span>
-          <span class="switch-meta">体力 ${Math.max(0, member.hp)}/${member.maxHp} / ${energyBadge(member.energy)}</span>
+          <span class="switch-meta">体力 ${Math.max(0, member.hp)}/${member.maxHp} / ${energyBadge(member.energy)}${switchPersistentBattleEffectSummary(member)}</span>
         </button>
       `;
     })
@@ -7044,7 +7064,7 @@ async function executeAction(action) {
   }
 
   if (move.category === "attack" && !delayedAttackSetupOnly) {
-    const result = dealDamage(actor, target, move);
+    const result = dealDamage(actor, target, move, fieldEffectsForActiveFighter(target));
     if (result.damage > 0) {
       flashSprite(targetSide);
       pushLog(`${target.name}に ${result.damage} ダメージ！${result.effectText}`);
@@ -7257,7 +7277,14 @@ function scoreEnemyUsableMove(enemy, target, move, aiConfig = ENEMY_AI_CONFIG) {
   const hitCheck = canHitTarget(target, move);
   if (!hitCheck.canHit) return null;
 
-  const estimatedDamage = estimateMoveDamage(enemy, target, move, aiConfig, state.powerRules);
+  const estimatedDamage = estimateMoveDamage(
+    enemy,
+    target,
+    move,
+    aiConfig,
+    state.powerRules,
+    fieldEffectsForActiveFighter(target),
+  );
   const canKnockout = estimatedDamage >= target.hp;
   let score = estimatedDamage - move.cost * aiConfig.ENERGY_COST_PENALTY;
   if (enemy.energy - move.cost <= 0) {
@@ -7294,7 +7321,14 @@ function scoreEnemySaveEnergy(enemy, target, allMoves, usableMoveScores, aiConfi
       const futureEnemy = { ...enemy, energy: nextEnergy };
       return {
         move,
-        estimatedDamage: estimateMoveDamage(futureEnemy, target, move, aiConfig, state.powerRules),
+        estimatedDamage: estimateMoveDamage(
+          futureEnemy,
+          target,
+          move,
+          aiConfig,
+          state.powerRules,
+          fieldEffectsForActiveFighter(target),
+        ),
       };
     })
     .filter(Boolean)
@@ -7468,7 +7502,7 @@ async function resolveDelayedAttackEffect(side, effect) {
   pushLog(`${target.name}に${effect.name}が炸裂した！`);
   await pause(420);
   await playSkillAnimation(move, side);
-  const result = dealDamage(attacker, target, move);
+  const result = dealDamage(attacker, target, move, fieldEffectsForSide(state.fieldEffects, side));
   if (result.damage > 0) {
     flashSprite(side);
     pushLog(`${target.name}に ${result.damage} ダメージ！${result.effectText}`);
@@ -7565,6 +7599,10 @@ async function endRound() {
       fighter.battleEffects = tickBattleEffectsAfterRound(fighter.battleEffects);
     }
   }
+
+  for (const side of ["player", "enemy"]) {
+    state.fieldEffects[side] = tickBattleEffectsAfterRound(fieldEffectsForSide(state.fieldEffects, side));
+  }
 }
 
 function tickBattleEffectsAfterRound(battleEffects) {
@@ -7574,6 +7612,7 @@ function tickBattleEffectsAfterRound(battleEffects) {
         effect.group === "position" ||
         effect.group === "charge" ||
         effect.group === "delayed_attack" ||
+        effect.group === DELAYED_HEAL_BATTLE_EFFECT_GROUP ||
         effect.id === STUN_BATTLE_EFFECT_ID
       ) {
         return effect;
@@ -7584,6 +7623,7 @@ function tickBattleEffectsAfterRound(battleEffects) {
       effect.group === "position" ||
       effect.group === "charge" ||
       effect.group === "delayed_attack" ||
+      effect.group === DELAYED_HEAL_BATTLE_EFFECT_GROUP ||
       effect.id === STUN_BATTLE_EFFECT_ID ||
       effect.turns > 0
     ));
@@ -7757,6 +7797,11 @@ function sideForActiveFighter(fighter) {
   if (fighter === activePlayer()) return "player";
   if (fighter === activeEnemy()) return "enemy";
   return "";
+}
+
+function fieldEffectsForActiveFighter(fighter) {
+  const side = sideForActiveFighter(fighter);
+  return side ? fieldEffectsForSide(state.fieldEffects, side) : [];
 }
 
 function teamBySide(side) {
