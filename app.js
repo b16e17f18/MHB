@@ -4921,7 +4921,7 @@ function fighterBattleStatusEntries(fighter) {
   }));
   const side = sideForActiveFighter(fighter);
   const fieldEffectEntries = side
-    ? fieldEffectsForSide(side).map((effect) => ({
+    ? fieldEffectsForSide(state.fieldEffects, side).map((effect) => ({
         label: effect.name,
         className: effectChipClass(effect.id),
       }))
@@ -6958,8 +6958,8 @@ async function executeAction(action) {
   const target = baseMove.target === "self" ? actor : activeBySide(targetSide);
   if (!target || target.fainted) return;
   const move = completingTwoTurnMove
-    ? moveWithPendingPower(baseMove, pendingSkill, actor, target)
-    : moveWithEffectivePower(baseMove, actor, target);
+    ? moveWithPendingPower(baseMove, pendingSkill, actor, target, state.powerRules)
+    : moveWithEffectivePower(baseMove, actor, target, state.powerRules);
 
   const blockText = blockedByControl(actor);
   if (blockText) {
@@ -6984,11 +6984,25 @@ async function executeAction(action) {
   if (!completingTwoTurnMove && move.category === "attack") {
     const twoTurnEffectId = twoTurnBattleEffectId(move);
     const pendingTargetSide = move.target === "self" ? action.side : targetSide;
-    const startedBattleEffect = twoTurnEffectId
-      ? startTwoTurnMove(actor, move, twoTurnEffectId, pendingTargetSide)
+    const startedTwoTurnMove = twoTurnEffectId
+      ? startTwoTurnMove(actor, move, twoTurnEffectId, pendingTargetSide, state.battleEffects, state.turn)
       : null;
-    if (startedBattleEffect) {
-      const auxiliaryBattleEffects = applyBattleEffects(move, actor, target, new Set([twoTurnEffectId]));
+    if (startedTwoTurnMove) {
+      applyBattleCoreEvents(startedTwoTurnMove.events);
+      const auxiliaryBattleEffectResult = applyBattleEffects(
+        move,
+        actor,
+        target,
+        state.battleEffects,
+        state.turn,
+        state.fieldEffects,
+        state.nextFieldEffectId,
+        new Set([startedTwoTurnMove.battleEffectId]),
+        sideForActiveFighter(actor),
+        sideForActiveFighter(target),
+      );
+      state.nextFieldEffectId = auxiliaryBattleEffectResult.nextFieldEffectId;
+      applyBattleCoreEvents(auxiliaryBattleEffectResult.events);
       applyBattleCoreEvents(applySkillEffects(
         move,
         actor,
@@ -6998,8 +7012,8 @@ async function executeAction(action) {
         { targets: ["self"] },
       ));
       renderBattle();
-      await playBattleEffectAnimation(startedBattleEffect, action.side);
-      await playBattleEffectAnimations(auxiliaryBattleEffects, action.side);
+      await playBattleEffectAnimation(startedTwoTurnMove.battleEffect, action.side);
+      await playBattleEffectAnimations(auxiliaryBattleEffectResult.appliedBattleEffects, action.side);
       await pause(500);
       return;
     }
@@ -7051,8 +7065,15 @@ async function executeAction(action) {
         STAT_LABELS,
         completingTwoTurnMove ? { targets: ["enemy"] } : {},
       ));
-      const appliedDamageBattleEffects = applyDamageLinkedStun(move, actor, target);
-      await playBattleEffectAnimations(appliedDamageBattleEffects, action.side);
+      const damageLinkedStunResult = applyDamageLinkedStun(
+        move,
+        actor,
+        target,
+        state.battleEffects,
+        state.turn,
+      );
+      applyBattleCoreEvents(damageLinkedStunResult.events);
+      await playBattleEffectAnimations(damageLinkedStunResult.appliedBattleEffects, action.side);
       await pause(300);
     }
   } else {
@@ -7069,8 +7090,21 @@ async function executeAction(action) {
   }
 
   if (!completingTwoTurnMove) {
-    const appliedBattleEffects = applyBattleEffects(move, actor, target, returnedPosition ? new Set([returnedPosition]) : null);
-    await playBattleEffectAnimations(appliedBattleEffects, action.side);
+    const battleEffectResult = applyBattleEffects(
+      move,
+      actor,
+      target,
+      state.battleEffects,
+      state.turn,
+      state.fieldEffects,
+      state.nextFieldEffectId,
+      returnedPosition ? new Set([returnedPosition]) : null,
+      sideForActiveFighter(actor),
+      sideForActiveFighter(target),
+    );
+    state.nextFieldEffectId = battleEffectResult.nextFieldEffectId;
+    applyBattleCoreEvents(battleEffectResult.events);
+    await playBattleEffectAnimations(battleEffectResult.appliedBattleEffects, action.side);
   }
   await pause(280);
 }
@@ -7217,7 +7251,7 @@ function scoreEnemyUsableMove(enemy, target, move, aiConfig = ENEMY_AI_CONFIG) {
   const hitCheck = canHitTarget(target, move);
   if (!hitCheck.canHit) return null;
 
-  const estimatedDamage = estimateMoveDamage(enemy, target, move, aiConfig);
+  const estimatedDamage = estimateMoveDamage(enemy, target, move, aiConfig, state.powerRules);
   const canKnockout = estimatedDamage >= target.hp;
   let score = estimatedDamage - move.cost * aiConfig.ENERGY_COST_PENALTY;
   if (enemy.energy - move.cost <= 0) {
@@ -7254,7 +7288,7 @@ function scoreEnemySaveEnergy(enemy, target, allMoves, usableMoveScores, aiConfi
       const futureEnemy = { ...enemy, energy: nextEnergy };
       return {
         move,
-        estimatedDamage: estimateMoveDamage(futureEnemy, target, move, aiConfig),
+        estimatedDamage: estimateMoveDamage(futureEnemy, target, move, aiConfig, state.powerRules),
       };
     })
     .filter(Boolean)
@@ -7363,24 +7397,6 @@ function debugEnemyAI(enemy, details) {
   ].join("\n"));
 }
 
-function startTwoTurnMove(actor, move, effectId, targetSide) {
-  const battleEffect = state.battleEffects.get(effectId);
-  if (!battleEffect) return null;
-
-  setPendingSkill(actor, {
-    skillId: move.skill_id,
-    moveId: move.skill_id,
-    power: move.power,
-    effectId,
-    target: move.target,
-    targetSide,
-    startedTurn: state.turn,
-  });
-  addBattleEffect(actor, battleEffect);
-  pushLog(battleEffectStartText(actor, battleEffect));
-  return battleEffect;
-}
-
 function finishTwoTurnMove(actor) {
   const pendingSkill = pendingSkillFor(actor);
   if (!pendingSkill) return "";
@@ -7405,87 +7421,6 @@ function clearPositionAfterAction(actor, move, positionBeforeAction) {
   return positionBeforeAction;
 }
 
-function applyBattleEffects(move, actor, target, skipEffectIds = null) {
-  const appliedBattleEffects = [];
-  const pairs = [
-    [move.battle_effect1, move.battle_effect_chance1],
-    [move.battle_effect2, move.battle_effect_chance2],
-  ];
-
-  for (const [battleEffectId, chance] of pairs) {
-    if (!battleEffectId || battleEffectId === "none" || chance <= 0) continue;
-    if (skipEffectIds?.has(battleEffectId)) continue;
-    if (move.category === "attack" && battleEffectId === STUN_BATTLE_EFFECT_ID) continue;
-    if (Math.random() * 100 > chance) continue;
-
-    if (battleEffectId === "charge_attack") {
-      actor.statMods.phy_atk = clamp(actor.statMods.phy_atk + 10, -100, 100);
-      pushLog(`${actor.name}は勢いづいた！`);
-      const battleEffect = state.battleEffects.get(battleEffectId);
-      if (battleEffect) {
-        appliedBattleEffects.push(battleEffect);
-      }
-      continue;
-    }
-
-    const battleEffect = state.battleEffects.get(battleEffectId);
-    if (!battleEffect) continue;
-
-    if (battleEffect.battle_effect_group === "delayed_attack") {
-      const targetSide = sideForActiveFighter(target);
-      if (!targetSide) continue;
-      addFieldEffect(
-        targetSide,
-        battleEffect,
-        delayedBattleEffectPayload(move, actor, battleEffect),
-      );
-      pushLog(battleEffectStartText(actor, battleEffect, target));
-      appliedBattleEffects.push(battleEffect);
-      continue;
-    }
-
-    if (battleEffect.battle_effect_group === DELAYED_HEAL_BATTLE_EFFECT_GROUP) {
-      const actorSide = sideForActiveFighter(actor);
-      if (!actorSide) continue;
-      addFieldEffect(actorSide, battleEffect);
-      pushLog(battleEffectStartText(actor, battleEffect, actor));
-      appliedBattleEffects.push(battleEffect);
-      continue;
-    }
-
-    const recipient = battleEffect.battle_effect_id === STUN_BATTLE_EFFECT_ID ? target : actor;
-    if (!recipient) continue;
-    addBattleEffect(recipient, battleEffect);
-    pushLog(battleEffectStartText(actor, battleEffect, recipient));
-    appliedBattleEffects.push(battleEffect);
-  }
-  return appliedBattleEffects;
-}
-
-function applyDamageLinkedStun(move, actor, target) {
-  const appliedBattleEffects = [];
-  if (move.category !== "attack" || !target) return appliedBattleEffects;
-
-  const stunEffect = state.battleEffects.get(STUN_BATTLE_EFFECT_ID);
-  if (!stunEffect) return appliedBattleEffects;
-
-  const pairs = [
-    [move.battle_effect1, move.battle_effect_chance1],
-    [move.battle_effect2, move.battle_effect_chance2],
-  ];
-
-  for (const [battleEffectId, chance] of pairs) {
-    if (battleEffectId !== STUN_BATTLE_EFFECT_ID || chance <= 0) continue;
-    if (Math.random() * 100 > chance) continue;
-
-    addBattleEffect(target, stunEffect);
-    pushLog(battleEffectStartText(actor, stunEffect, target));
-    appliedBattleEffects.push(stunEffect);
-  }
-
-  return appliedBattleEffects;
-}
-
 function hasDelayedAttackBattleEffect(move) {
   return [
     [move.battle_effect1, move.battle_effect_chance1],
@@ -7495,142 +7430,9 @@ function hasDelayedAttackBattleEffect(move) {
   ));
 }
 
-function delayedBattleEffectPayload(move, actor, battleEffect) {
-  const fixedPower = battleEffect.damage_type === "fixed_power" ? battleEffect.damage_value : 0;
-  const ratePower =
-    battleEffect.damage_type === "skill_power_rate"
-      ? Math.round(move.power * ((battleEffect.damage_value || 100) / 100))
-      : 0;
-  const delayedPower = Math.max(1, fixedPower || ratePower || move.power);
-  return {
-    delayedMove: {
-      name: move.name,
-      power: delayedPower,
-      element: safeText(move.element, "none"),
-      attack_type: safeText(move.attack_type, "special"),
-      hit_type: safeText(move.hit_type, "sure_hit"),
-      animation_id: safeText(move.animation_id),
-      animation_duration_ms: Math.max(0, number(move.animation_duration_ms)),
-      repeat_count: Math.max(0, number(move.repeat_count)),
-    },
-    source: {
-      name: actor.name,
-      element: actor.base.element,
-      phy_atk: effectiveStat(actor, "phy_atk"),
-      sp_atk: effectiveStat(actor, "sp_atk"),
-    },
-  };
-}
-
-function battleEffectStartText(actor, battleEffect, recipient = actor) {
-  if (battleEffect.battle_effect_id === "future_blast") {
-    return "周囲に粉塵が舞う！";
-  }
-
-  if (battleEffect.battle_effect_group === "delayed_attack" && recipient !== actor) {
-    return `${actor.name}は${recipient.name}に${battleEffect.name}を仕掛けた！`;
-  }
-
-  if (battleEffect.battle_effect_group === DELAYED_HEAL_BATTLE_EFFECT_GROUP) {
-    return `${actor.name}は${battleEffect.name}を用意した！`;
-  }
-
-  if (battleEffect.battle_effect_id === STUN_BATTLE_EFFECT_ID) {
-    return `${recipient.name}はスタンした！`;
-  }
-
-  if (battleEffect.battle_effect_id === "protect") {
-    return `${actor.name}は防御態勢をとっている！`;
-  }
-
-  const positionMessages = {
-    fly: "上空に飛び上がった",
-    underground: "地中に潜った",
-    underwater: "水中に潜った",
-    ghost_phase: "姿を消した",
-  };
-  const message = positionMessages[battleEffect.battle_effect_id];
-  return message
-    ? `${actor.name}は${message}！`
-    : `${actor.name}は${battleEffect.name}の構え！`;
-}
-
-function addBattleEffect(fighter, battleEffect, extra = {}) {
-  const current = fighter.battleEffects.find(
-    (effect) => effect.id === battleEffect.battle_effect_id,
-  );
-  const next = {
-    id: battleEffect.battle_effect_id,
-    name: battleEffect.name,
-    group: battleEffect.battle_effect_group,
-    turns: battleEffect.turn,
-    createdTurn: state.turn,
-    damage_type: battleEffect.damage_type,
-    damage_value: battleEffect.damage_value,
-    damage_cut: battleEffect.damage_cut,
-    guard_type: battleEffect.guard_type,
-    can_move: battleEffect.can_move,
-    animation: battleEffect.animation,
-    animation_duration_ms: battleEffect.animation_duration_ms,
-    ...extra,
-  };
-
-  if (current) {
-    Object.assign(current, next);
-  } else {
-    fighter.battleEffects.push(next);
-  }
-}
-
-function removeBattleEffect(fighter, id) {
-  fighter.battleEffects = fighter.battleEffects.filter((effect) => effect.id !== id);
-}
-
-function fieldEffectsForSide(side) {
-  const key = side === "player" ? "player" : "enemy";
-  if (!state.fieldEffects) {
-    state.fieldEffects = createFieldEffectsState();
-  }
-  if (!Array.isArray(state.fieldEffects[key])) {
-    state.fieldEffects[key] = [];
-  }
-  return state.fieldEffects[key];
-}
-
-function addFieldEffect(side, battleEffect, extra = {}) {
-  fieldEffectsForSide(side).push({
-    id: battleEffect.battle_effect_id,
-    instanceId: state.nextFieldEffectId++,
-    name: battleEffect.name,
-    group: battleEffect.battle_effect_group,
-    turns: battleEffect.turn,
-    createdTurn: state.turn,
-    damage_type: battleEffect.damage_type,
-    damage_value: battleEffect.damage_value,
-    damage_cut: battleEffect.damage_cut,
-    guard_type: battleEffect.guard_type,
-    can_move: battleEffect.can_move,
-    animation: battleEffect.animation,
-    animation_duration_ms: battleEffect.animation_duration_ms,
-    ...extra,
-  });
-}
-
-function removeFieldEffect(side, effectToRemove) {
-  const effects = fieldEffectsForSide(side);
-  const index = effects.indexOf(effectToRemove);
-  if (index >= 0) {
-    effects.splice(index, 1);
-  }
-}
-
 async function resolveDelayedBattleEffects() {
   for (const side of ["player", "enemy"]) {
-    const delayedEffects = fieldEffectsForSide(side).filter(
-      (effect) =>
-        (effect.group === "delayed_attack" || effect.group === DELAYED_HEAL_BATTLE_EFFECT_GROUP) &&
-        delayedBattleEffectReady(effect),
-    );
+    const delayedEffects = readyDelayedBattleEffects(state.fieldEffects, side, state.turn);
     for (const effect of delayedEffects) {
       if (effect.group === DELAYED_HEAL_BATTLE_EFFECT_GROUP) {
         await resolveDelayedHealEffect(side, effect);
@@ -7644,11 +7446,18 @@ async function resolveDelayedBattleEffects() {
 
 async function resolveDelayedAttackEffect(side, effect) {
   const target = activeBySide(side);
-  if (!target || target.fainted) return;
-  removeFieldEffect(side, effect);
-  const attacker = delayedEffectAttacker(effect, side);
-  const move = delayedEffectMove(effect);
-  if (!attacker || !move) return;
+  const fallbackAttacker = effect.source
+    ? undefined
+    : activeBySide(side === "player" ? "enemy" : "player");
+  const preparedAttack = prepareDelayedAttack(
+    state.fieldEffects,
+    side,
+    effect,
+    target,
+    fallbackAttacker,
+  );
+  if (!preparedAttack.ready) return;
+  const { attacker, move } = preparedAttack;
 
   pushLog(`${target.name}に${effect.name}が炸裂した！`);
   await pause(420);
@@ -7667,45 +7476,17 @@ async function resolveDelayedAttackEffect(side, effect) {
 
 async function resolveDelayedHealEffect(side, effect) {
   const target = activeBySide(side);
-  removeFieldEffect(side, effect);
-  if (!target || target.fainted) return;
-
-  const healAmount = delayedHealAmount(effect, target);
-  const beforeHp = target.hp;
-  target.hp = Math.min(target.maxHp, target.hp + healAmount);
-  const healed = target.hp - beforeHp;
+  const healState = resolveDelayedHealState(state.fieldEffects, side, effect, target);
+  if (!healState.validTarget) return;
 
   pushLog(`${effect.name}を食べた！`);
   await pause(420);
-  if (healed > 0) {
-    pushLog(`${target.name}のHPが ${healed} 回復した！`);
+  if (healState.healed > 0) {
+    pushLog(`${target.name}のHPが ${healState.healed} 回復した！`);
   } else {
     pushLog(`${target.name}のHPは満タンだ！`);
   }
   await pause(520);
-}
-
-function delayedBattleEffectReady(effect) {
-  const delayTurns = Math.max(1, number(effect.turns, 1));
-  return state.turn - effect.createdTurn >= delayTurns;
-}
-
-function delayedEffectAttacker(effect, targetSide) {
-  const source = effect.source;
-  if (source) {
-    return {
-      name: source.name || effect.name,
-      base: {
-        element: safeText(source.element, "none"),
-        phy_atk: Math.max(1, number(source.phy_atk, 1)),
-        sp_atk: Math.max(1, number(source.sp_atk, 1)),
-      },
-      statMods: createEmptyStatMods(),
-    };
-  }
-
-  const sourceSide = targetSide === "player" ? "enemy" : "player";
-  return activeBySide(sourceSide);
 }
 
 function blockedByControl(fighter) {
