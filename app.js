@@ -6023,11 +6023,17 @@ function renderEnergySegments(fighter) {
 }
 
 function renderBattleStatusPanel(player, enemy) {
-  const labels = [
-    ...statusLabels(player).map((label) => `自:${label}`),
+  const persistentLabels = [
     ...benchPersistentBattleEffectLabels(state.playerTeam, player).map((label) => `自:${label}`),
-    ...statusLabels(enemy).map((label) => `相:${label}`),
     ...benchPersistentBattleEffectLabels(state.enemyTeam, enemy).map((label) => `相:${label}`),
+  ];
+  const regularLabels = [
+    ...statusLabels(player).map((label) => `自:${label}`),
+    ...statusLabels(enemy).map((label) => `相:${label}`),
+  ];
+  const labels = [
+    ...persistentLabels,
+    ...regularLabels.slice(0, Math.max(0, 4 - persistentLabels.length)),
   ];
 
   if (!labels.length) {
@@ -6035,7 +6041,6 @@ function renderBattleStatusPanel(player, enemy) {
   }
 
   return labels
-    .slice(0, 4)
     .map((label) => `<div class="battle-status-line">${escapeHtml(label)}</div>`)
     .join("");
 }
