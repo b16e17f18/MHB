@@ -4887,8 +4887,9 @@ function battleResistanceStatusLabel(status) {
 }
 
 function battleWeakModLabel(element, value) {
-  const direction = value > 0 ? "+" : "-";
-  return `${elementName(element)}属性${direction}${Math.abs(value)}%`;
+  const displayValue = -value;
+  const direction = displayValue > 0 ? "+" : "-";
+  return `${elementName(element)}属性${direction}${Math.abs(displayValue)}%`;
 }
 
 function fighterWeakModEntries(fighter) {
