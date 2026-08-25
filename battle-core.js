@@ -755,16 +755,27 @@ function applyIncomingBattleEffects(target, damage, move, targetFieldEffects = [
     ...(target?.battleEffects ?? []),
     ...(targetFieldEffects ?? []),
   ];
-  const protect = incomingBattleEffects
-    .filter((effect) => effect.group === "guard" && guardAppliesToMove(effect, move))
+  const applicableGuards = incomingBattleEffects
+    .filter((effect) => effect.group === "guard" && guardAppliesToMove(effect, move));
+  const strongestGeneralGuard = applicableGuards
+    .filter((effect) => !isSideGuardBattleEffectId(effect.id))
     .reduce((best, effect) => {
       if (!best || number(effect.damage_cut) > number(best.damage_cut)) {
         return effect;
       }
       return best;
     }, null);
-  if (protect) {
-    const cutRate = move.hit_type === "guard_break" ? (protect.damage_cut || 50) / 200 : (protect.damage_cut || 50) / 100;
+  const sideGuardsById = new Map();
+  for (const effect of applicableGuards) {
+    if (!isSideGuardBattleEffectId(effect.id)) continue;
+    const current = sideGuardsById.get(effect.id);
+    if (!current || number(effect.damage_cut) > number(current.damage_cut)) {
+      sideGuardsById.set(effect.id, effect);
+    }
+  }
+
+  for (const guard of [strongestGeneralGuard, ...sideGuardsById.values()].filter(Boolean)) {
+    const cutRate = move.hit_type === "guard_break" ? (guard.damage_cut || 50) / 200 : (guard.damage_cut || 50) / 100;
     adjusted *= 1 - cutRate;
   }
 

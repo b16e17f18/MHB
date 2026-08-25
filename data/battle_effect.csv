@@ -3,8 +3,8 @@ protect,防御態勢,guard,none,50,1,TRUE,all_damage,guard_break,50
 protect2,防御態勢(強),guard,none,75,1,TRUE,all_damage,guard_break,75
 protect3,防御態勢(弱),guard,none,25,3,TRUE,all_damage,guard_break,25
 ,,,,,,,,,
-phy_protect,物理軽減,guard,none,25,3,TRUE,phy_damage,guard_break,25
-sp_protect,特殊軽減,guard,none,25,3,TRUE,sp_damage,guard_break,25
+phy_protect,物理軽減,guard,none,25,4,TRUE,phy_damage,guard_break,25
+sp_protect,特殊軽減,guard,none,25,4,TRUE,sp_damage,guard_break,25
 ,,,,,,,,,
 endure,こらえる,trigger,none,1,1,TRUE,hp,none,0
 revenge,反撃準備,trigger,received_damage_rate,150,1,TRUE,none,none,0
