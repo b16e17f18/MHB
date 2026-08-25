@@ -101,7 +101,7 @@ skill_099,彗星爆撃,attack,100,none,special,normal,sp_atk_up,self,100,speed_u
 skill_100,ヘルフレア,attack,110,fire,special,sure_hit,sp_def_down,enemy,100,none,enemy,0,none,enemy,0,future_blast_plus3,100,none,0,enemy,0,3,相手の特殊防御が15%downする。攻撃後、粉塵をばら撒き、次のターンに爆破する。必ず命中する。,magic_fire01,50,10,,,,,
 skill_101,泥撒き,status,0,water,none,normal,water_weak_down,self,100,none,enemy,0,none,enemy,0,phy_protect,100,none,0,self,0,1,4ターンの間、物理技のダメージを25%cutする。交代しても効果が持続する。水耐性が25%upする。,magic_stone01,250,3,,,,,
 skill_102,泥突進,attack,110,water,physical,normal,phy_def_up,self,100,phy_def_up,self,100,fire_weak_down,self,100,charge_attack,100,stun,50,enemy,0,2,1ターン目に物理防御が20%upし、2ターン目に攻撃する。自分の火耐性が25%する。50%の確率で相手を怯ませる。,attack_hit01,500,1,,,,,
-skill_103,ダイアモンドダスト,status,0,ice,none,normal,none,enemy,0,none,enemy,0,none,enemy,0,sp_protect,100,none,0,self,0,0,4ターンの間、特殊技のダメージを25%cutする。交代しても効果が持続する。,magic_ice02_custom,500,1,,,,,
+skill_103,ダイアモンドダスト,status,0,ice,none,normal,none,enemy,0,none,enemy,0,none,enemy,0,sp_protect,100,none,0,self,0,0,4ターンの間、特殊技のダメージを25%cutする。交代しても効果が持続する。,magic_ice01_custom,500,1,,,,,
 skill_104,潜行突進,attack,70,none,physical,normal,phy_def_up,self,100,phy_def_up,self,100,none,enemy,0,underground,100,none,0,enemy,0,1,1ターン目に地面に潜り、自分の物理防御が20%upする。2ターン目に攻撃する。,attack_hit01,500,1,,,,,
 skill_105,氷結冷線,attack,110,ice,special,normal,phy_def_down,self,100,speed_down,enemy,100,none,enemy,0,none,0,none,0,enemy,0,3,相手の敏捷を15%downさせる。自分の物理防御が15%downする。ENが多い程威力が上がる。最大140。,magic_ice01,1000,1,en_value,140,,,
 skill_106,水鉄砲,attack,50,water,special,normal,en_down,enemy,100,speed_down,enemy,100,none,enemy,0,none,0,none,0,enemy,0,2,相手の敏捷を15%downさせ、ENを1minusする。,magic_holy01,250,2,,,,,
