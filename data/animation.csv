@@ -37,4 +37,4 @@ magic_ice01_custom,Ice01_Custom,assets/animation/[Magic]Ice01_Custom_alpha.png,9
 magic_ice02_custom,Ice02_Custom,assets/animation/[Magic]Ice02_Custom_alpha.png,90,240,8,1,8,0-1-2-3-4-5-6-7,32,FALSE,1
 magic_thunder01_custom,Thunder01_Custom,assets/animation/[Magic]Thunder01_Custom_alpha.png,135,360,8,1,8,0-1-2-3-4-5-6-7,32,FALSE,1
 magic_dragonic01_custom,Dragonic01_Custom,assets/animation/[Magic]Dragonic01_Custom_alpha.png,90,240,8,1,8,0-1-2-3-4-5-6-7,32,FALSE,1
-magic_sound01_custom,Sound01_Custom,assets/animation/[Magic]Sound01_Custom_alpha.png,90,240,8,1,8,0-1-2-3-4-5-6-7,32,FALSE,1
+magic_sound01_custom,Sound01_Custom,assets/animation/[Magic]Sound01_Custom_alpha.png,90,250,8,1,8,0-1-2-3-4-5-6-7,32,FALSE,1
