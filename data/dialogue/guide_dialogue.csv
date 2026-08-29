@@ -60,9 +60,9 @@ guide_after_a_2,guide,災害級に勝った！すごいで。,,battle_cleared,ba
 guide_before_s_1,guide,天候を操る古龍や。毒が有効とか聞いたな。,,battle_available,battle_s_1,26,TRUE
 guide_after_s_1,guide,ようやったで。ほんま。,,battle_cleared,battle_s_1,27,TRUE
 ,,,,,,,
-guide_before_s_2,guide,これslotオーバーやん。竜人族。許せへんで。,,battle_available,battle_s_2,28,TRUE
+guide_before_s_2,guide,こんなやつが・・竜人族。許せへんで。,,battle_available,battle_s_2,28,TRUE
 guide_after_s_2,guide,ようやってくれたで！,,battle_cleared,battle_s_2,29,TRUE
 ,,,,,,,
-guide_before_ss_1,guide,これもslot・・なんでもありやな。,guide_before_ss_1_2,battle_available,battle_ss_1,31,TRUE
+guide_before_ss_1,guide,こいつ・・なんでもありやな。,guide_before_ss_1_2,battle_available,battle_ss_1,31,TRUE
 guide_before_ss_1_2,guide,とは言え、勝てば村長に認められる。,,,,,
 guide_after_ss_1,guide,やった、やったで。これで俺も・・,,battle_cleared,battle_ss_1,32,TRUE
