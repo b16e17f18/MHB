@@ -6,6 +6,7 @@ const DATA_PATHS = {
   effects: "./data/effect.csv",
   hitTypes: "./data/hit_type.csv",
   animations: "./data/animation.csv",
+  bgm: "./data/bgm.csv",
   rankBattles: "./data/rank_battle.csv",
   enemyParties: "./data/enemy_party.csv",
   shopItems: "./data/shop_item.csv",
@@ -89,8 +90,29 @@ const ARENA_BATTLE_ENTRANCE_BY_ID = Object.fromEntries(
   Object.entries(ARENA_BATTLE_MAP).map(([entranceId, rankBattleId]) => [rankBattleId, entranceId]),
 );
 const ARENA_UNAVAILABLE_MESSAGE = "\u307e\u3060\u5bfe\u6226\u3067\u304d\u306a\u3044\u3088\u3046\u3060";
+const TIME_OF_DAY_SEQUENCE = ["morning", "afternoon", "night"];
+const DEFAULT_TIME_OF_DAY = "morning";
+const TIME_OF_DAY_SET = new Set(TIME_OF_DAY_SEQUENCE);
+const STORY_TRAVEL_BACKGROUND_PATHS = {
+  travel: {
+    morning: "./assets/移動画面.png",
+    afternoon: "./assets/移動画面（夕方）.png",
+    night: "./assets/移動画面（夜）.png",
+  },
+  travel2: {
+    morning: "./assets/移動画面2.png",
+    afternoon: "./assets/移動画面2（夕方）.png",
+    night: "./assets/移動画面2（夜）.png",
+  },
+};
+const STORY_ISLAND_BGM_IDS = {
+  morning: "island_morning",
+  afternoon: "island_afternoon",
+  night: "island_night",
+};
 
 const MANUAL_SAVE_STORAGE_KEYS = ["mhb_save_1", "mhb_save_2", "mhb_save_3"];
+const BGM_VOLUME = 0.65;
 const INITIAL_MONEY = 1500;
 const BUSINESS_SHOP_ID = "business";
 const BUSINESS2_SHOP_ID = "business2";
@@ -505,6 +527,7 @@ const state = {
   hitTypes: new Map(),
   animations: new Map(),
   animationDefinitions: new Map(),
+  bgmMap: new Map(),
   rankBattles: new Map(),
   enemyParties: new Map(),
   shopItems: [],
@@ -565,6 +588,7 @@ const state = {
   },
   story: {
     active: false,
+    timeOfDay: DEFAULT_TIME_OF_DAY,
     map: null,
     player: {
       ...STORY_INITIAL_PLAYER,
@@ -593,6 +617,11 @@ let saveStatusTimer = null;
 let shopMessageTimer = null;
 const animationSheetMetaCache = new Map();
 const transparentAnimationCache = new Map();
+const bgmRuntime = {
+  audio: null,
+  currentBgmId: "",
+  pendingBgmId: "",
+};
 
 function createExchangeState() {
   return {
@@ -611,6 +640,110 @@ function createFieldEffectsState() {
     player: [],
     enemy: [],
   };
+}
+
+function getBgmById(bgmId) {
+  return state.bgmMap.get(safeText(bgmId)) ?? null;
+}
+
+function playBgm(bgmId) {
+  const id = safeText(bgmId);
+  if (!id) return false;
+
+  const bgm = getBgmById(id);
+  if (!bgm) {
+    console.warn("[BGM] bgm_id not found", { bgmId: id });
+    return false;
+  }
+
+  if (!bgm.bgm_path) {
+    if (bgmRuntime.audio) stopBgm();
+    console.warn("[BGM] bgm_path is empty", { bgmId: id });
+    return false;
+  }
+
+  if (
+    bgmRuntime.currentBgmId === id &&
+    bgmRuntime.audio &&
+    (bgmRuntime.pendingBgmId === id || !bgmRuntime.audio.paused)
+  ) {
+    return true;
+  }
+
+  if (bgmRuntime.audio) stopBgm();
+
+  const audio = createBgmAudio(bgm.bgm_path, id);
+  if (!audio) return false;
+
+  bgmRuntime.audio = audio;
+  bgmRuntime.currentBgmId = id;
+  bgmRuntime.pendingBgmId = id;
+
+  let playResult = null;
+  try {
+    playResult = audio.play();
+  } catch (error) {
+    handleBgmPlayRejected(audio, id, error);
+    return false;
+  }
+
+  if (playResult && typeof playResult.then === "function") {
+    playResult
+      .then(() => {
+        if (bgmRuntime.audio === audio && bgmRuntime.currentBgmId === id) {
+          bgmRuntime.pendingBgmId = "";
+        }
+      })
+      .catch((error) => {
+        handleBgmPlayRejected(audio, id, error);
+      });
+  } else {
+    bgmRuntime.pendingBgmId = "";
+  }
+
+  return true;
+}
+
+function stopBgm() {
+  const audio = bgmRuntime.audio;
+  bgmRuntime.audio = null;
+  bgmRuntime.currentBgmId = "";
+  bgmRuntime.pendingBgmId = "";
+
+  if (!audio) return;
+
+  try {
+    audio.pause();
+    audio.currentTime = 0;
+  } catch (error) {
+    console.warn("[BGM] stop failed", error);
+  }
+}
+
+function createBgmAudio(path, bgmId) {
+  if (typeof Audio !== "function") {
+    console.warn("[BGM] Audio API is unavailable", { bgmId });
+    return null;
+  }
+
+  try {
+    const audio = new Audio(path);
+    audio.loop = true;
+    audio.volume = BGM_VOLUME;
+    return audio;
+  } catch (error) {
+    console.warn("[BGM] Audio creation failed", { bgmId, error });
+    return null;
+  }
+}
+
+function handleBgmPlayRejected(audio, bgmId, error) {
+  if (bgmRuntime.audio === audio && bgmRuntime.currentBgmId === bgmId) {
+    bgmRuntime.audio = null;
+    bgmRuntime.currentBgmId = "";
+    bgmRuntime.pendingBgmId = "";
+  }
+  console.warn("[BGM] playback was blocked or failed", { bgmId, error });
 }
 
 function createSaveData() {
@@ -650,7 +783,9 @@ document.addEventListener("DOMContentLoaded", () => {
     battleModeButton: document.querySelector("#battleModeButton"),
     titleMessage: document.querySelector("#titleMessage"),
     storyTravelStage: document.querySelector("#storyTravelStage"),
+    storyTravelImage: document.querySelector("#storyTravelStage .story-location-image"),
     storyTravel2Stage: document.querySelector("#storyTravel2Stage"),
+    storyTravel2Image: document.querySelector("#storyTravel2Stage .story-location-image"),
     travelBackButton: document.querySelector("#travelBackButton"),
     travelMyHouseButton: document.querySelector("#travelMyHouseButton"),
     travelBusinessButton: document.querySelector("#travelBusinessButton"),
@@ -1035,6 +1170,56 @@ function showStoryFrame() {
   els.storyView.classList.remove("is-hidden");
 }
 
+function normalizeTimeOfDay(timeOfDay) {
+  const normalized = safeText(timeOfDay);
+  return TIME_OF_DAY_SET.has(normalized) ? normalized : DEFAULT_TIME_OF_DAY;
+}
+
+function storyTravelBackgroundPath(stage, timeOfDay = state.story.timeOfDay) {
+  const stageKey = stage === "travel2" ? "travel2" : "travel";
+  const normalizedTimeOfDay = normalizeTimeOfDay(timeOfDay);
+  return STORY_TRAVEL_BACKGROUND_PATHS[stageKey][normalizedTimeOfDay];
+}
+
+function storyIslandBgmId(timeOfDay = state.story.timeOfDay) {
+  return STORY_ISLAND_BGM_IDS[normalizeTimeOfDay(timeOfDay)];
+}
+
+function rankBattleBgmId(rankBattleId) {
+  const id = safeText(rankBattleId);
+  if (!id) return "";
+  for (const bgm of state.bgmMap.values()) {
+    if (bgm.name === id) {
+      return bgm.bgm_id;
+    }
+  }
+  return "";
+}
+
+function playRankBattleBgm(rankBattleId) {
+  const bgmId = rankBattleBgmId(rankBattleId);
+  if (bgmId) playBgm(bgmId);
+}
+
+function advanceTimeOfDay() {
+  const currentTimeOfDay = normalizeTimeOfDay(state.story.timeOfDay);
+  const currentIndex = TIME_OF_DAY_SEQUENCE.indexOf(currentTimeOfDay);
+  const nextIndex = (currentIndex + 1) % TIME_OF_DAY_SEQUENCE.length;
+  state.story.timeOfDay = TIME_OF_DAY_SEQUENCE[nextIndex];
+  return state.story.timeOfDay;
+}
+
+function updateStoryTravelBackgrounds() {
+  const normalizedTimeOfDay = normalizeTimeOfDay(state.story.timeOfDay);
+  state.story.timeOfDay = normalizedTimeOfDay;
+  if (els.storyTravelImage) {
+    els.storyTravelImage.src = storyTravelBackgroundPath("travel", normalizedTimeOfDay);
+  }
+  if (els.storyTravel2Image) {
+    els.storyTravel2Image.src = storyTravelBackgroundPath("travel2", normalizedTimeOfDay);
+  }
+}
+
 function showStoryTravel({ focus = true } = {}) {
   state.story.active = false;
   state.shop.open = false;
@@ -1049,6 +1234,8 @@ function showStoryTravel({ focus = true } = {}) {
   hideArenaBattleConfirm({ clearSelection: true, focus: false });
   if (els.arenaMessage) els.arenaMessage.textContent = "";
   showStoryFrame();
+  updateStoryTravelBackgrounds();
+  playBgm(storyIslandBgmId());
   setStoryStage("travel");
   if (focus) els.travelBackButton?.focus({ preventScroll: true });
 }
@@ -1067,6 +1254,8 @@ function showStoryTravel2({ focus = true } = {}) {
   hideArenaBattleConfirm({ clearSelection: true, focus: false });
   if (els.arenaMessage) els.arenaMessage.textContent = "";
   showStoryFrame();
+  updateStoryTravelBackgrounds();
+  playBgm(storyIslandBgmId());
   setStoryStage("travel2");
   if (focus) els.travel2BackTunnelButton?.focus({ preventScroll: true });
 }
@@ -1746,6 +1935,7 @@ async function showStoryMain({ focus = true } = {}) {
   els.myHousePanel?.classList.add("is-hidden");
   els.myPartyPanel?.classList.add("is-hidden");
   showStoryFrame();
+  playBgm(storyIslandBgmId());
   setStoryStage("main");
   updateStoryRankBattleButtons();
   if (focus) els.storyBackButton.focus({ preventScroll: true });
@@ -1962,6 +2152,7 @@ async function showArena() {
   renderArenaHotspots();
   showStoryFrame();
   setStoryStage("arena");
+  playBgm("arena");
   hideArenaBattleConfirm({ clearSelection: true, focus: false });
   if (els.arenaMessage) els.arenaMessage.textContent = "";
   els.arenaBackButton?.focus({ preventScroll: true });
@@ -3763,6 +3954,7 @@ function scheduleGameOverReturnToTitle() {
   clearGameOverReturnTimer();
   gameOverReturnTimer = window.setTimeout(() => {
     gameOverReturnTimer = null;
+    stopBgm();
     showTitleView();
   }, 1400);
 }
@@ -3811,6 +4003,7 @@ async function loadGameData() {
       effectText,
       hitTypeText,
       animationText,
+      bgmText,
       rankBattleText,
       enemyPartyText,
       shopItemText,
@@ -3826,6 +4019,7 @@ async function loadGameData() {
       loadCsvText("effects", DATA_PATHS.effects),
       loadCsvText("hitTypes", DATA_PATHS.hitTypes),
       loadCsvText("animations", DATA_PATHS.animations),
+      loadOptionalCsvText("bgm", DATA_PATHS.bgm),
       loadOptionalCsvText("rankBattles", DATA_PATHS.rankBattles),
       loadOptionalCsvText("enemyParties", DATA_PATHS.enemyParties),
       loadOptionalCsvText("shopItems", DATA_PATHS.shopItems),
@@ -3841,6 +4035,13 @@ async function loadGameData() {
     state.characterMap = new Map(
       state.characters.map((character) => [character.character_id, character]),
     );
+
+    state.bgmMap.clear();
+    for (const bgm of rowsFromCsv(bgmText).map(normalizeBgm)) {
+      if (bgm.bgm_id) {
+        state.bgmMap.set(bgm.bgm_id, bgm);
+      }
+    }
 
     for (const skill of rowsFromCsv(skillText).map(normalizeSkill)) {
       if (skill.skill_id && skill.name && skill.category) {
@@ -4200,6 +4401,14 @@ function normalizeAnimation(row) {
       ? Math.max(1, number(row.animation_duration_ms, fallback.animation_duration_ms ?? 520))
       : 0,
     surface_color: safeText(row.surface_color, fallback.surface_color ?? ""),
+  };
+}
+
+function normalizeBgm(row) {
+  return {
+    bgm_id: safeText(row.bgm_id),
+    name: safeText(row.name),
+    bgm_path: safeText(row.bgm_path),
   };
 }
 
@@ -5030,6 +5239,7 @@ function createSavePayload() {
   const clearedBattles = [...new Set([...state.story.clearedRankBattleIds].map((id) => safeText(id)).filter(Boolean))];
   return {
     money: state.saveData.money,
+    time_of_day: normalizeTimeOfDay(state.story.timeOfDay),
     owned_books: [...state.saveData.ownedBooks],
     owned_monsters: state.saveData.ownedMonsters.map((entry) => ({
       owned_id: entry.ownedId,
@@ -5106,6 +5316,7 @@ function applySaveDataFromRaw(raw) {
   if (!normalized.ok) return normalized;
 
   state.saveData = normalized.saveData;
+  state.story.timeOfDay = normalized.timeOfDay;
   state.story.clearedRankBattleIds = normalized.clearedRankBattleIds;
   state.story.disabledRankBattleIds = new Set(state.story.clearedRankBattleIds);
   clearUnsavedChanges();
@@ -5118,6 +5329,7 @@ function normalizeSavePayload(rawData) {
   }
 
   const nextSaveData = createSaveData();
+  const timeOfDay = normalizeTimeOfDay(rawData.time_of_day ?? rawData.timeOfDay);
   nextSaveData.money = Math.max(0, Math.floor(number(rawData.money, INITIAL_MONEY)));
   nextSaveData.initialMoneyVersion = Math.floor(number(rawData.initial_money_version ?? rawData.initialMoneyVersion, 1));
   nextSaveData.initialPartyVersion = Math.floor(number(rawData.initial_party_version ?? rawData.initialPartyVersion, INITIAL_PARTY_VERSION));
@@ -5207,6 +5419,7 @@ function normalizeSavePayload(rawData) {
   return {
     ok: true,
     saveData: nextSaveData,
+    timeOfDay,
     clearedRankBattleIds: new Set(
       clearedBattles.value
         .map((rankBattleId) => safeText(rankBattleId))
@@ -5845,6 +6058,7 @@ function startBattle(options = {}) {
   state.story.currentRankBattleId = currentBattleId;
   state.story.currentArenaBattleId = currentArenaBattleId;
   state.story.lastDefeatedEnemyId = null;
+  playRankBattleBgm(currentArenaBattleId || currentBattleId);
   state.dex = {
     open: false,
     characterId: null,
@@ -7666,6 +7880,8 @@ async function handleFaint(side) {
 }
 
 function finishBattle(winner) {
+  if (state.gameOver) return;
+  advanceTimeOfDay();
   state.gameOver = true;
   state.pendingSwitchSide = null;
   state.battleWinner = winner;
