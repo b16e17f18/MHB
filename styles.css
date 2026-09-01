@@ -4530,7 +4530,15 @@ button {
   grid-template-columns: minmax(0, 1fr);
 }
 
+.my-house-panel.my-house-mode-books .my-house-layout {
+  grid-template-columns: minmax(0, 1fr);
+}
+
 .my-house-panel.my-house-mode-party .my-house-party-section {
+  grid-column: 1 / -1;
+}
+
+.my-house-panel.my-house-mode-books .my-house-book-section {
   grid-column: 1 / -1;
 }
 
@@ -4557,6 +4565,15 @@ button {
 .my-house-book-list {
   display: grid;
   gap: 8px;
+}
+
+.my-house-panel.my-house-mode-books .my-house-book-list {
+  max-height: 352px;
+  grid-auto-rows: 64px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  overflow-y: auto;
+  padding-right: 4px;
 }
 
 .my-house-monster-card,
@@ -4668,6 +4685,31 @@ button {
   font-size: 0.82rem;
   font-weight: 800;
   line-height: 1.35;
+}
+
+.my-house-book-button .element-pill {
+  color: #ffffff;
+}
+
+.my-house-panel.my-house-mode-books .my-house-book-button {
+  align-content: center;
+  height: 100%;
+  padding: 6px;
+  text-align: center;
+}
+
+.my-house-panel.my-house-mode-books .my-house-book-button strong {
+  min-width: 0;
+  overflow: hidden;
+  font-size: 0.8rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.my-house-panel.my-house-mode-books .my-house-book-button .my-house-monster-meta {
+  justify-content: center;
+  gap: 4px;
+  font-size: 0.68rem;
 }
 
 .my-house-book-content {

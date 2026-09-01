@@ -42,7 +42,8 @@ guide_after_d_2,guide,手強かったな。いよいよ次のrankや。,,battle_
 guide_before_c_1,guide,こいつは強敵や。時間差攻撃に注意やな。,,battle_available,battle_c_1,14,TRUE
 guide_after_c_1,guide,ようやった。敏捷は重要な要素やわ。,,battle_cleared,battle_c_1,15,TRUE
 ,,,,,,,
-guide_before_c_2,guide,竜人もおるんか。ここで勝ったらついに上位rankや。,,battle_available,battle_c_2,16,TRUE
+guide_before_c_2,guide,竜人もおるんか。ここで勝ったらついに上位rankや。,guide_before_c_2_2,battle_available,battle_c_2,16,TRUE
+guide_before_c_2_2,guide,こいつは耐性が極端や判定勝ちは難しいかもな。,,,,,
 guide_after_c_2,guide,ほんまに勝ってしまうなんて。,,battle_cleared,battle_c_2,17,TRUE
 ,,,,,,,
 guide_before_b_1,guide,この解放ライセンス、すごいな。流石、元トップランカーや。,,battle_available,battle_b_1,18,TRUE

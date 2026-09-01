@@ -113,6 +113,7 @@ const STORY_ISLAND_BGM_IDS = {
 
 const MANUAL_SAVE_STORAGE_KEYS = ["mhb_save_1", "mhb_save_2", "mhb_save_3"];
 const BGM_VOLUME = 0.65;
+const BATTLE_BGM_AUDIBLE_DELAY_MS = 2000;
 const INITIAL_MONEY = 1500;
 const BUSINESS_SHOP_ID = "business";
 const BUSINESS2_SHOP_ID = "business2";
@@ -216,6 +217,8 @@ const ANIMATION_FRAME_WIDTH = 250;
 const ANIMATION_FRAME_HEIGHT = 43;
 const BATTLE_ANIMATION_SCALE = 1.52;
 const TEAM_SLOT_LIMIT = 5;
+const RANK_BATTLE_TURN_LIMIT = 20;
+const RANK_BATTLE_TURN_LIMIT_EXCLUDED_IDS = new Set(["battle_ss_2", "arena_m_2"]);
 const START_ENERGY = 1;
 const BATTLE_SAVE_ENERGY_ENABLED = false;
 const LAB_MEMBER_DISPLAY_LIMIT = TEAM_SLOT_LIMIT;
@@ -621,6 +624,7 @@ const bgmRuntime = {
   audio: null,
   currentBgmId: "",
   pendingBgmId: "",
+  volumeTimer: null,
 };
 
 function createExchangeState() {
@@ -646,9 +650,10 @@ function getBgmById(bgmId) {
   return state.bgmMap.get(safeText(bgmId)) ?? null;
 }
 
-function playBgm(bgmId) {
+function playBgm(bgmId, options = {}) {
   const id = safeText(bgmId);
   if (!id) return false;
+  const audibleDelayMs = normalizeBgmAudibleDelayMs(options?.audibleDelayMs);
 
   const bgm = getBgmById(id);
   if (!bgm) {
@@ -671,9 +676,13 @@ function playBgm(bgmId) {
   }
 
   if (bgmRuntime.audio) stopBgm();
+  else clearBgmVolumeTimer();
 
   const audio = createBgmAudio(bgm.bgm_path, id);
   if (!audio) return false;
+  if (audibleDelayMs > 0) {
+    audio.volume = 0;
+  }
 
   bgmRuntime.audio = audio;
   bgmRuntime.currentBgmId = id;
@@ -690,21 +699,20 @@ function playBgm(bgmId) {
   if (playResult && typeof playResult.then === "function") {
     playResult
       .then(() => {
-        if (bgmRuntime.audio === audio && bgmRuntime.currentBgmId === id) {
-          bgmRuntime.pendingBgmId = "";
-        }
+        handleBgmPlayStarted(audio, id, audibleDelayMs);
       })
       .catch((error) => {
         handleBgmPlayRejected(audio, id, error);
       });
   } else {
-    bgmRuntime.pendingBgmId = "";
+    handleBgmPlayStarted(audio, id, audibleDelayMs);
   }
 
   return true;
 }
 
 function stopBgm() {
+  clearBgmVolumeTimer();
   const audio = bgmRuntime.audio;
   bgmRuntime.audio = null;
   bgmRuntime.currentBgmId = "";
@@ -718,6 +726,39 @@ function stopBgm() {
   } catch (error) {
     console.warn("[BGM] stop failed", error);
   }
+}
+
+function normalizeBgmAudibleDelayMs(value) {
+  const delayMs = Number(value);
+  return Number.isFinite(delayMs) ? Math.max(0, Math.floor(delayMs)) : 0;
+}
+
+function handleBgmPlayStarted(audio, bgmId, audibleDelayMs) {
+  if (bgmRuntime.audio !== audio || bgmRuntime.currentBgmId !== bgmId) return;
+
+  bgmRuntime.pendingBgmId = "";
+  if (audibleDelayMs > 0) {
+    scheduleBgmVolumeRestore(audio, bgmId, audibleDelayMs);
+  }
+}
+
+function scheduleBgmVolumeRestore(audio, bgmId, delayMs) {
+  clearBgmVolumeTimer();
+  const volumeTimer = window.setTimeout(() => {
+    if (bgmRuntime.volumeTimer === volumeTimer) {
+      bgmRuntime.volumeTimer = null;
+    }
+    if (bgmRuntime.audio === audio && bgmRuntime.currentBgmId === bgmId) {
+      audio.volume = BGM_VOLUME;
+    }
+  }, delayMs);
+  bgmRuntime.volumeTimer = volumeTimer;
+}
+
+function clearBgmVolumeTimer() {
+  if (bgmRuntime.volumeTimer == null) return;
+  window.clearTimeout(bgmRuntime.volumeTimer);
+  bgmRuntime.volumeTimer = null;
 }
 
 function createBgmAudio(path, bgmId) {
@@ -739,6 +780,7 @@ function createBgmAudio(path, bgmId) {
 
 function handleBgmPlayRejected(audio, bgmId, error) {
   if (bgmRuntime.audio === audio && bgmRuntime.currentBgmId === bgmId) {
+    clearBgmVolumeTimer();
     bgmRuntime.audio = null;
     bgmRuntime.currentBgmId = "";
     bgmRuntime.pendingBgmId = "";
@@ -1198,7 +1240,7 @@ function rankBattleBgmId(rankBattleId) {
 
 function playRankBattleBgm(rankBattleId) {
   const bgmId = rankBattleBgmId(rankBattleId);
-  if (bgmId) playBgm(bgmId);
+  if (bgmId) playBgm(bgmId, { audibleDelayMs: BATTLE_BGM_AUDIBLE_DELAY_MS });
 }
 
 function advanceTimeOfDay() {
@@ -1851,6 +1893,12 @@ function renderLabOwnedMonsterDetailContent(entry) {
         ${renderLabDetailStat("特殊防御", "sp_def", character.sp_def, displayedCharacter.sp_def)}
         ${renderLabDetailStat("敏捷", "speed", character.speed, displayedCharacter.speed)}
         ${renderLabDetailStat("回復力", "regen_value", displayedCharacter.regen_value, character.regen_value)}
+      </div>
+      <div class="detail-skills">
+        <div class="detail-section-title">技</div>
+        ${movesForCharacter(character)
+          .map((move) => renderSkillDetail(move))
+          .join("")}
       </div>
       <div class="detail-resistances">
         <div class="detail-section-title">属性耐性</div>
@@ -2583,33 +2631,32 @@ function renderMyHouse() {
 
   const monsterEntries = myPartyMonsterEntries();
   const ownedBooks = myHouseOwnedBooks();
+  const encyclopediaCharacters = myHouseEncyclopediaCharacters();
   const selectedMonster = monsterEntries.find((entry) => entry.ownedId === state.myHouse.selectedOwnedId);
-  const selectedBook = ownedBooks.find((book) => book.book_id === state.myHouse.selectedBookId);
-  const selectedBookCharacters = selectedBook ? myHouseBookCharacters(selectedBook) : [];
-  const selectedBookMonster = selectedBookCharacters.find(
+  const selectedBookCharacter = encyclopediaCharacters.find(
     (character) => character.character_id === state.myHouse.selectedBookCharacterId,
   );
-  const detailCharacter =
-    state.myHouse.detailMode === "book"
-      ? selectedBookMonster
-      : selectedMonster?.character;
+  const detailCharacter = state.myHouse.detailMode === "owned" ? selectedMonster?.character : null;
   const detailOwnedMonster = state.myHouse.detailMode === "owned" ? selectedMonster?.ownedMonster : null;
 
   els.myHouseMonsterList.innerHTML = monsterEntries.length
     ? monsterEntries.map((entry, index) => renderMyHousePartyMonsterCard(entry, index)).join("")
     : `<div class="shop-empty">手持ちモンスターはいません。</div>`;
 
-  els.myHouseBookList.innerHTML = ownedBooks.length
-    ? ownedBooks.map((book) => renderMyHouseBookButton(book)).join("")
-    : `<div class="shop-empty">購入済み図鑑はありません。</div>`;
+  els.myHouseBookList.innerHTML = encyclopediaCharacters.length
+    ? encyclopediaCharacters.map(renderMyHouseEncyclopediaCharacterButton).join("")
+    : `<div class="shop-empty">登録モンスターがありません。</div>`;
 
-  els.myHouseBookContent.innerHTML = selectedBook
-    ? renderMyHouseBookContent(selectedBook)
-    : `<div class="my-house-book-empty">図鑑を購入すると、ここに登録モンスターが表示されます。</div>`;
+  els.myHouseBookContent.innerHTML = renderMyHouseEncyclopediaContent(encyclopediaCharacters, ownedBooks);
 
-  els.myHouseDetailPanel.innerHTML = detailCharacter
-    ? renderMyHouseMonsterDetail(detailCharacter, detailOwnedMonster)
-    : `<div class="my-house-book-empty">モンスターを選択してください。</div>`;
+  els.myHouseDetailPanel.innerHTML =
+    state.myHouse.detailMode === "book"
+      ? selectedBookCharacter
+        ? renderMyHouseEncyclopediaDetail(selectedBookCharacter)
+        : `<div class="my-house-book-empty">モンスターを選択してください。</div>`
+      : detailCharacter
+        ? renderMyHouseMonsterDetail(detailCharacter, detailOwnedMonster)
+        : `<div class="my-house-book-empty">モンスターを選択してください。</div>`;
 
   renderMyHouseSaveControls();
 
@@ -2632,19 +2679,7 @@ function renderMyHouse() {
     });
   }
 
-  for (const button of els.myHouseBookList.querySelectorAll("[data-my-house-book-id]")) {
-    button.addEventListener("click", () => {
-      state.myHouse.selectedBookId = button.dataset.myHouseBookId;
-      const book = state.encyclopediaBooks.get(state.myHouse.selectedBookId);
-      const firstCharacter = book ? myHouseBookCharacters(book)[0] : null;
-      state.myHouse.selectedBookCharacterId = firstCharacter?.character_id ?? null;
-      state.myHouse.detailMode = "book";
-      state.myHouse.accessoryEditorOwnedId = null;
-      renderMyHouse();
-    });
-  }
-
-  for (const button of els.myHouseBookContent.querySelectorAll("[data-my-house-book-character-id]")) {
+  for (const button of els.myHouseBookList.querySelectorAll("[data-my-house-book-character-id]")) {
     button.addEventListener("click", () => {
       state.myHouse.selectedBookCharacterId = button.dataset.myHouseBookCharacterId;
       state.myHouse.detailMode = "book";
@@ -2735,10 +2770,9 @@ function ensureMyHouseSelection() {
     state.myHouse.selectedBookId = ownedBooks[0]?.book_id ?? null;
   }
 
-  const selectedBook = ownedBooks.find((book) => book.book_id === state.myHouse.selectedBookId);
-  const bookCharacters = selectedBook ? myHouseBookCharacters(selectedBook) : [];
-  if (!bookCharacters.some((character) => character.character_id === state.myHouse.selectedBookCharacterId)) {
-    state.myHouse.selectedBookCharacterId = bookCharacters[0]?.character_id ?? null;
+  const encyclopediaCharacters = myHouseEncyclopediaCharacters();
+  if (!encyclopediaCharacters.some((character) => character.character_id === state.myHouse.selectedBookCharacterId)) {
+    state.myHouse.selectedBookCharacterId = encyclopediaCharacters[0]?.character_id ?? null;
   }
 
   if (state.myHouse.detailMode === "book" && !state.myHouse.selectedBookCharacterId) {
@@ -2787,6 +2821,10 @@ function myHouseBookCharacters(book) {
     .filter(Boolean);
 }
 
+function myHouseEncyclopediaCharacters() {
+  return charactersByDisplayOrder();
+}
+
 function storyBattleEncyclopediaCharacterIds() {
   const characterIds = new Set();
   for (const bookId of state.saveData.ownedBooks) {
@@ -2797,6 +2835,11 @@ function storyBattleEncyclopediaCharacterIds() {
     }
   }
   return characterIds;
+}
+
+function canViewPurchasedEncyclopediaCharacter(characterId) {
+  const id = safeText(characterId);
+  return id ? storyBattleEncyclopediaCharacterIds().has(id) : false;
 }
 
 function canViewStoryBattleEncyclopedia(characterId) {
@@ -3232,6 +3275,59 @@ function adjustedEquipmentWeaknesses(baseWeaknesses = {}, equipment) {
 
 function isAccessoryEquipment(equipment) {
   return Boolean(equipment) && equipment.equipment_type === EQUIPMENT_TYPE_ACCESSORY;
+}
+
+function renderMyHouseEncyclopediaCharacterButton(character) {
+  const canViewCharacter = canViewPurchasedEncyclopediaCharacter(character.character_id);
+  const selected =
+    state.myHouse.detailMode === "book" &&
+    character.character_id === state.myHouse.selectedBookCharacterId;
+  return `
+    <button class="my-house-book-button ${selected ? "is-selected" : ""}" type="button" data-my-house-book-character-id="${escapeHtml(character.character_id)}">
+      <strong>${escapeHtml(canViewCharacter ? character.name : "？？？？？")}</strong>
+      <span class="my-house-monster-meta">
+        ${canViewCharacter ? `${elementPill(character.element)} <span>slot ${slotMarks(character.slot)}</span>` : "未解放"}
+      </span>
+    </button>
+  `;
+}
+
+function renderMyHouseEncyclopediaContent(characters, ownedBooks) {
+  const unlockedCount = characters.filter((character) => canViewPurchasedEncyclopediaCharacter(character.character_id)).length;
+  return `
+    <div class="my-house-book-detail">
+      <div class="my-house-book-title">図鑑</div>
+      <div class="my-house-book-description">解放済み ${escapeHtml(unlockedCount)} / ${escapeHtml(characters.length)}</div>
+      <div class="my-house-book-description">購入済み ${escapeHtml(ownedBooks.length)}冊</div>
+    </div>
+  `;
+}
+
+function renderMyHouseEncyclopediaDetail(character) {
+  if (canViewPurchasedEncyclopediaCharacter(character.character_id)) {
+    return renderMyHouseMonsterDetail(character);
+  }
+
+  return `
+    <div class="my-house-detail-header">
+      <div>
+        <div class="my-house-detail-title">？？？？？</div>
+        <div class="detail-subtitle">対応する図鑑を購入すると情報を確認できます</div>
+      </div>
+      <div class="my-house-detail-slot">slot ？</div>
+    </div>
+    <div class="detail-body my-house-detail-body">
+      <div class="detail-profile-column">
+        <div class="detail-image-frame my-house-detail-image-frame">
+          <img class="detail-image" src="${escapeHtml(character.imageSrc)}" alt="？？？？？" />
+        </div>
+        <div class="detail-summary">
+          <div class="dex-data-row"><span>能力値</span><strong>？？？</strong></div>
+          <div class="command-note">対応する図鑑を購入すると情報を確認できます</div>
+        </div>
+      </div>
+    </div>
+  `;
 }
 
 function renderMyHouseBookButton(book) {
@@ -6665,9 +6761,12 @@ function renderArenaBattleResultPanel() {
   const won = state.battleWinner === "player";
   const opponentName = rankBattleDisplayName(rankBattleId);
   const rewardMoney = rankBattleRewardMoney(rankBattleId);
+  const alreadyCleared = isStoryRankBattleCleared(rankBattleId);
   const title = won ? "Arena勝利" : "Arena敗北";
   const message = won
-    ? `${opponentName}に勝利しました。報酬 ${rewardMoney}z を受け取ります。`
+    ? alreadyCleared
+      ? `${opponentName}との再戦に勝利しました。報酬は受け取り済みです。`
+      : `${opponentName}に勝利しました。報酬 ${rewardMoney}z を受け取ります。`
     : `${opponentName}に敗北しました。`;
   els.exchangePanel.innerHTML = `
     <div class="exchange-title">${escapeHtml(title)}</div>
@@ -6687,6 +6786,11 @@ function renderArenaBattleResultPanel() {
 }
 
 function renderStoryVictoryLabCapturePanel() {
+  if (isStoryRankBattleCleared(state.story.currentRankBattleId)) {
+    renderStoryRankBattleReplayVictoryPanel();
+    return;
+  }
+
   const capture = state.exchange.storyLabCaptureCompleted
     ? state.exchange.storyLabCapture
     : null;
@@ -6738,6 +6842,22 @@ function renderStoryVictoryLabCapturePanel() {
   });
 }
 
+function renderStoryRankBattleReplayVictoryPanel() {
+  const rankBattleId = state.story.currentRankBattleId;
+  const opponentName = rankBattleDisplayName(rankBattleId);
+  els.exchangePanel.innerHTML = `
+    <div class="exchange-title">勝利</div>
+    <div class="command-note">${escapeHtml(opponentName)}との再戦に勝利しました。報酬は受け取り済みです。</div>
+    <div class="exchange-actions">
+      <button class="primary-button exchange-action" type="button" data-story-rank-replay-action="complete">メイン画面へ戻る</button>
+    </div>
+  `;
+
+  els.exchangePanel.querySelector("[data-story-rank-replay-action='complete']")?.addEventListener("click", () => {
+    finalizeStoryBattleVictory(rankBattleId);
+  });
+}
+
 function storyVictoryLabCaptureCandidates() {
   return state.enemyTeam
     .map((member, index) => {
@@ -6761,6 +6881,9 @@ function renderStoryLabCaptureCandidate(candidate) {
 function completeStoryVictoryLabCapture(characterId) {
   if (state.exchange.storyLabCaptureCompleted) {
     return state.exchange.storyLabCapture;
+  }
+  if (isStoryRankBattleCleared(state.story.currentRankBattleId)) {
+    return null;
   }
 
   const id = safeText(characterId);
@@ -7113,6 +7236,10 @@ async function resolveTurn(playerAction) {
 
   if (!state.gameOver && !state.pendingSwitchSide) {
     await endRound();
+  }
+
+  if (!state.gameOver && !state.pendingSwitchSide) {
+    applyRankBattleTurnLimit();
   }
 
   if (!state.gameOver) {
@@ -7877,6 +8004,73 @@ async function handleFaint(side) {
   switchActive(side, nextIndex, { resetEnergy: true });
   pushLog(`${activeBySide(side).name}が場に出た！`);
   await pause(520);
+}
+
+function applyRankBattleTurnLimit() {
+  const rankBattleId = state.story.currentArenaBattleId || state.story.currentRankBattleId;
+  if (
+    state.turn < RANK_BATTLE_TURN_LIMIT ||
+    !rankBattleId ||
+    RANK_BATTLE_TURN_LIMIT_EXCLUDED_IDS.has(rankBattleId)
+  ) {
+    return false;
+  }
+
+  const result = rankBattleTurnLimitResult();
+  pushLog(result.message);
+  finishBattle(result.winner);
+  return true;
+}
+
+function rankBattleTurnLimitResult() {
+  const playerCount = remainingBattleCharacterCount(state.playerTeam);
+  const enemyCount = remainingBattleCharacterCount(state.enemyTeam);
+  if (playerCount !== enemyCount) {
+    const winner = playerCount > enemyCount ? "player" : "enemy";
+    return {
+      winner,
+      message: `20ターンが経過しました。残りモンスター数 ${playerCount}対${enemyCount} の判定により、${battleJudgementText(winner)}`,
+    };
+  }
+
+  const playerHpRatio = remainingBattleHpRatio(state.playerTeam);
+  const enemyHpRatio = remainingBattleHpRatio(state.enemyTeam);
+  if (playerHpRatio !== enemyHpRatio) {
+    const winner = playerHpRatio > enemyHpRatio ? "player" : "enemy";
+    return {
+      winner,
+      message: `20ターンが経過しました。残りモンスター数は${playerCount}対${enemyCount}で同数です。残りHP割合 ${formatBattleHpRatio(playerHpRatio)}対${formatBattleHpRatio(enemyHpRatio)} の判定により、${battleJudgementText(winner)}`,
+    };
+  }
+
+  return {
+    winner: "enemy",
+    message: "20ターンが経過しました。残りモンスター数と残りHP割合が同じため、敗北扱いです。",
+  };
+}
+
+function battleJudgementText(winner) {
+  return winner === "player" ? "あなたが勝利しました。" : "あなたの敗北です。";
+}
+
+function remainingBattleCharacterCount(team) {
+  return (Array.isArray(team) ? team : []).filter((member) => member && !member.fainted && member.hp > 0).length;
+}
+
+function remainingBattleHpRatio(team) {
+  const members = Array.isArray(team) ? team : [];
+  const maxHpTotal = members.reduce((total, member) => total + Math.max(0, number(member?.maxHp)), 0);
+  if (maxHpTotal <= 0) return 0;
+  const hpTotal = members.reduce((total, member) => {
+    const maxHp = Math.max(0, number(member?.maxHp));
+    const hp = Math.max(0, Math.min(number(member?.hp), maxHp));
+    return total + hp;
+  }, 0);
+  return hpTotal / maxHpTotal;
+}
+
+function formatBattleHpRatio(ratio) {
+  return `${Math.round(ratio * 1000) / 10}%`;
 }
 
 function finishBattle(winner) {
