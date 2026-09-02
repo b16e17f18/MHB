@@ -4568,7 +4568,7 @@ button {
 }
 
 .my-house-panel.my-house-mode-books .my-house-book-list {
-  max-height: 352px;
+  max-height: 208px;
   grid-auto-rows: 64px;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
