@@ -2825,13 +2825,23 @@ function myHouseEncyclopediaCharacters() {
   return charactersByDisplayOrder();
 }
 
+function currentOwnedCharacterIds() {
+  const characterIds = new Set();
+  for (const ownedMonster of state.saveData.ownedMonsters) {
+    const characterId = safeText(ownedMonster?.characterId);
+    if (characterId) characterIds.add(characterId);
+  }
+  return characterIds;
+}
+
 function storyBattleEncyclopediaCharacterIds() {
   const characterIds = new Set();
+  const ownedCharacterIds = currentOwnedCharacterIds();
   for (const bookId of state.saveData.ownedBooks) {
     const book = state.encyclopediaBooks.get(bookId);
     if (!book) continue;
     for (const characterId of book.characterIds) {
-      characterIds.add(characterId);
+      if (ownedCharacterIds.has(characterId)) characterIds.add(characterId);
     }
   }
   return characterIds;
