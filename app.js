@@ -5461,6 +5461,7 @@ function normalizeSavePayload(rawData) {
       if (id) nextSaveData.shopStock.set(id, Math.max(0, Math.floor(number(stock))));
     }
   }
+  restoreOwnedBooksFromPurchasedStock(nextSaveData);
 
   const equipmentData = rawData.owned_equipment ?? rawData.ownedEquipment;
   if (equipmentData != null) {
@@ -5530,6 +5531,15 @@ function saveArrayField(value, fieldName) {
     return { ok: false, error: `${fieldName}の形式が正しくありません。` };
   }
   return { ok: true, value };
+}
+
+function restoreOwnedBooksFromPurchasedStock(saveData) {
+  for (const item of state.shopItems) {
+    if (item.item_type !== "book" || !item.content_id) continue;
+    if (saveData.shopStock.get(item.shop_entry_id) === 0) {
+      saveData.ownedBooks.add(item.content_id);
+    }
+  }
 }
 
 function normalizeOwnedMonsterEquipment(value) {
