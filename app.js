@@ -1243,6 +1243,20 @@ function playRankBattleBgm(rankBattleId) {
   if (bgmId) playBgm(bgmId, { audibleDelayMs: BATTLE_BGM_AUDIBLE_DELAY_MS });
 }
 
+function randomBattleModeBgmId() {
+  const candidates = [...state.bgmMap.values()].filter((bgm) => {
+    const battleId = safeText(bgm.name);
+    return bgm.bgm_path && (battleId.startsWith("battle_") || battleId.startsWith("arena_"));
+  });
+  if (!candidates.length) return "";
+  return candidates[Math.floor(Math.random() * candidates.length)].bgm_id;
+}
+
+function playBattleModeBgm() {
+  const bgmId = randomBattleModeBgmId();
+  if (bgmId) playBgm(bgmId, { audibleDelayMs: BATTLE_BGM_AUDIBLE_DELAY_MS });
+}
+
 function advanceTimeOfDay() {
   const currentTimeOfDay = normalizeTimeOfDay(state.story.timeOfDay);
   const currentIndex = TIME_OF_DAY_SEQUENCE.indexOf(currentTimeOfDay);
@@ -6173,7 +6187,11 @@ function startBattle(options = {}) {
   state.story.currentRankBattleId = currentBattleId;
   state.story.currentArenaBattleId = currentArenaBattleId;
   state.story.lastDefeatedEnemyId = null;
-  playRankBattleBgm(currentArenaBattleId || currentBattleId);
+  if (currentArenaBattleId || currentBattleId) {
+    playRankBattleBgm(currentArenaBattleId || currentBattleId);
+  } else {
+    playBattleModeBgm();
+  }
   state.dex = {
     open: false,
     characterId: null,
