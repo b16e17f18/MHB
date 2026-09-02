@@ -2835,13 +2835,12 @@ function currentOwnedCharacterIds() {
 }
 
 function storyBattleEncyclopediaCharacterIds() {
-  const characterIds = new Set();
-  const ownedCharacterIds = currentOwnedCharacterIds();
+  const characterIds = currentOwnedCharacterIds();
   for (const bookId of state.saveData.ownedBooks) {
     const book = state.encyclopediaBooks.get(bookId);
     if (!book) continue;
     for (const characterId of book.characterIds) {
-      if (ownedCharacterIds.has(characterId)) characterIds.add(characterId);
+      characterIds.add(characterId);
     }
   }
   return characterIds;
