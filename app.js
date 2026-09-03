@@ -62,6 +62,9 @@ const STORY_RANK_BUTTON_AREAS = {
 };
 const STORY_RANK_ORDER_INDEX = new Map(STORY_RANK_ORDER.map((rank, index) => [rank, index]));
 const INITIAL_STORY_RANK_BATTLE_IDS = new Set(["battle_f_1", "arena_g_1"]);
+const FINAL_BOSS_BATTLE_ID = "battle_ss_2";
+const FINAL_BOSS_UNLOCK_REQUIRED_BATTLE_ID = "battle_ss_1";
+const FINAL_BOSS_UNLOCK_DIALOGUE_ID = "chief_after_ss_1";
 const ARENA_STAGE_AREAS = [
   { id: "G1", left: 3.1, top: 15, width: 18.5, height: 31.8 },
   { id: "X1", left: 1.2, top: 48.2, width: 16.4, height: 26 },
@@ -2573,10 +2576,11 @@ async function showRankBattleVictoryDialogues(rankBattleId) {
     conditionType: DIALOGUE_CONDITION_BATTLE_CLEARED,
     conditionValue: id,
   });
-  await showNpcConditionalDialogue("chief", {
+  const sawChiefDialogue = await showNpcConditionalDialogue("chief", {
     conditionType: DIALOGUE_CONDITION_BATTLE_CLEARED,
     conditionValue: id,
   });
+  if (sawChiefDialogue) updateStoryRankBattleButtons();
 }
 
 async function showMyHouse() {
@@ -6012,6 +6016,12 @@ function isStoryRankBattleUnlocked(rankBattleId) {
   if (!id) return false;
   if (INITIAL_STORY_RANK_BATTLE_IDS.has(id)) return true;
   if (isStoryRankBattleCleared(id)) return true;
+  if (id === FINAL_BOSS_BATTLE_ID) {
+    return (
+      isStoryRankBattleCleared(FINAL_BOSS_UNLOCK_REQUIRED_BATTLE_ID) &&
+      state.saveData.seenDialogueIds.has(FINAL_BOSS_UNLOCK_DIALOGUE_ID)
+    );
+  }
   if (!state.rankBattles.has(id)) return Boolean(STORY_RANK_BATTLE_FALLBACKS[id]);
   return [...state.story.clearedRankBattleIds].some((clearedRankBattleId) =>
     state.rankBattles.get(clearedRankBattleId)?.unlockBattleIds?.includes(id),

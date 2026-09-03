@@ -13,7 +13,7 @@ battle_a_1,a,ギルドブリーダー部門統括,battle_a_1,60000,battle_s_1,ba
 battle_a_2,A,引退した歴戦のハンター,battle_a_2,60000,none,none,none,none
 battle_s_1,s,歴戦の竜人族ハンター,battle_s_1,60000,none,none,none,none
 battle_s_2,S,ギルド支部役員竜人,battle_s_2,80000,battle_ss_1,none,none,none
-battle_ss_1,SS,ギルド本部役員竜人,battle_ss_1,100000,battle_ss_2,none,none,none
+battle_ss_1,SS,ギルド本部役員竜人,battle_ss_1,100000,none,none,none,none
 battle_ss_2,master,？？？,battle_ss_2,0,arena_g_2,none,none,none
 arena_g_1,G,異国帰りのブリーダー,arena_g_1,70000,arena_g_2,none,none,none
 arena_g_2,G,異国のブリーダー,arena_g_2,70000,arena_g_3,arena_g_4,none,none
