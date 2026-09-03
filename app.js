@@ -7470,25 +7470,28 @@ async function executeAction(action) {
     }
 
     await handleFaint(targetSide);
-    if (!target.fainted && result.damage > 0) {
-      applyBattleCoreEvents(applySkillEffects(
+    if (result.damage > 0 && (!target.fainted || !completingTwoTurnMove)) {
+      const skillEffectEvents = applySkillEffects(
         move,
         actor,
         target,
         state.effects,
         STAT_LABELS,
-        completingTwoTurnMove ? { targets: ["enemy"] } : {},
-      ));
-      const damageLinkedStunResult = applyDamageLinkedStun(
-        move,
-        actor,
-        target,
-        state.battleEffects,
-        state.turn,
+        target.fainted ? { targets: ["self"] } : completingTwoTurnMove ? { targets: ["enemy"] } : {},
       );
-      applyBattleCoreEvents(damageLinkedStunResult.events);
-      await playBattleEffectAnimations(damageLinkedStunResult.appliedBattleEffects, action.side);
-      await pause(300);
+      applyBattleCoreEvents(skillEffectEvents);
+      if (!target.fainted) {
+        const damageLinkedStunResult = applyDamageLinkedStun(
+          move,
+          actor,
+          target,
+          state.battleEffects,
+          state.turn,
+        );
+        applyBattleCoreEvents(damageLinkedStunResult.events);
+        await playBattleEffectAnimations(damageLinkedStunResult.appliedBattleEffects, action.side);
+      }
+      if (!target.fainted || skillEffectEvents.length) await pause(300);
     }
   } else {
     applyBattleCoreEvents(applySkillEffects(move, actor, target, state.effects, STAT_LABELS));

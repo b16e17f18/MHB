@@ -91,7 +91,7 @@ skill_089,毒鋏,attack,40,none,physical,normal,poison,enemy,75,none,enemy,0,non
 skill_090,滑走,attack,50,none,physical,normal,phy_def_up,self,100,speed_up,self,100,speed_up,self,100,none,0,none,0,enemy,0,1,自分の物理防御が10%、敏捷が20%upする。,attack_hit01,200,1,,,,,
 skill_091,ハチミツ,status,0,none,none,normal,heal_hp1,self,100,phy_atk_up,self,100,phy_def_up,self,100,protect,100,none,0,self,0,4,体力を300回復する。ダメージを50%cutする。物理攻撃と物理防御が10%upする。,magic_starfall01,1250,1,,,,,
 skill_092,振り回す,attack,80,none,physical,normal,poison,enemy,50,none,enemy,100,none,enemy,0,none,0,none,0,enemy,0,1,50%の確率で相手を毒にする。,attack_slash03,200,6,,,,,
-skill_093,急突進,attack,70,none,physical,normal,none,enemy,0,none,enemy,0,none,enemy,0,none,0,none,0,enemy,1,2,技優先度+1。,attack_hit01,250,1,,,,,
+skill_093,急突進,attack,60,none,physical,normal,none,enemy,0,none,enemy,0,none,enemy,0,none,0,none,0,enemy,1,2,技優先度+1。,attack_hit01,250,1,,,,,
 skill_094,足慣らし,status,0,none,none,normal,phy_atk_up,self,100,speed_up,self,100,none,enemy,0,protect,100,none,0,self,1,2,物理攻撃と敏捷が10%upし、ダメージを50%cutする。技優先度+1。,magic_enhance03,500,2,,,,,
 skill_095,ラリアット,attack,80,none,physical,normal,speed_up,self,100,none,enemy,0,none,enemy,0,none,0,none,0,enemy,0,2,自分の敏捷が10%upする。,attack_hit01,750,1,,,,,
 skill_096,水中放電,attack,70,thunder,special,water_wave,paralysis,enemy,50,fire_weak_down,self,100,none,enemy,0,underwater,100,none,0,enemy,0,2,1ターン目に水中に潜り、2ターン目に攻撃する。50%の確率で相手を麻痺にする。自分の火耐性が25%upする。,magic_lightning01_akira,1250,1,,,,,
