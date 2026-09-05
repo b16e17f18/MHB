@@ -221,8 +221,8 @@ const ANIMATION_FRAME_WIDTH = 250;
 const ANIMATION_FRAME_HEIGHT = 43;
 const BATTLE_ANIMATION_SCALE = 1.52;
 const TEAM_SLOT_LIMIT = 5;
-const RANK_BATTLE_TURN_LIMIT = 20;
-const RANK_BATTLE_TURN_LIMIT_EXCLUDED_IDS = new Set(["battle_ss_2", "arena_m_2"]);
+const BATTLE_TURN_LIMIT = 20;
+const BATTLE_TURN_LIMIT_EXCLUDED_RANK_BATTLE_IDS = new Set(["battle_ss_2", "arena_m_2"]);
 const START_ENERGY = 1;
 const BATTLE_SAVE_ENERGY_ENABLED = false;
 const LAB_MEMBER_DISPLAY_LIMIT = TEAM_SLOT_LIMIT;
@@ -7348,7 +7348,7 @@ async function resolveTurn(playerAction) {
   }
 
   if (!state.gameOver && !state.pendingSwitchSide) {
-    applyRankBattleTurnLimit();
+    applyBattleTurnLimit();
   }
 
   if (!state.gameOver) {
@@ -8146,30 +8146,29 @@ async function handleFaint(side) {
   await pause(520);
 }
 
-function applyRankBattleTurnLimit() {
+function applyBattleTurnLimit() {
   const rankBattleId = state.story.currentArenaBattleId || state.story.currentRankBattleId;
   if (
-    state.turn < RANK_BATTLE_TURN_LIMIT ||
-    !rankBattleId ||
-    RANK_BATTLE_TURN_LIMIT_EXCLUDED_IDS.has(rankBattleId)
+    state.turn < BATTLE_TURN_LIMIT ||
+    (rankBattleId && BATTLE_TURN_LIMIT_EXCLUDED_RANK_BATTLE_IDS.has(rankBattleId))
   ) {
     return false;
   }
 
-  const result = rankBattleTurnLimitResult();
+  const result = battleTurnLimitResult();
   pushLog(result.message);
   finishBattle(result.winner);
   return true;
 }
 
-function rankBattleTurnLimitResult() {
+function battleTurnLimitResult() {
   const playerCount = remainingBattleCharacterCount(state.playerTeam);
   const enemyCount = remainingBattleCharacterCount(state.enemyTeam);
   if (playerCount !== enemyCount) {
     const winner = playerCount > enemyCount ? "player" : "enemy";
     return {
       winner,
-      message: `20ターンが経過しました。残りモンスター数 ${playerCount}対${enemyCount} の判定により、${battleJudgementText(winner)}`,
+      message: `${BATTLE_TURN_LIMIT}ターンが経過しました。残りモンスター数 ${playerCount}対${enemyCount} の判定により、${battleJudgementText(winner)}`,
     };
   }
 
@@ -8179,13 +8178,13 @@ function rankBattleTurnLimitResult() {
     const winner = playerHpRatio > enemyHpRatio ? "player" : "enemy";
     return {
       winner,
-      message: `20ターンが経過しました。残りモンスター数は${playerCount}対${enemyCount}で同数です。残りHP割合 ${formatBattleHpRatio(playerHpRatio)}対${formatBattleHpRatio(enemyHpRatio)} の判定により、${battleJudgementText(winner)}`,
+      message: `${BATTLE_TURN_LIMIT}ターンが経過しました。残りモンスター数は${playerCount}対${enemyCount}で同数です。残りHP割合 ${formatBattleHpRatio(playerHpRatio)}対${formatBattleHpRatio(enemyHpRatio)} の判定により、${battleJudgementText(winner)}`,
     };
   }
 
   return {
     winner: "enemy",
-    message: "20ターンが経過しました。残りモンスター数と残りHP割合が同じため、敗北扱いです。",
+    message: `${BATTLE_TURN_LIMIT}ターンが経過しました。残りモンスター数と残りHP割合が同じため、敗北扱いです。`,
   };
 }
 
