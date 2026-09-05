@@ -11,6 +11,7 @@ revenge,反撃準備,trigger,received_damage_rate,150,1,TRUE,none,none,0
 ,,,,,,,,,
 stun,スタン,control,none,0,1,FALSE,none,none,0
 wish,猫飯,delayed_heal,percent_maxhp,75,2,TRUE,none,none,0
+switch_after_attack,交代技,change_character,none,0,1,TRUE,none,none,0
 ,,,,,,,,,
 fly,上空,position,none,0,1,FALSE,ground_attack,anti_air,0
 underground,地中,position,none,0,1,FALSE,surface_attack,ground_wave,0

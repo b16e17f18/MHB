@@ -668,18 +668,18 @@ function applyBattleEffects(
     if (!battleEffectId || battleEffectId === "none" || chance <= 0) continue;
     if (skipEffectIds?.has(battleEffectId)) continue;
     if (move.category === "attack" && battleEffectId === STUN_BATTLE_EFFECT_ID) continue;
+    const battleEffect = battleEffects?.get(battleEffectId);
+    if (battleEffect?.battle_effect_group === CHANGE_CHARACTER_BATTLE_EFFECT_GROUP) continue;
     if (Math.random() * 100 > chance) continue;
 
     if (battleEffectId === "charge_attack") {
       events.push(...applyChargeAttackBattleEffect(actor));
-      const battleEffect = battleEffects?.get(battleEffectId);
       if (battleEffect) {
         appliedBattleEffects.push(battleEffect);
       }
       continue;
     }
 
-    const battleEffect = battleEffects?.get(battleEffectId);
     if (!battleEffect) continue;
 
     if (isSideGuardBattleEffectId(battleEffectId) && actorSide) {

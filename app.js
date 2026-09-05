@@ -213,6 +213,7 @@ const DELAYED_ATTACK_SETUP_ONLY_EFFECT_IDS = new Set([
 ]);
 const STUN_BATTLE_EFFECT_ID = "stun";
 const DELAYED_HEAL_BATTLE_EFFECT_GROUP = "delayed_heal";
+const CHANGE_CHARACTER_BATTLE_EFFECT_GROUP = "change_character";
 const SWITCH_PERSISTENT_BATTLE_EFFECT_IDS = new Set();
 const BATTLE_MESSAGE_DURATION = 1400;
 const BATTLE_TEXT_SPEED_SCALE = 2;
@@ -583,6 +584,7 @@ const state = {
   busy: false,
   gameOver: false,
   pendingSwitchSide: null,
+  pendingPostAttackSwitch: null,
   battleWinner: null,
   exchange: createExchangeState(),
   fieldEffects: createFieldEffectsState(),
@@ -4098,6 +4100,7 @@ function returnToSetup() {
   state.busy = false;
   state.gameOver = false;
   state.pendingSwitchSide = null;
+  state.pendingPostAttackSwitch = null;
   state.battleWinner = null;
   state.battleAnimation = null;
   state.exchange = createExchangeState();
@@ -6188,6 +6191,7 @@ function startBattle(options = {}) {
   state.busy = false;
   state.gameOver = false;
   state.pendingSwitchSide = null;
+  state.pendingPostAttackSwitch = null;
   state.battleWinner = null;
   state.battleAnimation = null;
   state.exchange = createExchangeState();
@@ -6684,11 +6688,17 @@ function renderMoveGrid(fighter) {
 
 function renderSwitchGrid() {
   const forced = state.pendingSwitchSide === "player";
+  const postAttackSwitch = state.pendingPostAttackSwitch?.side === "player";
   const activePendingMove = Boolean(pendingSkillFor(activePlayer()));
   els.switchGrid.innerHTML = state.playerTeam
     .map((member, index) => {
       const active = index === state.playerActiveIndex;
-      const disabled = state.busy || state.gameOver || activePendingMove || member.fainted || (!forced && active);
+      const disabled =
+        (!postAttackSwitch && state.busy) ||
+        state.gameOver ||
+        activePendingMove ||
+        member.fainted ||
+        (!forced && active);
       return `
         <button class="switch-button ${active ? "is-active-member" : ""} ${member.fainted ? "is-fainted-member" : ""}" type="button" data-member-index="${index}" ${disabled ? "disabled" : ""}>
           <span class="switch-name">${escapeHtml(member.name)}</span>
@@ -6698,7 +6708,7 @@ function renderSwitchGrid() {
     })
     .join("");
 
-  if (forced) {
+  if (forced || postAttackSwitch) {
     els.switchGrid.insertAdjacentHTML(
       "afterbegin",
       `<div class="command-note">次に出すBreederを選んでください。</div>`,
@@ -7071,9 +7081,14 @@ function playerChooseSaveEnergy() {
 }
 
 function playerChooseSwitch(index) {
-  if (state.busy || state.gameOver) return;
+  const postAttackSwitch = state.pendingPostAttackSwitch?.side === "player";
+  if ((state.busy && !postAttackSwitch) || state.gameOver) return;
   const target = state.playerTeam[index];
   if (!target || target.fainted || index === state.playerActiveIndex) return;
+  if (postAttackSwitch) {
+    completePostAttackPlayerSwitch(index);
+    return;
+  }
   if (state.pendingSwitchSide === "player") {
     completeForcedSwitch(index);
     return;
@@ -7090,6 +7105,53 @@ function completeForcedSwitch(index) {
   state.commandMode = "fight";
   pushLog(`${target.name}、出番だ！`);
   renderBattle();
+}
+
+function completePostAttackPlayerSwitch(index) {
+  const pending = state.pendingPostAttackSwitch;
+  if (pending?.side !== "player") return;
+  const target = state.playerTeam[index];
+  if (!target || target.fainted || index === state.playerActiveIndex) return;
+
+  state.pendingPostAttackSwitch = null;
+  state.commandMode = "fight";
+  const switched = switchAfterAttack("player", index);
+  pending.resolve?.(switched);
+}
+
+function requestPlayerPostAttackSwitch() {
+  return new Promise((resolve) => {
+    state.pendingPostAttackSwitch = { side: "player", resolve };
+    state.commandMode = "switch";
+    pushLog("次に出すBreederを選んでください。");
+    renderBattle();
+  });
+}
+
+async function applyPostAttackChangeCharacter(side, actor, battleEffect) {
+  if (!battleEffect || state.gameOver || !actor || actor.fainted) return false;
+  if (state.pendingSwitchSide === side) return false;
+  if (sideForActiveFighter(actor) !== side) return false;
+
+  const benchIndex = aliveBenchIndex(side);
+  if (benchIndex < 0) return false;
+
+  if (side === "player") {
+    return requestPlayerPostAttackSwitch();
+  }
+
+  return switchAfterAttack(side, benchIndex);
+}
+
+function switchAfterAttack(side, index) {
+  const previous = activeBySide(side);
+  switchActive(side, index);
+  const current = activeBySide(side);
+  if (!previous || !current || previous === current) return false;
+
+  pushLog(`${previous.name}を戻した。${current.name}、出番だ！`);
+  renderBattle();
+  return true;
 }
 
 function exchangePlayerIndices() {
@@ -7437,6 +7499,7 @@ async function executeAction(action) {
   const delayedAttackSetupOnly =
     delayedAttackSetup &&
     (move.category !== "attack" || hasSetupOnlyDelayedAttackBattleEffect(move));
+  let changeCharacterBattleEffect = null;
   const animationSide = move.target === "self" ? action.side : targetSide;
   if (!delayedAttackSetupOnly) {
     await playSkillAnimation(move, animationSide);
@@ -7493,6 +7556,9 @@ async function executeAction(action) {
       }
       if (!target.fainted || skillEffectEvents.length) await pause(300);
     }
+    if (result.damage > 0) {
+      changeCharacterBattleEffect = triggeredChangeCharacterBattleEffect(move);
+    }
   } else {
     applyBattleCoreEvents(applySkillEffects(move, actor, target, state.effects, STAT_LABELS));
     await pause(360);
@@ -7523,6 +7589,9 @@ async function executeAction(action) {
     applyBattleCoreEvents(battleEffectResult.events);
     await playBattleEffectAnimations(battleEffectResult.appliedBattleEffects, action.side);
   }
+  if (changeCharacterBattleEffect) {
+    await applyPostAttackChangeCharacter(action.side, actor, changeCharacterBattleEffect);
+  }
   await pause(280);
 }
 
@@ -7533,9 +7602,8 @@ function chooseEnemyAction() {
     return { side: "enemy", type: "move", moveId: pendingMoveId };
   }
 
-  const enemyIndex = state.enemyActiveIndex;
   const lowHp = enemy.hp / enemy.maxHp <= 0.28;
-  const bench = state.enemyTeam.findIndex((member, index) => index !== enemyIndex && !member.fainted);
+  const bench = aliveBenchIndex("enemy");
 
   if (lowHp && bench >= 0 && Math.random() < 0.22) {
     return { side: "enemy", type: "switch", index: bench };
@@ -7852,6 +7920,28 @@ function clearPositionAfterAction(actor, move, positionBeforeAction) {
   return positionBeforeAction;
 }
 
+function aliveBenchIndex(side) {
+  const activeIndex = side === "player" ? state.playerActiveIndex : state.enemyActiveIndex;
+  return teamBySide(side).findIndex((member, index) => index !== activeIndex && member && !member.fainted);
+}
+
+function triggeredChangeCharacterBattleEffect(move) {
+  if (move?.category !== "attack") return null;
+  const pairs = [
+    [move.battle_effect1, move.battle_effect_chance1],
+    [move.battle_effect2, move.battle_effect_chance2],
+  ];
+
+  for (const [effectId, chance] of pairs) {
+    if (!effectId || effectId === "none" || chance <= 0) continue;
+    const battleEffect = state.battleEffects.get(effectId);
+    if (battleEffect?.battle_effect_group !== CHANGE_CHARACTER_BATTLE_EFFECT_GROUP) continue;
+    if (Math.random() * 100 <= chance) return battleEffect;
+  }
+
+  return null;
+}
+
 function hasDelayedAttackBattleEffect(move) {
   return [
     [move.battle_effect1, move.battle_effect_chance1],
@@ -8128,6 +8218,7 @@ function finishBattle(winner) {
   advanceTimeOfDay();
   state.gameOver = true;
   state.pendingSwitchSide = null;
+  state.pendingPostAttackSwitch = null;
   state.battleWinner = winner;
   state.battleAnimation = null;
   const canShowVictoryResult = winner === "player" && !state.story.currentArenaBattleId;
@@ -8193,6 +8284,7 @@ function resetRankBattleRuntimeState() {
   state.gameOver = true;
   state.busy = false;
   state.pendingSwitchSide = null;
+  state.pendingPostAttackSwitch = null;
   state.battleWinner = null;
   state.battleAnimation = null;
   state.exchange = createExchangeState();
