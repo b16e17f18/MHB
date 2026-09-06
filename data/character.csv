@@ -59,5 +59,5 @@ character_057,ボルボロス,560,260,390,170,230,65,70,1,2,50,125,25,100,50,non
 character_058,アグナコトル亜種,590,290,320,320,260,175,70,2,2,150,50,100,25,125,ice,skill_103,skill_104,skill_010,skill_105,character_058.png,#ffffff,8,,,leviathan,44,patient
 character_059,ケチャワチャ,490,230,180,170,230,320,105,1,1,125,50,100,50,25,water,skill_107,skill_002,skill_106,skill_077,character_059.png,#ffffff,8,,-50,fanged_beast,16,patient
 character_060,シェンガオレン,925,395,445,315,315,15,35,1,4,125,50,125,25,150,none,skill_108,skill_109,skill_110,skill_111,character_060.png,#ffffff,8,,,carapaceon,804,patient
-character_061,ネルギガンテ,655,385,270,270,270,255,70,2,3,75,75,125,75,100,none,skill_121,skill_010,skill_122,skill_123,character_061.png,#ffffff,8,,,elder_dragon,207,patient
+character_061,ネルギガンテ,655,385,300,270,270,255,70,2,3,75,75,125,75,100,none,skill_121,skill_010,skill_122,skill_123,character_061.png,#ffffff,8,,,elder_dragon,207,patient
 character_062,アマツマガツチ,820,270,330,380,380,330,70,1,4,125,25,100,75,125,water,skill_058,skill_015,skill_124,skill_125,character_062.png,#ffffff,8,,,elder_dragon,209,patient
