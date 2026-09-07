@@ -115,7 +115,6 @@ const STORY_ISLAND_BGM_IDS = {
 };
 
 const MANUAL_SAVE_STORAGE_KEYS = ["mhb_save_1", "mhb_save_2", "mhb_save_3"];
-const BGM_VOLUME = 0.65;
 const BATTLE_BGM_AUDIBLE_DELAY_MS = 2000;
 const INITIAL_MONEY = 1500;
 const BUSINESS_SHOP_ID = "business";
@@ -226,31 +225,6 @@ const BATTLE_TURN_LIMIT_EXCLUDED_RANK_BATTLE_IDS = new Set(["battle_ss_2", "aren
 const START_ENERGY = 1;
 const BATTLE_SAVE_ENERGY_ENABLED = false;
 const LAB_MEMBER_DISPLAY_LIMIT = TEAM_SLOT_LIMIT;
-const ENEMY_AI_CONFIG = {
-  DEBUG: false,
-  AVERAGE_DAMAGE_VARIANCE: 0.975,
-  WAITING_PENALTY: 25,
-  MIN_FUTURE_GAIN: 20,
-  ENERGY_COST_PENALTY: 3,
-  EMPTY_ENERGY_PENALTY: 8,
-  LOW_HP_DAMAGE_RATIO: 0.7,
-  SAVE_BLOCK_PENALTY: 10000,
-  NEAR_BEST_RANDOM_RANGE: 0.1,
-  NEAR_BEST_MIN_RANGE: 5,
-  CANDIDATE_MIN_WEIGHT: 1,
-  CANDIDATE_WEIGHT_OFFSET: 1,
-  KO_BONUS: 1000,
-  LEGACY_FALLBACK_SCORE_RATIO: 0.94,
-};
-const ENEMY_AI_TYPE_CONFIGS = {
-  balanced: {},
-  aggressive: {
-    WAITING_PENALTY: 40,
-  },
-  patient: {
-    WAITING_PENALTY: 10,
-  },
-};
 const STAT_GRAPH_MAX = {
   hp: 999,
   phy_atk: 500,
@@ -320,206 +294,6 @@ for (const element of ELEMENT_TYPES) {
     attack_type: "special",
     cost: 1,
   };
-}
-
-class DialogueManager {
-  constructor() {
-    this.npcs = new Map();
-    this.dialogues = new Map();
-    this.dialoguesById = new Map();
-    this.elements = {};
-    this.active = false;
-    this.resolveClose = null;
-    this.previousFocus = null;
-    this.currentNpcId = "";
-    this.currentDialogueId = "";
-    this.startDialogueId = "";
-    this.visitedDialogueIds = new Set();
-    this.onComplete = null;
-    this.boundKeydown = (event) => this.handleKeydown(event);
-  }
-
-  mount(elements) {
-    this.elements = elements;
-    this.elements.overlay?.addEventListener("click", () => this.advanceOrClose());
-    document.addEventListener("keydown", this.boundKeydown, true);
-  }
-
-  async load(npcText) {
-    this.npcs.clear();
-    this.dialogues.clear();
-    this.dialoguesById.clear();
-
-    const npcs = rowsFromCsv(npcText)
-      .map(normalizeNpc)
-      .filter((npc) => npc.npc_id);
-
-    for (const npc of npcs) {
-      this.npcs.set(npc.npc_id, npc);
-    }
-
-    const dialogueResults = await Promise.allSettled(
-      npcs.map(async (npc) => ({
-        npc,
-        text: await loadOptionalCsvText(
-          `dialogue:${npc.npc_id}`,
-          `${DIALOGUE_DATA_DIRECTORY}/${npc.npc_id}_dialogue.csv`,
-        ),
-      })),
-    );
-
-    for (const result of dialogueResults) {
-      if (result.status !== "fulfilled" || !result.value.text) continue;
-      const { npc, text } = result.value;
-      for (const dialogue of rowsFromCsv(text).map((row) => normalizeDialogue(row, npc.npc_id))) {
-        if (dialogue.dialogue_id) {
-          if (this.dialoguesById.has(dialogue.dialogue_id)) {
-            console.warn("[Dialogue] duplicate dialogue_id skipped", {
-              dialogueId: dialogue.dialogue_id,
-              npcId: dialogue.npc_id,
-            });
-            continue;
-          }
-          this.dialogues.set(this.dialogueKey(dialogue.npc_id, dialogue.dialogue_id), dialogue);
-          this.dialoguesById.set(dialogue.dialogue_id, dialogue);
-        }
-      }
-    }
-  }
-
-  dialogueKey(npcId, dialogueId) {
-    return `${safeText(npcId)}:${safeText(dialogueId)}`;
-  }
-
-  show(npcId, dialogueId, options = {}) {
-    const normalizedNpcId = safeText(npcId);
-    const normalizedDialogueId = safeText(dialogueId);
-    const dialogue =
-      this.dialoguesById.get(normalizedDialogueId) ||
-      this.dialogues.get(this.dialogueKey(normalizedNpcId, normalizedDialogueId));
-    const npc = this.npcs.get(dialogue?.npc_id || normalizedNpcId);
-    if (!npc || !dialogue || !this.elements.overlay) {
-      return Promise.resolve(false);
-    }
-
-    this.close({ silent: true });
-    this.active = true;
-    this.previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    this.currentNpcId = dialogue.npc_id;
-    this.currentDialogueId = dialogue.dialogue_id;
-    this.startDialogueId = dialogue.dialogue_id;
-    this.visitedDialogueIds = new Set([dialogue.dialogue_id]);
-    this.onComplete = typeof options.onComplete === "function" ? options.onComplete : null;
-
-    this.renderDialogue(dialogue);
-    this.elements.overlay.classList.remove("is-hidden");
-    this.elements.overlay.focus({ preventScroll: true });
-
-    return new Promise((resolve) => {
-      this.resolveClose = resolve;
-    });
-  }
-
-  renderDialogue(dialogue) {
-    const npc = this.npcs.get(dialogue?.npc_id);
-    if (!npc || !dialogue) return false;
-
-    if (this.elements.portrait) {
-      this.elements.portrait.src = npcImagePath(npc.image);
-      this.elements.portrait.alt = npc.name || npc.npc_id;
-    }
-    if (this.elements.text) {
-      this.elements.text.textContent = dialogue.text;
-    }
-    if (this.elements.windowFrame) {
-      this.elements.windowFrame.src = DIALOGUE_WINDOW_IMAGE;
-    }
-    return true;
-  }
-
-  advanceOrClose() {
-    if (!this.active) return;
-    const current = this.dialoguesById.get(this.currentDialogueId);
-    const nextId = safeText(current?.next_id);
-    if (!nextId) {
-      this.close({ completed: true });
-      return;
-    }
-    if (this.visitedDialogueIds.has(nextId)) {
-      console.warn("[Dialogue] circular next_id detected", {
-        dialogueId: this.currentDialogueId,
-        nextId,
-      });
-      this.close();
-      return;
-    }
-
-    const nextDialogue = this.dialoguesById.get(nextId);
-    if (nextDialogue) {
-      this.visitedDialogueIds.add(nextId);
-      this.currentNpcId = nextDialogue.npc_id;
-      this.currentDialogueId = nextId;
-      this.renderDialogue(nextDialogue);
-      return;
-    }
-    console.warn("[Dialogue] next_id not found", {
-      dialogueId: this.currentDialogueId,
-      nextId,
-    });
-    this.close();
-  }
-
-  close({ silent = false, completed = false } = {}) {
-    if (!this.active && !this.resolveClose) return;
-    const startDialogueId = this.startDialogueId;
-    const onComplete = this.onComplete;
-    this.active = false;
-    this.elements.overlay?.classList.add("is-hidden");
-    if (this.elements.text) {
-      this.elements.text.textContent = "";
-    }
-    if (this.elements.portrait) {
-      this.elements.portrait.removeAttribute("src");
-      this.elements.portrait.alt = "";
-    }
-
-    const resolve = this.resolveClose;
-    this.resolveClose = null;
-    this.currentNpcId = "";
-    this.currentDialogueId = "";
-    this.startDialogueId = "";
-    this.visitedDialogueIds = new Set();
-    this.onComplete = null;
-    if (completed && startDialogueId) {
-      onComplete?.(startDialogueId);
-    }
-    resolve?.(!silent);
-    if (!silent) {
-      this.previousFocus?.focus?.({ preventScroll: true });
-    }
-  }
-
-  getDialogue(dialogueId) {
-    return this.dialoguesById.get(safeText(dialogueId)) ?? null;
-  }
-
-  conditionalStartDialogues(npcId) {
-    const id = safeText(npcId);
-    if (!id) return [];
-    return [...this.dialoguesById.values()].filter((dialogue) =>
-      dialogue.npc_id === id && Boolean(dialogue.condition_type),
-    );
-  }
-
-  handleKeydown(event) {
-    if (!this.active) return;
-    event.preventDefault();
-    event.stopPropagation();
-    event.stopImmediatePropagation();
-    if (event.key === "Enter") {
-      this.advanceOrClose();
-    }
-  }
 }
 
 const dialogueManager = new DialogueManager();
@@ -625,12 +399,6 @@ let saveStatusTimer = null;
 let shopMessageTimer = null;
 const animationSheetMetaCache = new Map();
 const transparentAnimationCache = new Map();
-const bgmRuntime = {
-  audio: null,
-  currentBgmId: "",
-  pendingBgmId: "",
-  volumeTimer: null,
-};
 
 function createExchangeState() {
   return {
@@ -649,148 +417,6 @@ function createFieldEffectsState() {
     player: [],
     enemy: [],
   };
-}
-
-function getBgmById(bgmId) {
-  return state.bgmMap.get(safeText(bgmId)) ?? null;
-}
-
-function playBgm(bgmId, options = {}) {
-  const id = safeText(bgmId);
-  if (!id) return false;
-  const audibleDelayMs = normalizeBgmAudibleDelayMs(options?.audibleDelayMs);
-
-  const bgm = getBgmById(id);
-  if (!bgm) {
-    console.warn("[BGM] bgm_id not found", { bgmId: id });
-    return false;
-  }
-
-  if (!bgm.bgm_path) {
-    if (bgmRuntime.audio) stopBgm();
-    console.warn("[BGM] bgm_path is empty", { bgmId: id });
-    return false;
-  }
-
-  if (
-    bgmRuntime.currentBgmId === id &&
-    bgmRuntime.audio &&
-    (bgmRuntime.pendingBgmId === id || !bgmRuntime.audio.paused)
-  ) {
-    return true;
-  }
-
-  if (bgmRuntime.audio) stopBgm();
-  else clearBgmVolumeTimer();
-
-  const audio = createBgmAudio(bgm.bgm_path, id);
-  if (!audio) return false;
-  if (audibleDelayMs > 0) {
-    audio.volume = 0;
-  }
-
-  bgmRuntime.audio = audio;
-  bgmRuntime.currentBgmId = id;
-  bgmRuntime.pendingBgmId = id;
-
-  let playResult = null;
-  try {
-    playResult = audio.play();
-  } catch (error) {
-    handleBgmPlayRejected(audio, id, error);
-    return false;
-  }
-
-  if (playResult && typeof playResult.then === "function") {
-    playResult
-      .then(() => {
-        handleBgmPlayStarted(audio, id, audibleDelayMs);
-      })
-      .catch((error) => {
-        handleBgmPlayRejected(audio, id, error);
-      });
-  } else {
-    handleBgmPlayStarted(audio, id, audibleDelayMs);
-  }
-
-  return true;
-}
-
-function stopBgm() {
-  clearBgmVolumeTimer();
-  const audio = bgmRuntime.audio;
-  bgmRuntime.audio = null;
-  bgmRuntime.currentBgmId = "";
-  bgmRuntime.pendingBgmId = "";
-
-  if (!audio) return;
-
-  try {
-    audio.pause();
-    audio.currentTime = 0;
-  } catch (error) {
-    console.warn("[BGM] stop failed", error);
-  }
-}
-
-function normalizeBgmAudibleDelayMs(value) {
-  const delayMs = Number(value);
-  return Number.isFinite(delayMs) ? Math.max(0, Math.floor(delayMs)) : 0;
-}
-
-function handleBgmPlayStarted(audio, bgmId, audibleDelayMs) {
-  if (bgmRuntime.audio !== audio || bgmRuntime.currentBgmId !== bgmId) return;
-
-  bgmRuntime.pendingBgmId = "";
-  if (audibleDelayMs > 0) {
-    scheduleBgmVolumeRestore(audio, bgmId, audibleDelayMs);
-  }
-}
-
-function scheduleBgmVolumeRestore(audio, bgmId, delayMs) {
-  clearBgmVolumeTimer();
-  const volumeTimer = window.setTimeout(() => {
-    if (bgmRuntime.volumeTimer === volumeTimer) {
-      bgmRuntime.volumeTimer = null;
-    }
-    if (bgmRuntime.audio === audio && bgmRuntime.currentBgmId === bgmId) {
-      audio.volume = BGM_VOLUME;
-    }
-  }, delayMs);
-  bgmRuntime.volumeTimer = volumeTimer;
-}
-
-function clearBgmVolumeTimer() {
-  if (bgmRuntime.volumeTimer == null) return;
-  window.clearTimeout(bgmRuntime.volumeTimer);
-  bgmRuntime.volumeTimer = null;
-}
-
-function createBgmAudio(path, bgmId) {
-  if (typeof Audio !== "function") {
-    console.warn("[BGM] Audio API is unavailable", { bgmId });
-    return null;
-  }
-
-  try {
-    const audio = new Audio(path);
-    audio.loop = true;
-    audio.volume = BGM_VOLUME;
-    return audio;
-  } catch (error) {
-    console.warn("[BGM] Audio creation failed", { bgmId, error });
-    return null;
-  }
-}
-
-function handleBgmPlayRejected(audio, bgmId, error) {
-  if (bgmRuntime.audio === audio && bgmRuntime.currentBgmId === bgmId) {
-    clearBgmVolumeTimer();
-    bgmRuntime.audio = null;
-    bgmRuntime.currentBgmId = "";
-    bgmRuntime.pendingBgmId = "";
-  }
-  console.warn("[BGM] playback was blocked or failed", { bgmId, error });
 }
 
 function createSaveData() {
@@ -4393,6 +4019,8 @@ function normalizeCharacter(row) {
     energy_charge: Math.max(1, number(row.cost_charge ?? row.energy_charge, 1)),
     slot: number(row.slot, 1),
     ai_type: safeText(row.ai_type, "balanced"),
+    ai_setup_skill: safeText(row.ai_setup_skill),
+    ai_main_skill: safeText(row.ai_main_skill),
     element,
     weaknesses: {
       fire: number(row.weak_fire, 100) / 100,
@@ -7364,14 +6992,15 @@ async function resolveTurn(playerAction) {
 }
 
 function decorateAction(action) {
+  const actor = activeBySide(action.side);
   if (action.type === "switch") {
-    return { ...action, priority: 6, speed: Number.MAX_SAFE_INTEGER };
+    return { ...action, actorRef: actor, priority: 6, speed: Number.MAX_SAFE_INTEGER };
   }
 
-  const actor = activeBySide(action.side);
   if (action.type === "save_energy" || action.type === "idle") {
     return {
       ...action,
+      actorRef: actor,
       priority: 0,
       speed: actor ? effectiveStat(actor, "speed") : 0,
     };
@@ -7380,6 +7009,7 @@ function decorateAction(action) {
   const move = moveForFighter(actor, action.moveId);
   return {
     ...action,
+    actorRef: actor,
     priority: move ? move.priority : 0,
     speed: actor ? effectiveStat(actor, "speed") : 0,
   };
@@ -7394,6 +7024,7 @@ function compareActions(a, b) {
 async function executeAction(action) {
   const actor = activeBySide(action.side);
   if (!actor || actor.fainted) return;
+  if (action.actorRef && action.actorRef !== actor) return;
 
   if (action.type === "switch") {
     switchActive(action.side, action.index);
@@ -7597,303 +7228,33 @@ async function executeAction(action) {
 
 function chooseEnemyAction() {
   const enemy = activeEnemy();
-  const pendingMoveId = pendingSkillId(enemy);
-  if (pendingMoveId) {
-    return { side: "enemy", type: "move", moveId: pendingMoveId };
-  }
-
-  const lowHp = enemy.hp / enemy.maxHp <= 0.28;
-  const bench = aliveBenchIndex("enemy");
-
-  if (lowHp && bench >= 0 && Math.random() < 0.22) {
-    return { side: "enemy", type: "switch", index: bench };
-  }
-
   const target = activePlayer();
-  const aiConfig = enemyAiConfigFor(enemy);
-  const allMoves = movesForCharacter(enemy.base);
-  const usableMoves = allMoves.filter((move) => move.cost <= enemy.energy);
-  const usableMoveScores = usableMoves
-    .map((move) => scoreEnemyUsableMove(enemy, target, move, aiConfig))
-    .filter(Boolean);
-  const scoredMoveIds = new Set(usableMoveScores.map((candidate) => candidate.move.skill_id));
-  const legacyFallbackMove = pickLegacyEnemyMove(
-    usableMoves.filter((move) => !scoredMoveIds.has(move.skill_id) && move.category === "attack"),
-  );
-  const saveEnergy = scoreEnemySaveEnergy(enemy, target, allMoves, usableMoveScores, aiConfig);
-  const knockoutMoves = usableMoveScores.filter((candidate) => candidate.canKnockout);
-
-  if (knockoutMoves.length) {
-    const selected = knockoutMoves.sort(compareEnemyKnockoutMoves)[0];
-    debugEnemyAI(enemy, {
-      usableMoveScores,
-      saveEnergy,
-      selected: selected.move.skill_id,
-      reason: "knockout",
-    });
-    return { side: "enemy", type: "move", moveId: selected.move.skill_id };
-  }
-
-  if (!usableMoves.length) {
-    debugEnemyAI(enemy, {
-      usableMoveScores,
-      saveEnergy,
-      selected: BATTLE_SAVE_ENERGY_ENABLED ? "save_energy" : "idle",
-      reason: "no_usable_moves",
-    });
-    return BATTLE_SAVE_ENERGY_ENABLED
-      ? { side: "enemy", type: "save_energy" }
-      : { side: "enemy", type: "idle" };
-  }
-
-  if (!usableMoveScores.length) {
-    if (BATTLE_SAVE_ENERGY_ENABLED && saveEnergy.available && saveEnergy.score > 0) {
-      debugEnemyAI(enemy, {
-        usableMoveScores,
-        saveEnergy,
-        selected: "save_energy",
-        reason: "future_move",
-      });
-      return { side: "enemy", type: "save_energy" };
-    }
-
-    const fallbackMove = pickLegacyEnemyMove(usableMoves);
-    if (fallbackMove) {
-      debugEnemyAI(enemy, {
-        usableMoveScores,
-        saveEnergy,
-        selected: fallbackMove.skill_id,
-        reason: "legacy_fallback",
-      });
-      return { side: "enemy", type: "move", moveId: fallbackMove.skill_id };
-    }
-
-    return BATTLE_SAVE_ENERGY_ENABLED
-      ? { side: "enemy", type: "save_energy" }
-      : { side: "enemy", type: "idle" };
-  }
-
-  const currentBestScore = Math.max(...usableMoveScores.map((candidate) => candidate.score));
-  const candidates = [
-    ...usableMoveScores.map((candidate) => ({
-      ...candidate,
-      action: { side: "enemy", type: "move", moveId: candidate.move.skill_id },
-    })),
-  ];
-  if (BATTLE_SAVE_ENERGY_ENABLED) {
-    candidates.push({
-      type: "save_energy",
-      score: saveEnergy.score,
-      estimatedDamage: 0,
-      action: { side: "enemy", type: "save_energy" },
-    });
-  }
-  if (legacyFallbackMove) {
-    candidates.push({
-      type: "move",
-      move: legacyFallbackMove,
-      score: currentBestScore * aiConfig.LEGACY_FALLBACK_SCORE_RATIO,
-      estimatedDamage: 0,
-      legacyFallback: true,
-      action: { side: "enemy", type: "move", moveId: legacyFallbackMove.skill_id },
-    });
-  }
-  const selected = pickEnemyAiCandidate(candidates, aiConfig);
-  debugEnemyAI(enemy, {
-    usableMoveScores,
-    saveEnergy,
-    selected: selected.action.type === "save_energy" ? "save_energy" : selected.action.moveId,
-    reason: "scored",
-  });
-  return selected.action;
-}
-
-function isEnemyAiScoredMove(move) {
-  return Boolean(
-    move &&
-      move.category === "attack" &&
-      move.target !== "self" &&
-      !twoTurnBattleEffectId(move) &&
-      !hasDelayedAttackBattleEffect(move)
-  );
-}
-
-function enemyAiTypeFor(enemy) {
-  const aiType = safeText(enemy?.base?.ai_type, "balanced").toLowerCase();
-  return ENEMY_AI_TYPE_CONFIGS[aiType] ? aiType : "balanced";
-}
-
-function enemyAiConfigFor(enemy) {
-  const aiType = enemyAiTypeFor(enemy);
-  return {
-    ...ENEMY_AI_CONFIG,
-    ...(ENEMY_AI_TYPE_CONFIGS[aiType] ?? ENEMY_AI_TYPE_CONFIGS.balanced),
-  };
-}
-
-function scoreEnemyUsableMove(enemy, target, move, aiConfig = ENEMY_AI_CONFIG) {
-  if (!enemy || !target || !isEnemyAiScoredMove(move)) return null;
-  const hitCheck = canHitTarget(target, move);
-  if (!hitCheck.canHit) return null;
-
-  const estimatedDamage = estimateMoveDamage(
+  const enemySwitchCandidates = state.enemyTeam
+    .map((fighter, index) => ({ fighter, index }))
+    .filter(({ fighter, index }) => index !== state.enemyActiveIndex && fighter && !fighter.fainted)
+    .map(({ fighter, index }) => ({
+      index,
+      fighter,
+      moves: movesForCharacter(fighter.base),
+    }));
+  return chooseEnemyBattleAction({
     enemy,
     target,
-    move,
-    aiConfig,
-    state.powerRules,
-    fieldEffectsForActiveFighter(target),
-  );
-  const canKnockout = estimatedDamage >= target.hp;
-  let score = estimatedDamage - move.cost * aiConfig.ENERGY_COST_PENALTY;
-  if (enemy.energy - move.cost <= 0) {
-    score -= aiConfig.EMPTY_ENERGY_PENALTY;
-  }
-  if (canKnockout) {
-    score += aiConfig.KO_BONUS;
-  }
-
-  return {
-    type: "move",
-    move,
-    score,
-    estimatedDamage,
-    canKnockout,
-  };
-}
-
-function scoreEnemySaveEnergy(enemy, target, allMoves, usableMoveScores, aiConfig = ENEMY_AI_CONFIG) {
-  const currentEnergy = enemy?.energy ?? 0;
-  const energyCharge = enemy?.base?.energy_charge ?? 1;
-  const maxEnergy = enemy?.maxEnergy ?? 7;
-  const nextEnergy = Math.min(currentEnergy + energyCharge, maxEnergy);
-  const currentBestEstimatedDamage = Math.max(
-    0,
-    ...usableMoveScores.map((candidate) => candidate.estimatedDamage),
-  );
-  const futureMoves = (allMoves ?? [])
-    .filter((move) => move.cost > currentEnergy && move.cost <= nextEnergy)
-    .filter(isEnemyAiScoredMove)
-    .map((move) => {
-      const hitCheck = target ? canHitTarget(target, move) : { canHit: false };
-      if (!hitCheck.canHit) return null;
-      const futureEnemy = { ...enemy, energy: nextEnergy };
-      return {
-        move,
-        estimatedDamage: estimateMoveDamage(
-          futureEnemy,
-          target,
-          move,
-          aiConfig,
-          state.powerRules,
-          fieldEffectsForActiveFighter(target),
-        ),
-      };
-    })
-    .filter(Boolean)
-    .sort((a, b) => b.estimatedDamage - a.estimatedDamage);
-  const futureBest = futureMoves[0] ?? null;
-  const futureGain = futureBest
-    ? futureBest.estimatedDamage - currentBestEstimatedDamage
-    : 0;
-  let score = futureBest ? futureGain - aiConfig.WAITING_PENALTY : -aiConfig.SAVE_BLOCK_PENALTY;
-  let available = Boolean(futureBest);
-
-  if (!futureBest || futureGain < aiConfig.MIN_FUTURE_GAIN) {
-    score -= aiConfig.SAVE_BLOCK_PENALTY;
-    available = false;
-  }
-  if (currentEnergy >= maxEnergy) {
-    score -= aiConfig.SAVE_BLOCK_PENALTY;
-    available = false;
-  }
-  if (target && currentBestEstimatedDamage >= target.hp * aiConfig.LOW_HP_DAMAGE_RATIO) {
-    score -= aiConfig.WAITING_PENALTY;
-  }
-
-  return {
-    type: "save_energy",
-    score,
-    available,
-    currentEnergy,
-    energyCharge,
-    nextEnergy,
-    currentBestEstimatedDamage,
-    futureMoves,
-    futureBest,
-    futureGain,
-  };
-}
-
-function compareEnemyKnockoutMoves(a, b) {
-  if (a.move.cost !== b.move.cost) return a.move.cost - b.move.cost;
-  if (a.estimatedDamage !== b.estimatedDamage) return b.estimatedDamage - a.estimatedDamage;
-  return b.score - a.score;
-}
-
-function pickLegacyEnemyMove(usableMoves) {
-  const attacks = usableMoves.filter((move) => move.category === "attack");
-  const candidates = attacks.length ? attacks : usableMoves;
-  return candidates[Math.floor(Math.random() * candidates.length)] ?? null;
-}
-
-function pickEnemyAiCandidate(candidates, aiConfig = ENEMY_AI_CONFIG) {
-  const sorted = [...candidates].sort((a, b) => b.score - a.score);
-  const best = sorted[0];
-  const nearBestRange = Math.max(
-    aiConfig.NEAR_BEST_MIN_RANGE,
-    Math.abs(best.score) * aiConfig.NEAR_BEST_RANDOM_RANGE,
-  );
-  const nearBest = sorted.filter((candidate) => best.score - candidate.score <= nearBestRange);
-  if (nearBest.length <= 1) return best;
-
-  const floor = best.score - nearBestRange;
-  const totalWeight = nearBest.reduce(
-    (total, candidate) => total + Math.max(
-      aiConfig.CANDIDATE_MIN_WEIGHT,
-      candidate.score - floor + aiConfig.CANDIDATE_WEIGHT_OFFSET,
-    ),
-    0,
-  );
-  let roll = Math.random() * totalWeight;
-  for (const candidate of nearBest) {
-    roll -= Math.max(
-      aiConfig.CANDIDATE_MIN_WEIGHT,
-      candidate.score - floor + aiConfig.CANDIDATE_WEIGHT_OFFSET,
-    );
-    if (roll <= 0) return candidate;
-  }
-  return best;
-}
-
-function debugEnemyAI(enemy, details) {
-  if (!ENEMY_AI_CONFIG.DEBUG) return;
-  const saveEnergy = details.saveEnergy;
-  const usableLines = details.usableMoveScores.length
-    ? details.usableMoveScores.map((candidate) => (
-        `  ${candidate.move.skill_id} score=${Math.round(candidate.score)} estimatedDamage=${candidate.estimatedDamage}`
-      ))
-    : ["  none"];
-  const futureLines = saveEnergy.futureMoves.length
-    ? saveEnergy.futureMoves.map((candidate) => (
-        `  ${candidate.move.skill_id} estimatedDamage=${candidate.estimatedDamage}`
-      ))
-    : ["  none"];
-  console.debug([
-    "[EnemyAI]",
-    `enemy=${enemy?.id ?? ""}`,
-    `currentEnergy=${saveEnergy.currentEnergy}`,
-    `energyCharge=${saveEnergy.energyCharge}`,
-    `nextEnergy=${saveEnergy.nextEnergy}`,
-    "usableMoves:",
-    ...usableLines,
-    "futureMoves:",
-    ...futureLines,
-    `futureGain=${saveEnergy.futureGain}`,
-    `saveEnergyScore=${Math.round(saveEnergy.score)}`,
-    `selected=${details.selected}`,
-    `reason=${details.reason}`,
-  ].join("\n"));
+    enemyBenchIndex: aliveBenchIndex("enemy"),
+    enemySwitchCandidates,
+    allMoves: movesForCharacter(enemy.base),
+    playerMoves: target ? movesForCharacter(target.base) : [],
+    effects: state.effects,
+    powerRules: state.powerRules,
+    battleEffects: state.battleEffects,
+    enemyFieldEffects: fieldEffectsForSide(state.fieldEffects, "enemy"),
+    actorFieldEffects: fieldEffectsForActiveFighter(enemy),
+    targetFieldEffects: fieldEffectsForActiveFighter(target),
+    saveEnergyEnabled: BATTLE_SAVE_ENERGY_ENABLED,
+    turn: state.turn,
+    aiSetupSkill: enemy.base.ai_setup_skill,
+    aiMainSkill: enemy.base.ai_main_skill,
+  });
 }
 
 function finishTwoTurnMove(actor) {
@@ -8055,7 +7416,7 @@ async function endRound() {
     fighter.statuses = fighter.statuses.filter((status) => status.turns > 0);
     tickWeakModsAfterRound(fighter);
     await handleFaint(side);
-    if (state.gameOver || state.pendingSwitchSide) return;
+    if (state.gameOver) return;
 
     const regenValue = effectiveRegenValue(fighter);
     if (!fighter.fainted && regenValue > 0 && fighter.hp < fighter.maxHp) {
