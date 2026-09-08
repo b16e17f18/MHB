@@ -220,7 +220,8 @@ const ANIMATION_FRAME_WIDTH = 250;
 const ANIMATION_FRAME_HEIGHT = 43;
 const BATTLE_ANIMATION_SCALE = 1.52;
 const TEAM_SLOT_LIMIT = 5;
-const BATTLE_TURN_LIMIT = 20;
+const BATTLE_TURN_LIMIT = 30;
+const BATTLE_TURN_LIMIT_COUNTDOWN_TURNS = 5;
 const BATTLE_TURN_LIMIT_EXCLUDED_RANK_BATTLE_IDS = new Set(["battle_ss_2", "arena_m_2"]);
 const START_ENERGY = 1;
 const BATTLE_SAVE_ENERGY_ENABLED = false;
@@ -360,6 +361,7 @@ const state = {
   pendingSwitchSide: null,
   pendingPostAttackSwitch: null,
   battleWinner: null,
+  battleTurnCountdownShownFor: null,
   exchange: createExchangeState(),
   fieldEffects: createFieldEffectsState(),
   nextFieldEffectId: 1,
@@ -5821,6 +5823,7 @@ function startBattle(options = {}) {
   state.pendingSwitchSide = null;
   state.pendingPostAttackSwitch = null;
   state.battleWinner = null;
+  state.battleTurnCountdownShownFor = null;
   state.battleAnimation = null;
   state.exchange = createExchangeState();
   state.fieldEffects = createFieldEffectsState();
@@ -6964,6 +6967,7 @@ async function resolveTurn(playerAction) {
   const actions = [decorateAction(playerAction), decorateAction(enemyAction)].sort(compareActions);
 
   pushLog(`ターン ${state.turn}`);
+  showBattleTurnLimitCountdown();
   await pause(260);
 
   for (const action of actions) {
@@ -7507,11 +7511,30 @@ async function handleFaint(side) {
   await pause(520);
 }
 
+function currentTurnLimitBattleId() {
+  return state.story.currentArenaBattleId || state.story.currentRankBattleId || "";
+}
+
+function isBattleTurnLimitExcluded() {
+  const battleId = currentTurnLimitBattleId();
+  return Boolean(battleId && BATTLE_TURN_LIMIT_EXCLUDED_RANK_BATTLE_IDS.has(battleId));
+}
+
+function showBattleTurnLimitCountdown() {
+  if (isBattleTurnLimitExcluded()) return false;
+  const remainingTurns = BATTLE_TURN_LIMIT - state.turn + 1;
+  if (remainingTurns < 1 || remainingTurns > BATTLE_TURN_LIMIT_COUNTDOWN_TURNS) return false;
+  if (state.battleTurnCountdownShownFor === state.turn) return false;
+
+  state.battleTurnCountdownShownFor = state.turn;
+  pushLog(`残り${remainingTurns}ターン`);
+  return true;
+}
+
 function applyBattleTurnLimit() {
-  const rankBattleId = state.story.currentArenaBattleId || state.story.currentRankBattleId;
   if (
     state.turn < BATTLE_TURN_LIMIT ||
-    (rankBattleId && BATTLE_TURN_LIMIT_EXCLUDED_RANK_BATTLE_IDS.has(rankBattleId))
+    isBattleTurnLimitExcluded()
   ) {
     return false;
   }

@@ -2,6 +2,8 @@ const ENEMY_AI_CONFIG = {
   DEBUG: false,
   AVERAGE_DAMAGE_VARIANCE: 0.975,
   WAITING_PENALTY: 25,
+  TWO_TURN_DAMAGE_MULTIPLIER: 0.82,
+  DELAYED_DAMAGE_MULTIPLIER: 0.62,
   MIN_FUTURE_GAIN: 20,
   ENERGY_COST_PENALTY: 3,
   EMPTY_ENERGY_PENALTY: 8,
@@ -18,6 +20,14 @@ const ENEMY_AI_CONFIG = {
   STATUS_DAMAGE_BASE_SCORE: 28,
   STATUS_TURN_BONUS: 6,
   STATUS_DAMAGE_WEIGHT: 0.45,
+  STATUS_TARGET_HP_MIN_MULTIPLIER: 0.15,
+  STATUS_EFFECT_SCORE_MULTIPLIERS: {
+    paralysis: 1.12,
+    sleep: 0.95,
+    poison: 1,
+    burn: 1.05,
+    stun: 0.75,
+  },
   DEBUFF_TARGET_HP_MIN_MULTIPLIER: 0.25,
   NEAR_BEST_RANDOM_RANGE: 0.1,
   NEAR_BEST_MIN_RANGE: 5,
@@ -33,15 +43,35 @@ const ENEMY_AI_CONFIG = {
   SWITCH_INCOMING_DAMAGE_WEIGHT: 0.65,
   SWITCH_INCOMING_HP_RATIO_WEIGHT: 35,
   SWITCH_HP_RATIO_WEIGHT: 30,
+  SWITCH_MATCHUP_ADVANTAGE_THRESHOLD: 60,
+  SWITCH_MATCHUP_MIN_BENCH_SCORE: 20,
+  SWITCH_MATCHUP_MIN_BENCH_HP_RATIO: 0.18,
 };
 
 const ENEMY_AI_TYPE_CONFIGS = {
   balanced: {},
   aggressive: {
     WAITING_PENALTY: 40,
+    ATTACK_SCORE_MULTIPLIER: 1.1,
+    MAIN_SKILL_TYPE_MULTIPLIER: 1.04,
   },
   patient: {
     WAITING_PENALTY: 10,
+    SETUP_SKILL_TYPE_MULTIPLIER: 1.08,
+  },
+  defensive: {
+    HEAL_SCORE_MULTIPLIER: 1.15,
+    PROTECT_SCORE_MULTIPLIER: 1.15,
+    DEFENSE_BUFF_SCORE_MULTIPLIER: 1.15,
+  },
+  disruptor: {
+    STATUS_SCORE_MULTIPLIER: 1.15,
+    DEBUFF_SCORE_MULTIPLIER: 1.15,
+  },
+  tactical: {
+    SETUP_SKILL_TYPE_MULTIPLIER: 1.12,
+    MAIN_SKILL_TYPE_MULTIPLIER: 1.06,
+    SWITCH_MATCHUP_ADVANTAGE_MULTIPLIER: 1.1,
   },
 };
 
@@ -71,17 +101,35 @@ function chooseEnemyBattleAction(context) {
     .map((move) => scoreEnemyUsableMove(enemy, target, move, context, aiConfig))
     .filter(Boolean)
     .map((candidate) => applyEnemySkillPreference(candidate, context, enemy, aiConfig));
+  const twoTurnMoveScores = usableMoves
+    .map((move) => scoreEnemyTwoTurnMove(enemy, target, move, context, aiConfig))
+    .filter(Boolean)
+    .map((candidate) => applyEnemySkillPreference(candidate, context, enemy, aiConfig));
+  const delayedAttackMoveScores = usableMoves
+    .map((move) => scoreEnemyDelayedAttackMove(enemy, target, move, context, aiConfig))
+    .filter(Boolean)
+    .map((candidate) => applyEnemySkillPreference(candidate, context, enemy, aiConfig));
   const supportMoveScores = usableMoves
     .map((move) => scoreEnemySupportMove(enemy, target, move, context, aiConfig))
     .filter(Boolean)
     .map((candidate) => applyEnemySkillPreference(candidate, context, enemy, aiConfig));
-  const usableMoveScores = [...usableAttackMoveScores, ...supportMoveScores];
+  const usableMoveScores = [
+    ...usableAttackMoveScores,
+    ...twoTurnMoveScores,
+    ...delayedAttackMoveScores,
+    ...supportMoveScores,
+  ];
   const scoredMoveIds = new Set(usableMoveScores.map((candidate) => candidate.move.skill_id));
   const legacyFallbackMove = pickLegacyEnemyMove(
-    usableMoves.filter((move) => !scoredMoveIds.has(move.skill_id) && move.category === "attack"),
+    usableMoves.filter((move) => (
+      !scoredMoveIds.has(move.skill_id) &&
+      move.category === "attack" &&
+      !hasEnemyAiDelayedAttackBattleEffect(move, context.battleEffects)
+    )),
   );
   const saveEnergy = scoreEnemySaveEnergy(enemy, target, allMoves, usableMoveScores, context, aiConfig);
-  const knockoutMoves = usableAttackMoveScores.filter((candidate) => candidate.canKnockout);
+  const knockoutMoves = [...usableAttackMoveScores, ...delayedAttackMoveScores]
+    .filter((candidate) => candidate.canKnockout);
 
   if (knockoutMoves.length) {
     const selected = knockoutMoves.sort(compareEnemyKnockoutMoves)[0];
@@ -92,6 +140,13 @@ function chooseEnemyBattleAction(context) {
       reason: "knockout",
     });
     return { side: "enemy", type: "move", moveId: selected.move.skill_id };
+  }
+
+  const matchupSwitchIndex = !lowHp
+    ? chooseEnemyMatchupSwitchIndex(context, bench, aiConfig)
+    : -1;
+  if (matchupSwitchIndex >= 0) {
+    return { side: "enemy", type: "switch", index: matchupSwitchIndex };
   }
 
   if (!usableMoves.length) {
@@ -117,7 +172,9 @@ function chooseEnemyBattleAction(context) {
       return { side: "enemy", type: "save_energy" };
     }
 
-    const fallbackMove = pickLegacyEnemyMove(usableMoves);
+    const fallbackMove = pickLegacyEnemyMove(
+      usableMoves.filter((move) => !hasEnemyAiDelayedAttackBattleEffect(move, context.battleEffects)),
+    );
     if (fallbackMove) {
       debugEnemyAI(enemy, {
         usableMoveScores,
@@ -205,7 +262,8 @@ function scoreEnemyUsableMove(enemy, target, move, context, aiConfig = ENEMY_AI_
     context.targetFieldEffects,
   );
   const canKnockout = estimatedDamage >= target.hp;
-  let score = estimatedDamage - move.cost * aiConfig.ENERGY_COST_PENALTY;
+  let score = estimatedDamage * enemyAiTypeMultiplier(aiConfig, "ATTACK_SCORE_MULTIPLIER") -
+    move.cost * aiConfig.ENERGY_COST_PENALTY;
   if (enemy.energy - move.cost <= 0) {
     score -= aiConfig.EMPTY_ENERGY_PENALTY;
   }
@@ -221,6 +279,112 @@ function scoreEnemyUsableMove(enemy, target, move, context, aiConfig = ENEMY_AI_
     score,
     estimatedDamage,
     canKnockout,
+  };
+}
+
+function scoreEnemyTwoTurnMove(enemy, target, move, context, aiConfig = ENEMY_AI_CONFIG) {
+  if (!enemy || !target || !isEnemyAiTwoTurnScoredMove(move, context.battleEffects)) return null;
+  const hitCheck = canHitTarget(target, move);
+  if (!hitCheck.canHit) return null;
+
+  const estimatedDamage = estimateMoveDamage(
+    enemy,
+    target,
+    move,
+    aiConfig,
+    context.powerRules,
+    context.targetFieldEffects,
+  );
+  let score =
+    estimatedDamage *
+      aiConfig.TWO_TURN_DAMAGE_MULTIPLIER *
+      enemyAiTypeMultiplier(aiConfig, "ATTACK_SCORE_MULTIPLIER") -
+    aiConfig.WAITING_PENALTY -
+    move.cost * aiConfig.ENERGY_COST_PENALTY;
+  if (enemy.energy - move.cost <= 0) {
+    score -= aiConfig.EMPTY_ENERGY_PENALTY;
+  }
+
+  return {
+    type: "move",
+    move,
+    score,
+    estimatedDamage,
+    canKnockout: false,
+    futureCanKnockout: estimatedDamage >= target.hp,
+    twoTurn: true,
+  };
+}
+
+function scoreEnemyDelayedAttackMove(enemy, target, move, context, aiConfig = ENEMY_AI_CONFIG) {
+  if (!enemy || !target || !isEnemyAiDelayedAttackScoredMove(move, context.battleEffects)) return null;
+  const delayedPairs = enemyAiDelayedAttackBattleEffectPairs(move, context.battleEffects);
+  if (!delayedPairs.length) return null;
+  if (enemyAiHasPendingDelayedAttack(delayedPairs, context.targetFieldEffects)) return null;
+
+  const setupOnly = enemyAiIsDelayedAttackSetupOnly(move);
+  const immediateDamage = setupOnly
+    ? 0
+    : estimateMoveDamage(
+        enemy,
+        target,
+        move,
+        aiConfig,
+        context.powerRules,
+        context.targetFieldEffects,
+      );
+  let delayedEstimatedDamage = 0;
+  const delayedDamageScore = delayedPairs.reduce((total, pair) => {
+    const delayedMove = enemyAiDelayedAttackMove(move, enemy, pair.battleEffect);
+    if (!delayedMove) return total;
+    const hitCheck = canHitTarget(target, delayedMove);
+    if (!hitCheck.canHit) return total;
+    const futureDamage = estimateMoveDamage(
+      enemy,
+      target,
+      delayedMove,
+      aiConfig,
+      context.powerRules,
+        context.targetFieldEffects,
+      );
+    const chanceWeight = enemyAiChanceWeight(pair.chance);
+    delayedEstimatedDamage += futureDamage * chanceWeight;
+    return total +
+      futureDamage *
+        aiConfig.DELAYED_DAMAGE_MULTIPLIER *
+        chanceWeight;
+  }, 0);
+  if (setupOnly && delayedDamageScore <= 0) return null;
+
+  const canKnockout = !setupOnly && immediateDamage >= target.hp;
+  let score =
+    immediateDamage * enemyAiTypeMultiplier(aiConfig, "ATTACK_SCORE_MULTIPLIER") +
+    delayedDamageScore -
+    move.cost * aiConfig.ENERGY_COST_PENALTY;
+  if (setupOnly) {
+    score -= aiConfig.WAITING_PENALTY;
+  } else {
+    score += scoreEnemyTargetStatusMove(target, move, context, aiConfig);
+    score += scoreEnemyTargetDebuffMove(target, move, context.effects, aiConfig);
+  }
+  if (enemy.energy - move.cost <= 0) {
+    score -= aiConfig.EMPTY_ENERGY_PENALTY;
+  }
+  if (canKnockout) {
+    score += aiConfig.KO_BONUS;
+  }
+
+  return {
+    type: "move",
+    move,
+    score,
+    estimatedDamage: immediateDamage,
+    delayedEstimatedDamage,
+    delayedEstimatedScore: delayedDamageScore,
+    canKnockout,
+    futureCanKnockout: delayedEstimatedDamage >= target.hp,
+    delayedAttack: true,
+    delayedSetupOnly: setupOnly,
   };
 }
 
@@ -258,6 +422,48 @@ function supportMoveCandidate(move, score, supportScore) {
 }
 
 function chooseEnemySwitchIndex(context, fallbackIndex, aiConfig = ENEMY_AI_CONFIG) {
+  const candidates = enemyAiSwitchCandidates(context);
+
+  if (candidates.length === 0) return fallbackIndex;
+  if (candidates.length === 1) return candidates[0].index;
+
+  const selected = bestEnemySwitchCandidate(context, aiConfig);
+  return selected?.index ?? fallbackIndex;
+}
+
+function chooseEnemyMatchupSwitchIndex(context, fallbackIndex, aiConfig = ENEMY_AI_CONFIG) {
+  if (fallbackIndex < 0) return -1;
+
+  const current = scoreEnemySwitchCandidate(
+    { index: -1, fighter: context.enemy, moves: context.allMoves },
+    context,
+    aiConfig,
+  );
+  const selected = bestEnemySwitchCandidate(context, aiConfig);
+  if (!current || !selected) return -1;
+  if (selected.hpRatio < aiConfig.SWITCH_MATCHUP_MIN_BENCH_HP_RATIO) return -1;
+  if (selected.score < aiConfig.SWITCH_MATCHUP_MIN_BENCH_SCORE) return -1;
+  const advantage = (selected.score - current.score) *
+    enemyAiTypeMultiplier(aiConfig, "SWITCH_MATCHUP_ADVANTAGE_MULTIPLIER");
+  if (advantage < aiConfig.SWITCH_MATCHUP_ADVANTAGE_THRESHOLD) return -1;
+
+  return selected.index;
+}
+
+function bestEnemySwitchCandidate(context, aiConfig = ENEMY_AI_CONFIG) {
+  const scoredCandidates = enemyAiSwitchCandidates(context)
+    .map((candidate) => scoreEnemySwitchCandidate(candidate, context, aiConfig))
+    .filter(Boolean);
+  if (!scoredCandidates.length) return null;
+
+  scoredCandidates.sort((a, b) => {
+    if (b.score !== a.score) return b.score - a.score;
+    return a.index - b.index;
+  });
+  return scoredCandidates[0];
+}
+
+function enemyAiSwitchCandidates(context) {
   const candidates = Array.isArray(context.enemySwitchCandidates)
     ? context.enemySwitchCandidates.filter((candidate) => (
         candidate &&
@@ -268,19 +474,7 @@ function chooseEnemySwitchIndex(context, fallbackIndex, aiConfig = ENEMY_AI_CONF
       ))
     : [];
 
-  if (candidates.length === 0) return fallbackIndex;
-  if (candidates.length === 1) return candidates[0].index;
-
-  const scoredCandidates = candidates
-    .map((candidate) => scoreEnemySwitchCandidate(candidate, context, aiConfig))
-    .filter(Boolean);
-  if (!scoredCandidates.length) return fallbackIndex;
-
-  scoredCandidates.sort((a, b) => {
-    if (b.score !== a.score) return b.score - a.score;
-    return a.index - b.index;
-  });
-  return scoredCandidates[0].index;
+  return candidates;
 }
 
 function scoreEnemySwitchCandidate(candidate, context, aiConfig) {
@@ -294,6 +488,7 @@ function scoreEnemySwitchCandidate(candidate, context, aiConfig) {
     candidate.moves,
     context,
     context.targetFieldEffects,
+    aiConfig,
   );
   const incoming = bestEnemyAiEstimatedAttackDamage(
     player,
@@ -301,6 +496,7 @@ function scoreEnemySwitchCandidate(candidate, context, aiConfig) {
     context.playerMoves,
     context,
     context.enemyFieldEffects,
+    aiConfig,
   );
   if (!offense.available && !incoming.available) return null;
 
@@ -323,7 +519,14 @@ function scoreEnemySwitchCandidate(candidate, context, aiConfig) {
   };
 }
 
-function bestEnemyAiEstimatedAttackDamage(attacker, target, moves, context, targetFieldEffects) {
+function bestEnemyAiEstimatedAttackDamage(
+  attacker,
+  target,
+  moves,
+  context,
+  targetFieldEffects,
+  aiConfig = ENEMY_AI_CONFIG,
+) {
   const attackScores = (moves ?? [])
     .filter((move) => move?.category === "attack")
     .filter((move) => move.cost <= (attacker?.energy ?? 0))
@@ -335,7 +538,7 @@ function bestEnemyAiEstimatedAttackDamage(attacker, target, moves, context, targ
         attacker,
         target,
         move,
-        ENEMY_AI_CONFIG,
+        aiConfig,
         context.powerRules,
         targetFieldEffects,
       );
@@ -357,9 +560,11 @@ function applyEnemySkillPreference(candidate, context, enemy, aiConfig) {
 
   if (mainSkillId && skillId === mainSkillId) {
     multiplier *= aiConfig.MAIN_SKILL_SCORE_MULTIPLIER;
+    multiplier *= enemyAiTypeMultiplier(aiConfig, "MAIN_SKILL_TYPE_MULTIPLIER");
   }
   if (setupSkillId && skillId === setupSkillId) {
     multiplier *= aiConfig.SETUP_SKILL_SCORE_MULTIPLIER;
+    multiplier *= enemyAiTypeMultiplier(aiConfig, "SETUP_SKILL_TYPE_MULTIPLIER");
     if (enemyAiIsOpeningTurn(context)) {
       multiplier *= aiConfig.SETUP_FIRST_TURN_MULTIPLIER;
     }
@@ -404,7 +609,11 @@ function scoreEnemyHealingMove(enemy, move, effects, aiConfig) {
       const effectiveHeal = Math.min(missingHp, healAmount);
       const missingRatio = enemy.maxHp > 0 ? missingHp / enemy.maxHp : 0;
       const urgency = aiConfig.HEAL_BASE_WEIGHT + missingRatio * aiConfig.HEAL_MISSING_HP_WEIGHT;
-      return total + effectiveHeal * urgency * enemyAiChanceWeight(pair.chance);
+      return total +
+        effectiveHeal *
+          urgency *
+          enemyAiChanceWeight(pair.chance) *
+          enemyAiTypeMultiplier(aiConfig, "HEAL_SCORE_MULTIPLIER");
     }, 0);
 }
 
@@ -430,7 +639,13 @@ function scoreEnemySelfBuffMove(enemy, move, effects, aiConfig) {
         ? aiConfig.BUFF_LOW_HP_MULTIPLIER
         : 1;
       const statWeight = enemyAiBuffStatWeight(stat);
-      return total + amount * statWeight * stackMultiplier * lowHpMultiplier * enemyAiChanceWeight(pair.chance);
+      return total +
+        amount *
+          statWeight *
+          stackMultiplier *
+          lowHpMultiplier *
+          enemyAiChanceWeight(pair.chance) *
+          enemyAiSelfBuffTypeMultiplier(stat, aiConfig);
     }, 0);
 }
 
@@ -447,7 +662,10 @@ function scoreEnemyProtectMove(enemy, move, context, aiConfig) {
       const missingRatio = 1 - enemyAiHpRatio(enemy);
       const urgency = aiConfig.PROTECT_BASE_WEIGHT + missingRatio * aiConfig.PROTECT_MISSING_HP_WEIGHT;
       const turnBonus = Math.max(0, Math.min(4, Math.floor(Number(battleEffect.turn) || 0))) * aiConfig.PROTECT_TURN_BONUS;
-      return total + (damageCut * urgency + turnBonus) * enemyAiChanceWeight(pair.chance);
+      return total +
+        (damageCut * urgency + turnBonus) *
+          enemyAiChanceWeight(pair.chance) *
+          enemyAiTypeMultiplier(aiConfig, "PROTECT_SCORE_MULTIPLIER");
     }, 0);
 }
 
@@ -465,7 +683,10 @@ function scoreEnemyTargetStatusMove(target, move, context, aiConfig) {
       const battleEffect = context.battleEffects?.get(pair.effectId);
       if (battleEffect?.battle_effect_group !== "control") return total;
       if (enemyAiTargetHasEffect(target, battleEffect.battle_effect_id)) return total;
-      return total + enemyAiControlStatusScore(battleEffect, target, aiConfig) * enemyAiChanceWeight(pair.chance);
+      return total +
+        enemyAiControlStatusScore(battleEffect, target, aiConfig) *
+          enemyAiChanceWeight(pair.chance) *
+          enemyAiTypeMultiplier(aiConfig, "STATUS_SCORE_MULTIPLIER");
     }, 0);
   return effectScore + battleEffectScore;
 }
@@ -492,7 +713,13 @@ function scoreEnemyTargetDebuffMove(target, move, effects, aiConfig) {
         enemyAiHpRatio(target),
       );
       const stackMultiplier = enemyAiDebuffStackMultiplier(current, amount);
-      return total + amount * enemyAiDebuffStatWeight(stat) * targetHpMultiplier * stackMultiplier * enemyAiChanceWeight(pair.chance);
+      return total +
+        amount *
+          enemyAiDebuffStatWeight(stat) *
+          targetHpMultiplier *
+          stackMultiplier *
+          enemyAiChanceWeight(pair.chance) *
+          enemyAiTypeMultiplier(aiConfig, "DEBUFF_SCORE_MULTIPLIER");
     }, 0);
 }
 
@@ -639,6 +866,92 @@ function hasEnemyAiDelayedAttackBattleEffect(move, battleEffects) {
   ));
 }
 
+function isEnemyAiDelayedAttackScoredMove(move, battleEffects) {
+  return Boolean(
+    move &&
+      move.category === "attack" &&
+      move.target !== "self" &&
+      !twoTurnBattleEffectId(move) &&
+      hasEnemyAiDelayedAttackBattleEffect(move, battleEffects)
+  );
+}
+
+function isEnemyAiTwoTurnScoredMove(move, battleEffects) {
+  return Boolean(
+    move &&
+      move.category === "attack" &&
+      move.target !== "self" &&
+      twoTurnBattleEffectId(move) &&
+      !hasEnemyAiDelayedAttackBattleEffect(move, battleEffects)
+  );
+}
+
+function enemyAiDelayedAttackBattleEffectPairs(move, battleEffects) {
+  return enemyAiMoveBattleEffectPairs(move)
+    .map((pair) => ({
+      ...pair,
+      battleEffect: battleEffects?.get(pair.effectId),
+    }))
+    .filter((pair) => pair.battleEffect?.battle_effect_group === "delayed_attack");
+}
+
+function enemyAiHasPendingDelayedAttack(delayedPairs, targetFieldEffects) {
+  return delayedPairs.some((pair) => (
+    (targetFieldEffects ?? []).some((effect) => (
+      effect?.group === "delayed_attack" && effect.id === pair.effectId
+    ))
+  ));
+}
+
+function enemyAiIsDelayedAttackSetupOnly(move) {
+  if (move?.category !== "attack") return true;
+  if (typeof hasSetupOnlyDelayedAttackBattleEffect === "function") {
+    return hasSetupOnlyDelayedAttackBattleEffect(move);
+  }
+  return false;
+}
+
+function enemyAiDelayedAttackMove(move, enemy, battleEffect) {
+  const delayedMove = typeof delayedBattleEffectPayload === "function"
+    ? delayedBattleEffectPayload(move, enemy, battleEffect)?.delayedMove
+    : enemyAiDelayedAttackMoveFallback(move, battleEffect);
+  if (!delayedMove) return null;
+
+  return {
+    skill_id: battleEffect.battle_effect_id,
+    name: delayedMove.name || battleEffect.name,
+    category: "attack",
+    power: Math.max(1, Number(delayedMove.power) || 1),
+    element: safeText(delayedMove.element, "none"),
+    attack_type: safeText(delayedMove.attack_type, "special"),
+    hit_type: safeText(delayedMove.hit_type, "sure_hit"),
+    animation_id: safeText(delayedMove.animation_id),
+    animation_duration_ms: Math.max(0, Number(delayedMove.animation_duration_ms) || 0),
+    repeat_count: Math.max(0, Number(delayedMove.repeat_count) || 0),
+    target: "enemy",
+    cost: 0,
+  };
+}
+
+function enemyAiDelayedAttackMoveFallback(move, battleEffect) {
+  const fixedPower = battleEffect.damage_type === "fixed_power"
+    ? Number(battleEffect.damage_value) || 0
+    : 0;
+  const ratePower = battleEffect.damage_type === "skill_power_rate"
+    ? Math.round((Number(move.power) || 0) * ((Number(battleEffect.damage_value) || 100) / 100))
+    : 0;
+  return {
+    name: move.name,
+    power: Math.max(1, fixedPower || ratePower || Number(move.power) || 1),
+    element: safeText(move.element, "none"),
+    attack_type: safeText(move.attack_type, "special"),
+    hit_type: safeText(move.hit_type, "sure_hit"),
+    animation_id: safeText(move.animation_id),
+    animation_duration_ms: Math.max(0, Number(move.animation_duration_ms) || 0),
+    repeat_count: Math.max(0, Number(move.repeat_count) || 0),
+  };
+}
+
 function enemyAiMoveEffectPairs(move) {
   return [
     { effectId: move?.effect1, chance: move?.effect_chance1, effectTarget: move?.effect_target1 },
@@ -668,6 +981,19 @@ function enemyAiChanceWeight(chance) {
   const value = Number(chance);
   if (!Number.isFinite(value)) return 0;
   return Math.max(0, Math.min(100, value)) / 100;
+}
+
+function enemyAiTypeMultiplier(aiConfig, key) {
+  const value = Number(aiConfig?.[key]);
+  return Number.isFinite(value) && value > 0 ? value : 1;
+}
+
+function enemyAiSelfBuffTypeMultiplier(stat, aiConfig) {
+  let multiplier = enemyAiTypeMultiplier(aiConfig, "SELF_BUFF_SCORE_MULTIPLIER");
+  if (stat === "phy_def" || stat === "sp_def") {
+    multiplier *= enemyAiTypeMultiplier(aiConfig, "DEFENSE_BUFF_SCORE_MULTIPLIER");
+  }
+  return multiplier;
 }
 
 function enemyAiHpRatio(fighter) {
@@ -712,27 +1038,36 @@ function enemyAiTargetHasEffect(target, effectId) {
 }
 
 function enemyAiStatusEffectScore(effect, target, aiConfig) {
+  const multiplier =
+    enemyAiStatusEffectMultiplier(effect, aiConfig) *
+    enemyAiTypeMultiplier(aiConfig, "STATUS_SCORE_MULTIPLIER");
   if (effect.effect_group === "control") {
-    return enemyAiControlStatusScore(effect, target, aiConfig);
+    return enemyAiControlStatusScore(effect, target, aiConfig) * multiplier;
   }
   if (effect.effect_group === "damage") {
-    return enemyAiDamageStatusScore(effect, target, aiConfig);
+    return enemyAiDamageStatusScore(effect, target, aiConfig) * multiplier;
   }
   return 0;
 }
 
+function enemyAiStatusEffectMultiplier(effect, aiConfig) {
+  const effectId = safeText(effect?.effect_id || effect?.battle_effect_id);
+  return aiConfig.STATUS_EFFECT_SCORE_MULTIPLIERS?.[effectId] ?? 1;
+}
+
 function enemyAiControlStatusScore(effect, target, aiConfig) {
   const targetHpRatio = enemyAiHpRatio(target);
+  const targetHpMultiplier = Math.max(aiConfig.STATUS_TARGET_HP_MIN_MULTIPLIER, targetHpRatio);
   const turns = Math.max(1, Math.floor(Number(effect.turn) || 1));
   return (
-    aiConfig.STATUS_CONTROL_BASE_SCORE *
-      Math.max(aiConfig.DEBUFF_TARGET_HP_MIN_MULTIPLIER, targetHpRatio) +
-    Math.min(4, turns) * aiConfig.STATUS_TURN_BONUS
+    (aiConfig.STATUS_CONTROL_BASE_SCORE + Math.min(4, turns) * aiConfig.STATUS_TURN_BONUS) *
+      targetHpMultiplier
   );
 }
 
 function enemyAiDamageStatusScore(effect, target, aiConfig) {
   const targetHpRatio = enemyAiHpRatio(target);
+  const targetHpMultiplier = Math.max(aiConfig.STATUS_TARGET_HP_MIN_MULTIPLIER, targetHpRatio);
   const turns = Math.max(1, Math.min(4, Math.floor(Number(effect.turn) || 1)));
   const damageValue = Math.max(0, Math.abs(Number(effect.damage_value) || 0));
   if (damageValue <= 0) return 0;
@@ -742,7 +1077,7 @@ function enemyAiDamageStatusScore(effect, target, aiConfig) {
     : damageValue * turns;
   return (
     aiConfig.STATUS_DAMAGE_BASE_SCORE *
-      Math.max(aiConfig.DEBUFF_TARGET_HP_MIN_MULTIPLIER, targetHpRatio) +
+      targetHpMultiplier +
     estimatedDamage * aiConfig.STATUS_DAMAGE_WEIGHT * targetHpRatio
   );
 }
