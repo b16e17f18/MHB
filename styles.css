@@ -2532,17 +2532,17 @@ button {
 .battle-view .player-sprite:has(.sprite-character_036),
 .battle-view .player-sprite:has(.sprite-character_048),
 .battle-view .player-sprite:has(.sprite-character_064) {
-  left: calc(var(--sprite036-edge-gap) + (var(--sprite036-image-width) / 2) - (var(--sprite036-wrap-width) / 2));
+  left: 25%;
   right: auto;
-  transform: none;
+  transform: translateX(-50%);
 }
 
 .battle-view .enemy-sprite:has(.sprite-character_036),
 .battle-view .enemy-sprite:has(.sprite-character_048),
 .battle-view .enemy-sprite:has(.sprite-character_064) {
-  left: calc(100% - var(--sprite036-edge-gap) - (var(--sprite036-image-width) / 2) - (var(--sprite036-wrap-width) / 2));
-  right: auto;
-  transform: none;
+  right: 25%;
+  left: auto;
+  transform: translateX(50%);
 }
 
 .battle-view .sprite-image {
