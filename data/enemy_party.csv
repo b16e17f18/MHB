@@ -2,11 +2,11 @@ enemy_party_id,character_id_1,character_id_2,character_id_3
 battle_f_1,character_002,character_003,none
 battle_f_2,character_006,character_005,character_007
 battle_e_1,character_053,character_009,none
-battle_e_2,character_011,character_013,none
-battle_d_1,character_059,character_015,character_014
+battle_e_2,character_063,character_013,character_011
+battle_d_1,character_059,character_015,character_022
 battle_d_2,character_057,character_018,character_020
 battle_c_1,character_016,character_019,none
-battle_c_2,character_052,character_017,character_022
+battle_c_2,character_052,character_017,character_014
 battle_b_1,character_003,character_024,character_023
 battle_b_2,character_008,character_055,character_026
 battle_a_1,character_010,character_028,none
@@ -27,3 +27,4 @@ arena_g_9,none,none,none
 arena_m_1,character_044,character_056,none
 arena_m_2,character_030,character_048,none
 arena_x_1,character_057,character_060,none
+arena_x_2,character_064,none,none

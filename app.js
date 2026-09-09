@@ -8106,8 +8106,8 @@ function effectChipClass(effectId) {
   if (effectId === "paralysis") return "effect-paralysis";
   if (effectId === "poison") return "effect-poison";
   if (effectId === "burn") return "effect-burn";
-  if (effectId === "phy_protect") return "effect-phy-protect";
-  if (effectId === "sp_protect") return "effect-sp-protect";
+  if (effectId === "phy_protect" || effectId === "phy_protect2") return "effect-phy-protect";
+  if (effectId === "sp_protect" || effectId === "sp_protect2") return "effect-sp-protect";
   const resistanceClass = resistanceEffectChipClass(effectId);
   if (resistanceClass) return resistanceClass;
   if (effectId.endsWith("_up")) return "effect-up";
