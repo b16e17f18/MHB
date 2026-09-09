@@ -16,7 +16,7 @@ character_014,グラビモス,560,265,460,330,265,40,70,2,2,25,150,50,50,100,fir
 character_015,ディアブロス,650,355,350,35,255,150,35,1,2,25,100,100,150,100,none,skill_004,skill_006,skill_017,skill_093,character_015.png,#ffffff,8,,,flying_wyvern,305,aggressive,,skill_017
 character_016,リオレウス,600,300,250,300,250,400,70,1,2,25,50,100,75,150,fire,skill_001,skill_023,skill_018,skill_030,character_016.png,#ffffff,8,,,flying_wyvern,306,tactical,,skill_030
 character_017,イャンガルルガ,525,275,355,275,275,275,70,2,2,50,150,50,100,50,fire,skill_001,skill_007,skill_018,skill_019,character_017.png,#ffffff,8,,,bird_wyvern,7,disruptor,,skill_019
-character_018,ティガレックス,630,330,230,230,230,330,70,2,2,25,100,125,50,100,none,skill_004,skill_010,skill_031,skill_032,character_018.png,#ffffff,8,,,flying_wyvern,307,aggressive,,skill_031
+character_018,ティガレックス,630,330,230,230,230,330,70,2,2,25,100,125,50,100,none,skill_004,skill_010,skill_031,skill_093,character_018.png,#ffffff,8,,,flying_wyvern,307,aggressive,,skill_031
 character_019,ナルガクルガ,490,290,215,215,320,460,105,2,2,125,50,150,50,50,none,skill_001,skill_112,skill_033,skill_034,character_019.png,#ffffff,8,,,flying_wyvern,308,tactical,skill_034,
 character_020,ラギアクルス,700,315,310,310,275,145,70,2,2,125,75,25,100,100,thunder,skill_001,skill_024,skill_096,skill_109,character_020.png,#ffffff,8,,,leviathan,41,tactical,skill_096,skill_024
 character_021,ロアルドロス,480,225,190,220,345,140,105,2,1,125,50,100,100,50,water,skill_001,skill_015,skill_026,skill_088,character_021.png,#ffffff,8,,,leviathan,42,disruptor,,skill_088
@@ -62,4 +62,4 @@ character_060,シェンガオレン,925,395,445,315,315,15,35,1,4,125,50,125,25,
 character_061,ネルギガンテ,655,375,300,275,275,335,105,1,3,75,75,150,75,100,none,skill_121,skill_010,skill_122,skill_123,character_061.png,#ffffff,8,,,elder_dragon,507,aggressive,,skill_123
 character_062,アマツマガツチ,820,280,330,380,330,380,70,1,4,150,25,100,75,125,water,skill_058,skill_015,skill_124,skill_125,character_062.png,#ffffff,8,,,elder_dragon,508,patient,skill_058,skill_125
 character_063,バサルモス,420,210,430,220,200,30,70,1,1,25,150,50,50,100,fire,skill_001,skill_027,skill_028,skill_012,character_063.png,#ffffff,8,,,flying_wyvern,303,disruptor,,
-character_064,ラオシャンロン,1900,330,220,220,330,10,35,1,5,100,50,75,50,125,dragon,skill_118,skill_120,skill_109,skill_111,character_064.png,#ffffff,8,,,elder_dragon,997,patient,,
+character_064,ラオシャンロン,1999,360,240,240,360,10,35,1,5,100,50,75,50,125,dragon,skill_118,skill_120,skill_109,skill_032,character_064.png,#ffffff,8,,,elder_dragon,997,patient,,

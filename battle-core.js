@@ -860,6 +860,22 @@ function applyStatModifierEffect(effect, target, statLabels = {}) {
   return [];
 }
 
+function applyClearDebuffEffect(target) {
+  if (!target?.statMods) return [];
+
+  let cleared = false;
+  for (const stat of Object.keys(target.statMods)) {
+    if (target.statMods[stat] < 0) {
+      target.statMods[stat] = 0;
+      cleared = true;
+    }
+  }
+
+  return cleared
+    ? [{ type: "log", text: `${target.name}の弱体が解除された！` }]
+    : [];
+}
+
 function applyGenericStatusEffect(effect, target) {
   const current = target.statuses.find((status) => status.id === effect.effect_id);
   if (current) {
@@ -901,6 +917,10 @@ function applyEffect(effectId, actor, target, effects, statLabels = {}) {
 
   if (effect.effect_group === "buff" || effect.effect_group === "debuff") {
     return applyStatModifierEffect(effect, target, statLabels);
+  }
+
+  if (effect.effect_group === "clear_debuff") {
+    return applyClearDebuffEffect(target);
   }
 
   if (effect.effect_group === "resistance") {
