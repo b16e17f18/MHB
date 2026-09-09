@@ -46,7 +46,7 @@ character_044,ゴア・マガラ,666,333,252,333,333,333,105,2,3,100,50,50,50,10
 character_045,ザボアザギル,630,270,220,280,390,130,70,1,2,125,50,125,25,50,ice,skill_001,skill_071,skill_015,skill_065,character_045.png,#ffffff,8,,,amphibian,91,defensive,skill_065,skill_071
 character_046,メラルー,250,90,70,70,70,325,105,1,1,25,25,25,25,50,none,skill_072,skill_073,skill_074,skill_115,character_046.png,#ffffff,8,,,unknown,401,tactical,skill_072,
 character_047,ウカムルバス,825,390,340,290,290,185,70,2,4,125,50,100,25,75,ice,skill_104,skill_109,skill_105,skill_020,character_047.png,#ffffff,8,,,flying_wyvern,803,patient,skill_104,skill_020
-character_048,アルバトリオン,999,425,400,350,350,299,35,2,5,75,125,75,75,75,dragon,skill_049,skill_035,skill_040,skill_075,character_048.png,#ffffff,8,,10,elder_dragon,998,patient,,skill_075
+character_048,アルバトリオン,999,425,400,350,350,299,35,3,5,75,125,75,75,75,dragon,skill_049,skill_035,skill_040,skill_075,character_048.png,#ffffff,8,,10,elder_dragon,998,patient,,skill_075
 character_049,ドスイーオス,430,230,185,105,260,395,105,2,1,50,150,100,100,50,none,skill_001,skill_002,skill_003,skill_008,character_049.png,#ffffff,8,,,bird_wyvern,5,disruptor,,skill_008
 character_050,アオアシラ,495,250,250,105,330,115,105,2,1,125,50,125,100,25,none,skill_001,skill_026,skill_010,skill_091,character_050.png,#ffffff,8,,,fanged_beast,14,defensive,skill_091,
 character_051,キングチャチャブー,295,295,105,105,105,295,105,1,1,25,25,25,25,50,none,skill_082,skill_092,skill_012,skill_116,character_051.png,#ffffff,8,,,unknown,402,disruptor,skill_116,skill_092
@@ -62,4 +62,4 @@ character_060,シェンガオレン,925,395,445,315,315,15,35,1,4,125,50,125,25,
 character_061,ネルギガンテ,655,375,300,275,275,335,105,1,3,75,75,150,75,100,none,skill_121,skill_010,skill_122,skill_123,character_061.png,#ffffff,8,,,elder_dragon,507,aggressive,,skill_123
 character_062,アマツマガツチ,820,280,330,380,330,380,70,1,4,150,25,100,75,125,water,skill_058,skill_015,skill_124,skill_125,character_062.png,#ffffff,8,,,elder_dragon,508,patient,skill_058,skill_125
 character_063,バサルモス,420,210,430,220,200,30,70,1,1,25,150,50,50,100,fire,skill_001,skill_027,skill_028,skill_012,character_063.png,#ffffff,8,,,flying_wyvern,303,disruptor,,
-character_064,ラオシャンロン,1999,360,240,240,360,10,35,1,5,100,50,75,50,125,dragon,skill_118,skill_120,skill_109,skill_032,character_064.png,#ffffff,8,,,elder_dragon,997,patient,,
+character_064,ラオシャンロン,1999,360,200,300,200,10,70,2,5,100,50,75,50,125,dragon,skill_118,skill_120,skill_109,skill_032,character_064.png,#ffffff,8,,,elder_dragon,997,patient,,
