@@ -7527,8 +7527,25 @@ function showBattleTurnLimitCountdown() {
   if (state.battleTurnCountdownShownFor === state.turn) return false;
 
   state.battleTurnCountdownShownFor = state.turn;
-  pushLog(`残り${remainingTurns}ターン`);
+  showBattleTurnLimitCountdownNumber(remainingTurns);
   return true;
+}
+
+function showBattleTurnLimitCountdownNumber(remainingTurns) {
+  const battleField = els.battleView?.querySelector(".battle-field");
+  if (!battleField) return;
+
+  battleField.querySelectorAll(".battle-turn-countdown").forEach((node) => node.remove());
+
+  const node = document.createElement("div");
+  node.className = "battle-turn-countdown";
+  node.textContent = String(remainingTurns);
+  node.setAttribute("aria-hidden", "true");
+  battleField.appendChild(node);
+
+  window.setTimeout(() => {
+    node.remove();
+  }, 1000);
 }
 
 function applyBattleTurnLimit() {

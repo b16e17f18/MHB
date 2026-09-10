@@ -2382,6 +2382,42 @@ button {
   display: none;
 }
 
+.battle-turn-countdown {
+  position: absolute;
+  z-index: 24;
+  top: 50%;
+  left: 50%;
+  color: #ff1e2b;
+  font-size: clamp(72px, 12vw, 96px);
+  font-weight: 1000;
+  line-height: 1;
+  text-shadow:
+    0 4px 0 rgba(0, 0, 0, 0.75),
+    0 0 12px rgba(0, 0, 0, 0.45);
+  pointer-events: none;
+  user-select: none;
+  transform: translate(-50%, -50%) scale(1);
+  animation: battle-turn-countdown-pop 1s ease-out forwards;
+}
+
+@keyframes battle-turn-countdown-pop {
+  0% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.18);
+  }
+
+  12%,
+  50% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
 .battle-view .hud {
   top: 0;
   width: 50%;

@@ -44,3 +44,4 @@ regen_value_down,回復力down,debuff,regen_value,35,3,TRUE,regen_value
 regen_value_down2,回復力down,debuff,regen_value,70,3,TRUE,regen_value
 ,,,,,,,
 clear_debuff,状態復帰,clear_debuff,none,0,0,TRUE,all
+clear_buff,強化解除,clear_buff,none,0,0,TRUE,all

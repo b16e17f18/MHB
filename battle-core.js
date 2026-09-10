@@ -876,6 +876,22 @@ function applyClearDebuffEffect(target) {
     : [];
 }
 
+function applyClearBuffEffect(target) {
+  if (!target?.statMods) return [];
+
+  let cleared = false;
+  for (const stat of Object.keys(target.statMods)) {
+    if (target.statMods[stat] > 0) {
+      target.statMods[stat] = 0;
+      cleared = true;
+    }
+  }
+
+  return cleared
+    ? [{ type: "log", text: `${target.name}の強化が解除された！` }]
+    : [];
+}
+
 function applyGenericStatusEffect(effect, target) {
   const current = target.statuses.find((status) => status.id === effect.effect_id);
   if (current) {
@@ -921,6 +937,10 @@ function applyEffect(effectId, actor, target, effects, statLabels = {}) {
 
   if (effect.effect_group === "clear_debuff") {
     return applyClearDebuffEffect(target);
+  }
+
+  if (effect.effect_group === "clear_buff") {
+    return applyClearBuffEffect(target);
   }
 
   if (effect.effect_group === "resistance") {
