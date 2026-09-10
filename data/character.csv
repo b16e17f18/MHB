@@ -1,6 +1,6 @@
 ﻿character_id,name,hp,phy_atk,phy_def,sp_atk,sp_def,speed,regen_value,cost_charge,slot,weak_fire,weak_water,weak_thunder,weak_ice,weak_dragon,element,skill_1,skill_2,skill_3,skill_4,image,transparent_color,tolerance,render_offset_x,render_offset_y,species_id,display_order,ai_type,ai_setup_skill,ai_main_skill
 character_001,ドスランポス,420,220,185,70,220,405,105,1,1,100,100,100,100,50,none,skill_001,skill_002,skill_003,skill_004,character_001.png,#ffffff,8,,,bird_wyvern,1,disruptor,skill_004,skill_003
-character_002,ドスファンゴ,450,240,200,35,200,80,35,1,1,100,100,125,50,50,none,skill_001,skill_005,skill_006,skill_094,character_002.png,#ffffff,8,,,fanged_beast,11,aggressive,,skill_006
+character_002,ドスファンゴ,450,240,200,35,240,80,35,1,1,100,100,125,50,50,none,skill_001,skill_005,skill_006,skill_094,character_002.png,#ffffff,8,,,fanged_beast,11,aggressive,,skill_006
 character_003,ゲリョス,470,230,280,280,190,250,70,2,1,150,100,25,100,50,none,skill_009,skill_007,skill_008,skill_011,character_003.png,#ffffff,8,,,bird_wyvern,2,disruptor,skill_011,
 character_004,イャンクック,460,235,270,230,180,120,70,1,1,50,50,100,150,50,fire,skill_001,skill_007,skill_077,skill_012,character_004.png,#ffffff,8,,,bird_wyvern,3,balanced,,
 character_005,ババコンガ,510,270,205,205,205,205,70,2,2,125,100,75,75,25,none,skill_013,skill_010,skill_014,skill_081,character_005.png,#ffffff,8,,,fanged_beast,12,defensive,skill_081,
@@ -11,7 +11,7 @@ character_009,ドドブランゴ,530,285,205,205,285,285,70,2,2,150,100,100,25,2
 character_010,ドスゲネポス,425,225,185,70,240,390,105,1,1,100,75,125,150,50,none,skill_001,skill_002,skill_003,skill_021,character_010.png,#ffffff,8,,,bird_wyvern,4,disruptor,,skill_021
 character_011,ガノトトス,545,275,255,295,355,110,70,1,2,100,50,125,50,50,water,skill_001,skill_015,skill_022,skill_026,character_011.png,#ffffff,8,,,piscine_wyvern,32,tactical,skill_022,skill_015
 character_012,ショウグンギザミ,520,290,330,275,245,255,70,2,2,125,50,150,100,25,water,skill_016,skill_005,skill_015,skill_064,character_012.png,#ffffff,8,,,carapaceon,22,aggressive,,skill_064
-character_013,フルフル,485,245,245,280,280,50,105,2,1,125,100,25,50,50,thunder,skill_001,skill_003,skill_024,skill_048,character_013.png,#ffffff,8,,,flying_wyvern,302,disruptor,,skill_025
+character_013,フルフル,485,250,240,295,300,50,105,2,1,125,100,25,50,50,thunder,skill_001,skill_003,skill_024,skill_048,character_013.png,#ffffff,8,,,flying_wyvern,302,disruptor,,skill_025
 character_014,グラビモス,560,265,460,330,265,40,70,2,2,25,150,50,50,100,fire,skill_026,skill_027,skill_028,skill_029,character_014.png,#ffffff,8,,10,flying_wyvern,304,disruptor,,skill_029
 character_015,ディアブロス,650,355,350,35,255,150,35,1,2,25,100,100,150,100,none,skill_004,skill_006,skill_017,skill_093,character_015.png,#ffffff,8,,,flying_wyvern,305,aggressive,,skill_017
 character_016,リオレウス,600,300,250,300,250,400,70,1,2,25,50,100,75,150,fire,skill_001,skill_023,skill_018,skill_030,character_016.png,#ffffff,8,,,flying_wyvern,306,tactical,,skill_030
@@ -61,5 +61,5 @@ character_059,ケチャワチャ,490,230,180,240,230,375,105,1,1,125,50,100,50,2
 character_060,シェンガオレン,925,395,445,315,315,15,35,1,4,125,50,125,25,150,none,skill_108,skill_109,skill_110,skill_111,character_060.png,#ffffff,8,,,carapaceon,804,defensive,skill_108,skill_109
 character_061,ネルギガンテ,655,375,300,275,275,335,105,1,3,75,75,150,75,100,none,skill_121,skill_010,skill_122,skill_123,character_061.png,#ffffff,8,,,elder_dragon,507,aggressive,,skill_123
 character_062,アマツマガツチ,820,280,330,380,330,380,70,1,4,150,25,100,75,125,water,skill_058,skill_015,skill_124,skill_125,character_062.png,#ffffff,8,,,elder_dragon,508,patient,skill_058,skill_125
-character_063,バサルモス,420,210,430,220,200,30,70,1,1,25,150,50,50,100,fire,skill_001,skill_027,skill_028,skill_012,character_063.png,#ffffff,8,,,flying_wyvern,303,disruptor,,
+character_063,バサルモス,420,210,430,260,200,30,70,1,1,25,150,50,50,100,fire,skill_001,skill_027,skill_028,skill_012,character_063.png,#ffffff,8,,,flying_wyvern,303,disruptor,,
 character_064,ラオシャンロン,1999,360,200,300,200,10,70,2,5,100,50,75,50,125,dragon,skill_118,skill_120,skill_109,skill_032,character_064.png,#ffffff,8,,,elder_dragon,997,patient,,
