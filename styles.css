@@ -1698,6 +1698,28 @@ button {
   color: #111111;
 }
 
+.effect-attribute-guard-fire {
+  background: #e64234;
+}
+
+.effect-attribute-guard-water {
+  background: #2488ff;
+}
+
+.effect-attribute-guard-thunder {
+  background: #f6d743;
+  color: #111111;
+}
+
+.effect-attribute-guard-ice {
+  background: #48c7ff;
+  color: #111111;
+}
+
+.effect-attribute-guard-dragon {
+  background: #8e44ad;
+}
+
 .effect-resistance-fire {
   background: #e64234;
 }

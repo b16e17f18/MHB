@@ -8164,11 +8164,18 @@ function effectChipClass(effectId) {
   if (effectId === "burn") return "effect-burn";
   if (effectId === "phy_protect" || effectId === "phy_protect2") return "effect-phy-protect";
   if (effectId === "sp_protect" || effectId === "sp_protect2") return "effect-sp-protect";
+  const attributeGuardClass = attributeGuardEffectChipClass(effectId);
+  if (attributeGuardClass) return attributeGuardClass;
   const resistanceClass = resistanceEffectChipClass(effectId);
   if (resistanceClass) return resistanceClass;
   if (effectId.endsWith("_up")) return "effect-up";
   if (effectId.endsWith("_down") || effectId === "def_down") return "effect-down";
   return "effect-other";
+}
+
+function attributeGuardEffectChipClass(effectId) {
+  const match = safeText(effectId).match(/^(fire|water|thunder|ice|dragon)_protect/);
+  return match ? `effect-attribute-guard-${match[1]}` : "";
 }
 
 function resistanceEffectChipClass(effectId) {
