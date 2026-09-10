@@ -211,6 +211,7 @@ const DELAYED_ATTACK_SETUP_ONLY_EFFECT_IDS = new Set([
   "future_blast9",
 ]);
 const STUN_BATTLE_EFFECT_ID = "stun";
+const SWITCH_LOCK_BATTLE_EFFECT_ID = "switch_lock";
 const DELAYED_HEAL_BATTLE_EFFECT_GROUP = "delayed_heal";
 const CHANGE_CHARACTER_BATTLE_EFFECT_GROUP = "change_character";
 const SWITCH_PERSISTENT_BATTLE_EFFECT_IDS = new Set();
@@ -225,6 +226,7 @@ const BATTLE_TURN_LIMIT_COUNTDOWN_TURNS = 5;
 const BATTLE_TURN_LIMIT_EXCLUDED_RANK_BATTLE_IDS = new Set(["battle_ss_2", "arena_m_2"]);
 const START_ENERGY = 1;
 const BATTLE_SAVE_ENERGY_ENABLED = false;
+const SWITCH_LOCK_MESSAGE = "交代を封じられている！";
 const LAB_MEMBER_DISPLAY_LIMIT = TEAM_SLOT_LIMIT;
 const STAT_GRAPH_MAX = {
   hp: 999,
@@ -703,6 +705,12 @@ function bindEvents() {
 
   els.switchTab.addEventListener("click", () => {
     if (state.busy || state.gameOver) return;
+    if (playerNormalSwitchLocked()) {
+      state.commandMode = "switch";
+      pushLog(SWITCH_LOCK_MESSAGE);
+      renderBattle();
+      return;
+    }
     state.commandMode = state.commandMode === "switch" ? "fight" : "switch";
     renderBattle();
   });
@@ -6321,6 +6329,7 @@ function renderSwitchGrid() {
   const forced = state.pendingSwitchSide === "player";
   const postAttackSwitch = state.pendingPostAttackSwitch?.side === "player";
   const activePendingMove = Boolean(pendingSkillFor(activePlayer()));
+  const normalSwitchLocked = !forced && !postAttackSwitch && hasSwitchLock(activePlayer());
   els.switchGrid.innerHTML = state.playerTeam
     .map((member, index) => {
       const active = index === state.playerActiveIndex;
@@ -6328,6 +6337,7 @@ function renderSwitchGrid() {
         (!postAttackSwitch && state.busy) ||
         state.gameOver ||
         activePendingMove ||
+        normalSwitchLocked ||
         member.fainted ||
         (!forced && active);
       return `
@@ -6339,7 +6349,12 @@ function renderSwitchGrid() {
     })
     .join("");
 
-  if (forced || postAttackSwitch) {
+  if (normalSwitchLocked) {
+    els.switchGrid.insertAdjacentHTML(
+      "afterbegin",
+      `<div class="command-note">${escapeHtml(SWITCH_LOCK_MESSAGE)}</div>`,
+    );
+  } else if (forced || postAttackSwitch) {
     els.switchGrid.insertAdjacentHTML(
       "afterbegin",
       `<div class="command-note">次に出すBreederを選んでください。</div>`,
@@ -6724,7 +6739,26 @@ function playerChooseSwitch(index) {
     completeForcedSwitch(index);
     return;
   }
+  if (hasSwitchLock(activePlayer())) {
+    pushLog(SWITCH_LOCK_MESSAGE);
+    renderBattle();
+    return;
+  }
   resolveTurn({ side: "player", type: "switch", index });
+}
+
+function hasSwitchLock(fighter) {
+  return Boolean(
+    fighter?.battleEffects?.some((effect) => effect.id === SWITCH_LOCK_BATTLE_EFFECT_ID),
+  );
+}
+
+function playerNormalSwitchLocked() {
+  return Boolean(
+    hasSwitchLock(activePlayer()) &&
+      state.pendingSwitchSide !== "player" &&
+      state.pendingPostAttackSwitch?.side !== "player",
+  );
 }
 
 function completeForcedSwitch(index) {
@@ -7031,6 +7065,11 @@ async function executeAction(action) {
   if (action.actorRef && action.actorRef !== actor) return;
 
   if (action.type === "switch") {
+    if (hasSwitchLock(actor)) {
+      pushLog(SWITCH_LOCK_MESSAGE);
+      await pause(420);
+      return;
+    }
     switchActive(action.side, action.index);
     if (action.side === "player") {
       state.commandMode = "fight";

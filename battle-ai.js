@@ -75,6 +75,15 @@ const ENEMY_AI_TYPE_CONFIGS = {
   },
 };
 
+const ENEMY_AI_ELEMENT_GUARD_TYPES = {
+  fire_damage: "fire",
+  water_damage: "water",
+  thunder_damage: "thunder",
+  ice_damage: "ice",
+  dragon_damage: "dragon",
+};
+const ENEMY_AI_SWITCH_LOCK_BATTLE_EFFECT_ID = "switch_lock";
+
 function chooseEnemyBattleAction(context) {
   const enemy = context.enemy;
   const pendingMoveId = pendingSkillId(enemy);
@@ -84,8 +93,9 @@ function chooseEnemyBattleAction(context) {
 
   const lowHp = enemy.hp / enemy.maxHp <= 0.28;
   const bench = context.enemyBenchIndex;
+  const switchLocked = enemyAiHasSwitchLock(enemy);
 
-  if (lowHp && bench >= 0 && Math.random() < 0.22) {
+  if (!switchLocked && lowHp && bench >= 0 && Math.random() < 0.22) {
     return {
       side: "enemy",
       type: "switch",
@@ -142,7 +152,7 @@ function chooseEnemyBattleAction(context) {
     return { side: "enemy", type: "move", moveId: selected.move.skill_id };
   }
 
-  const matchupSwitchIndex = !lowHp
+  const matchupSwitchIndex = !switchLocked && !lowHp
     ? chooseEnemyMatchupSwitchIndex(context, bench, aiConfig)
     : -1;
   if (matchupSwitchIndex >= 0) {
@@ -655,6 +665,7 @@ function scoreEnemyProtectMove(enemy, move, context, aiConfig) {
       const battleEffect = context.battleEffects?.get(pair.effectId);
       if (battleEffect?.battle_effect_group !== "guard") return total;
       if (enemyAiHasActiveGuard(enemy, context.actorFieldEffects, battleEffect.battle_effect_id)) return total;
+      if (!enemyAiElementGuardMatchesPlayerMoves(enemy, battleEffect, context)) return total;
 
       const damageCut = Math.max(0, Number(battleEffect.damage_cut) || 0);
       if (damageCut <= 0) return total;
@@ -667,6 +678,24 @@ function scoreEnemyProtectMove(enemy, move, context, aiConfig) {
           enemyAiChanceWeight(pair.chance) *
           enemyAiTypeMultiplier(aiConfig, "PROTECT_SCORE_MULTIPLIER");
     }, 0);
+}
+
+function enemyAiElementGuardMatchesPlayerMoves(enemy, battleEffect, context) {
+  const requiredElement = ENEMY_AI_ELEMENT_GUARD_TYPES[safeText(battleEffect?.guard_type)];
+  if (!requiredElement) return true;
+
+  return (context.playerMoves ?? []).some((playerMove) => (
+    playerMove?.category === "attack" &&
+    safeText(playerMove.element, "none") === requiredElement &&
+    playerMove.cost <= (context.target?.energy ?? 0) &&
+    canHitTarget(enemy, playerMove).canHit
+  ));
+}
+
+function enemyAiHasSwitchLock(fighter) {
+  return Boolean(
+    fighter?.battleEffects?.some((effect) => effect.id === ENEMY_AI_SWITCH_LOCK_BATTLE_EFFECT_ID),
+  );
 }
 
 function scoreEnemyTargetStatusMove(target, move, context, aiConfig) {

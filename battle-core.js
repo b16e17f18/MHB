@@ -22,6 +22,14 @@ function clearPendingSkill(fighter) {
   fighter.pendingMove = null;
 }
 
+const ELEMENT_GUARD_TYPES = {
+  fire_damage: "fire",
+  water_damage: "water",
+  thunder_damage: "thunder",
+  ice_damage: "ice",
+  dragon_damage: "dragon",
+};
+
 function createEmptyStatMods() {
   return STAT_MOD_KEYS.reduce((mods, stat) => {
     mods[stat] = 0;
@@ -792,6 +800,9 @@ function guardAppliesToMove(effect, move) {
   if (guardType === "all_damage") return true;
   if (guardType === "phy_damage") return move?.attack_type === "physical";
   if (guardType === "sp_damage") return move?.attack_type === "special";
+  if (Object.prototype.hasOwnProperty.call(ELEMENT_GUARD_TYPES, guardType)) {
+    return safeText(move?.element, "none") === ELEMENT_GUARD_TYPES[guardType];
+  }
   return true;
 }
 
