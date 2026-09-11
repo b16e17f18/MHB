@@ -255,6 +255,7 @@ function addBattleEffect(fighter, battleEffect, currentTurn, extra = {}) {
     can_move: battleEffect.can_move,
     animation: battleEffect.animation,
     animation_duration_ms: battleEffect.animation_duration_ms,
+    start_text: battleEffect.start_text,
     ...extra,
   };
   if (current) {
@@ -286,7 +287,7 @@ function applyDamageLinkedStun(move, actor, target, battleEffects, currentTurn) 
     if (Math.random() * 100 > chance) continue;
 
     addBattleEffect(target, stunEffect, currentTurn);
-    events.push({ type: "log", text: `${target.name}はスタンした！` });
+    events.push(...battleEffectStartLogEvents(actor, stunEffect, target));
     appliedBattleEffects.push(stunEffect);
   }
 
@@ -310,11 +311,46 @@ function startTwoTurnMove(actor, move, effectId, targetSide, battleEffects, curr
   return {
     battleEffect,
     battleEffectId: effectId,
-    events: [{ type: "log", text: battleEffectStartText(actor, battleEffect) }],
+    events: battleEffectStartLogEvents(actor, battleEffect),
   };
 }
 
-function battleEffectStartText(actor, battleEffect, recipient = actor) {
+function battleEffectStartTemplate(battleEffect) {
+  const template = safeText(battleEffect?.start_text);
+  if (!template) return null;
+  return template.toLowerCase() === "none" ? "" : template;
+}
+
+function formatBattleEffectStartValue(value) {
+  const numeric = Number(value);
+  if (Number.isFinite(numeric) && `${value}`.trim() !== "") {
+    return Number.isInteger(numeric) ? `${numeric}` : `${Math.round(numeric * 100) / 100}`;
+  }
+  return safeText(value);
+}
+
+function renderBattleEffectStartTemplate(template, actor, battleEffect, recipient = actor) {
+  const values = {
+    actor: actor?.name ?? "",
+    target: recipient?.name ?? "",
+    name: battleEffect?.name ?? "",
+    turn: battleEffect?.turn ?? "",
+    damage_cut: battleEffect?.damage_cut ?? "",
+  };
+  return template.replace(/\{(actor|target|name|turn|damage_cut)\}/g, (_, key) => (
+    formatBattleEffectStartValue(values[key])
+  ));
+}
+
+function battleEffectStartText(actor, battleEffect, recipient = actor, fallbackText = null) {
+  const template = battleEffectStartTemplate(battleEffect);
+  if (template !== null) {
+    return template ? renderBattleEffectStartTemplate(template, actor, battleEffect, recipient) : "";
+  }
+
+  if (fallbackText !== null) return fallbackText;
+  if (!battleEffect) return "";
+
   if (battleEffect.battle_effect_id === "future_blast") {
     return "周囲に粉塵が舞う！";
   }
@@ -347,6 +383,11 @@ function battleEffectStartText(actor, battleEffect, recipient = actor) {
     : `${actor.name}は${battleEffect.name}の構え！`;
 }
 
+function battleEffectStartLogEvents(actor, battleEffect, recipient = actor, fallbackText = null) {
+  const text = battleEffectStartText(actor, battleEffect, recipient, fallbackText);
+  return text ? [{ type: "log", text }] : [];
+}
+
 function applyStandardBattleEffect(actor, target, battleEffect, currentTurn) {
   const appliedBattleEffects = [];
   const events = [];
@@ -354,13 +395,21 @@ function applyStandardBattleEffect(actor, target, battleEffect, currentTurn) {
   if (!recipient) return { appliedBattleEffects, events };
 
   addBattleEffect(recipient, battleEffect, currentTurn);
-  events.push({ type: "log", text: battleEffectStartText(actor, battleEffect, recipient) });
+  events.push(...battleEffectStartLogEvents(actor, battleEffect, recipient));
   appliedBattleEffects.push(battleEffect);
   return { appliedBattleEffects, events };
 }
 
 function isSideGuardBattleEffectId(effectId) {
-  return effectId === "phy_protect" || effectId === "sp_protect";
+  return [
+    "phy_protect",
+    "sp_protect",
+    "fire_protect",
+    "water_protect",
+    "thunder_protect",
+    "ice_protect",
+    "dragon_protect",
+  ].includes(effectId);
 }
 
 function applySideGuardBattleEffect(
@@ -399,6 +448,7 @@ function applySideGuardBattleEffect(
       can_move: battleEffect.can_move,
       animation: battleEffect.animation,
       animation_duration_ms: battleEffect.animation_duration_ms,
+      start_text: battleEffect.start_text,
     });
   } else {
     const fieldEffectResult = addFieldEffect(
@@ -411,7 +461,7 @@ function applySideGuardBattleEffect(
     updatedNextFieldEffectId = fieldEffectResult.nextFieldEffectId;
   }
 
-  events.push({ type: "log", text: battleEffectStartText(actor, battleEffect, actor) });
+  events.push(...battleEffectStartLogEvents(actor, battleEffect, actor));
   appliedBattleEffects.push(battleEffect);
   return {
     applied: true,
@@ -421,9 +471,9 @@ function applySideGuardBattleEffect(
   };
 }
 
-function applyChargeAttackBattleEffect(actor) {
+function applyChargeAttackBattleEffect(actor, battleEffect) {
   actor.statMods.phy_atk = clamp(actor.statMods.phy_atk + 10, -100, 100);
-  return [{ type: "log", text: `${actor.name}は勢いづいた！` }];
+  return battleEffectStartLogEvents(actor, battleEffect, actor, `${actor.name}は勢いづいた！`);
 }
 
 function delayedBattleEffectPayload(move, actor, battleEffect) {
@@ -483,7 +533,7 @@ function applyDelayedAttackBattleEffect(
     delayedBattleEffectPayload(move, actor, battleEffect),
   );
   appliedBattleEffects.push(battleEffect);
-  events.push({ type: "log", text: battleEffectStartText(actor, battleEffect, target) });
+  events.push(...battleEffectStartLogEvents(actor, battleEffect, target));
   return {
     created: true,
     appliedBattleEffects,
@@ -519,7 +569,7 @@ function applyDelayedHealBattleEffect(
     nextFieldEffectId,
   );
   appliedBattleEffects.push(battleEffect);
-  events.push({ type: "log", text: battleEffectStartText(actor, battleEffect, actor) });
+  events.push(...battleEffectStartLogEvents(actor, battleEffect, actor));
   return {
     created: true,
     appliedBattleEffects,
@@ -559,6 +609,7 @@ function addFieldEffect(
     can_move: battleEffect.can_move,
     animation: battleEffect.animation,
     animation_duration_ms: battleEffect.animation_duration_ms,
+    start_text: battleEffect.start_text,
     ...extra,
   };
   fieldEffectsForSide(fieldEffects, side).push(fieldEffect);
@@ -681,7 +732,7 @@ function applyBattleEffects(
     if (Math.random() * 100 > chance) continue;
 
     if (battleEffectId === "charge_attack") {
-      events.push(...applyChargeAttackBattleEffect(actor));
+      events.push(...applyChargeAttackBattleEffect(actor, battleEffect));
       if (battleEffect) {
         appliedBattleEffects.push(battleEffect);
       }

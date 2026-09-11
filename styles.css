@@ -3994,6 +3994,25 @@ button {
   background: #f8fafc;
 }
 
+.arena-enemy-image-button {
+  display: grid;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+.arena-enemy-image-button:focus-visible {
+  outline: 3px solid #facc15;
+  outline-offset: 3px;
+}
+
+.arena-enemy-image-button:hover .arena-enemy-image-frame {
+  background: #fff7d6;
+}
+
 .arena-enemy-image-frame {
   display: grid;
   width: 82px;

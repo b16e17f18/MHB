@@ -62,6 +62,7 @@ const STORY_RANK_BUTTON_AREAS = {
 };
 const STORY_RANK_ORDER_INDEX = new Map(STORY_RANK_ORDER.map((rank, index) => [rank, index]));
 const INITIAL_STORY_RANK_BATTLE_IDS = new Set(["battle_f_1", "arena_g_1"]);
+const SLOT1_REWARD_ALLOWED_BATTLE_ID = "battle_f_1";
 const FINAL_BOSS_BATTLE_ID = "battle_ss_2";
 const FINAL_BOSS_UNLOCK_REQUIRED_BATTLE_ID = "battle_ss_1";
 const FINAL_BOSS_UNLOCK_DIALOGUE_ID = "chief_after_ss_1";
@@ -371,6 +372,7 @@ const state = {
   dex: {
     open: false,
     characterId: null,
+    restrictToPurchased: false,
   },
   story: {
     active: false,
@@ -1974,6 +1976,7 @@ function resolveArenaBattleDetails(entranceId) {
 function renderArenaBattleConfirm(details) {
   if (!els.arenaConfirmContent) return;
   els.arenaConfirmContent.innerHTML = renderRankBattleConfirmContent(details);
+  bindPreBattleOpponentDexButtons(els.arenaConfirmContent);
 }
 
 function renderRankBattleConfirmContent(details) {
@@ -2079,9 +2082,11 @@ function renderArenaEnemyCard(character) {
   const characterName = safeText(character.name, "\uFF1F\uFF1F\uFF1F");
   return `
     <article class="arena-enemy-card">
-      <span class="arena-enemy-image-frame">
-        <img class="arena-enemy-image" src="${escapeHtml(character.imageSrc)}" alt="${escapeHtml(characterName)}" />
-      </span>
+      <button class="arena-enemy-image-button" type="button" data-pre-battle-dex-id="${escapeHtml(character.character_id)}" aria-label="${escapeHtml(characterName)}の図鑑を見る">
+        <span class="arena-enemy-image-frame">
+          <img class="arena-enemy-image" src="${escapeHtml(character.imageSrc)}" alt="${escapeHtml(characterName)}" />
+        </span>
+      </button>
       <span class="arena-enemy-info">
         <strong class="arena-enemy-name">${escapeHtml(characterName)}</strong>
         <span class="arena-enemy-meta">
@@ -2093,9 +2098,32 @@ function renderArenaEnemyCard(character) {
   `;
 }
 
+function bindPreBattleOpponentDexButtons(root) {
+  if (!root) return;
+  for (const button of root.querySelectorAll("[data-pre-battle-dex-id]")) {
+    button.addEventListener("click", () => {
+      openPreBattleOpponentDex(button.dataset.preBattleDexId);
+    });
+  }
+}
+
+function openPreBattleOpponentDex(characterId) {
+  const id = safeText(characterId);
+  if (!id || !state.characterMap.has(id)) return;
+  openDex(id, { restrictToPurchased: true });
+}
+
+function closePreBattleDex() {
+  if (!state.dex.restrictToPurchased) return;
+  state.dex.open = false;
+  state.dex.restrictToPurchased = false;
+  renderDexPanel();
+}
+
 function hideArenaBattleConfirm(options = {}) {
   const clearSelection = options?.clearSelection ?? true;
   const focus = options?.focus ?? true;
+  closePreBattleDex();
   els.arenaConfirmPanel?.classList.add("is-hidden");
   if (els.arenaConfirmContent) els.arenaConfirmContent.innerHTML = "";
   if (clearSelection) {
@@ -3750,6 +3778,7 @@ function returnToSetup() {
   state.dex = {
     open: false,
     characterId: null,
+    restrictToPurchased: false,
   };
   renderDexPanel();
   renderSetup();
@@ -4121,6 +4150,7 @@ function normalizeBattleEffect(row) {
     guard_type: safeText(row.guard_type, "none"),
     weak_hit_type: safeText(row.weak_hit_type, "none"),
     damage_cut: number(row.damage_cut),
+    start_text: csvText(row.start_text),
     animation: animationAssetName(row.animation),
     animation_duration_ms: Math.max(0, number(row.animation_duration_ms)),
   };
@@ -4571,10 +4601,12 @@ function skillKindLabel(move) {
   return "変化";
 }
 
-function openDex() {
+function openDex(characterId = null, options = {}) {
   const activeId = activeEnemy()?.id || activePlayer()?.id || state.characters[0]?.character_id || null;
+  const requestedId = safeText(characterId);
   state.dex.open = true;
-  state.dex.characterId = state.dex.characterId || activeId;
+  state.dex.restrictToPurchased = Boolean(options.restrictToPurchased);
+  state.dex.characterId = requestedId || state.dex.characterId || activeId;
   renderDexPanel();
 }
 
@@ -4593,7 +4625,10 @@ function renderDexPanel() {
   }
 
   const isStoryBattle = Boolean(state.story.currentRankBattleId || state.story.currentArenaBattleId);
-  const canViewCharacter = !isStoryBattle || canViewStoryBattleEncyclopedia(character.character_id);
+  const isRestrictedDex = Boolean(state.dex.restrictToPurchased);
+  const canViewCharacter = isRestrictedDex
+    ? canViewPurchasedEncyclopediaCharacter(character.character_id)
+    : !isStoryBattle || canViewStoryBattleEncyclopedia(character.character_id);
   const dexCharacterName = canViewCharacter ? character.name : "？？？？？";
   const dexCharacterSubtitle = canViewCharacter
     ? characterSubtitle(character)
@@ -4643,7 +4678,9 @@ function renderDexPanel() {
       <aside class="dex-list" aria-label="Breeder一覧">
         ${dexCharacters
           .map((entry) => {
-            const canViewEntry = !isStoryBattle || canViewStoryBattleEncyclopedia(entry.character_id);
+            const canViewEntry = isRestrictedDex
+              ? canViewPurchasedEncyclopediaCharacter(entry.character_id)
+              : !isStoryBattle || canViewStoryBattleEncyclopedia(entry.character_id);
             return `
               <button class="dex-list-button ${entry.character_id === character.character_id ? "is-selected" : ""}" type="button" data-dex-id="${escapeHtml(entry.character_id)}">
                 <span>${escapeHtml(canViewEntry ? entry.name : "？？？？？")}</span>
@@ -4672,6 +4709,7 @@ function renderDexPanel() {
 
   els.dexPanel.querySelector(".dex-close").addEventListener("click", () => {
     state.dex.open = false;
+    state.dex.restrictToPurchased = false;
     renderDexPanel();
   });
 
@@ -5544,6 +5582,7 @@ async function showRankBattleConfirm(rankBattleId) {
   els.storyBattleConfirmLayout?.classList.add("is-rich-confirm");
   els.storyBattleConfirmText.classList.add("story-confirm-content-rich");
   els.storyBattleConfirmText.innerHTML = renderRankBattleConfirmContent(details);
+  bindPreBattleOpponentDexButtons(els.storyBattleConfirmText);
   els.storyBattleOpponentList.innerHTML = "";
   els.storyBattleOpponentPanel?.classList.add("is-hidden");
   els.storyBattleConfirmOverlay.classList.remove("is-hidden");
@@ -5552,6 +5591,7 @@ async function showRankBattleConfirm(rankBattleId) {
 
 function hideRankBattleConfirm({ restoreFocus = false } = {}) {
   const restoreRankBattleId = state.story.pendingRankBattleId;
+  closePreBattleDex();
   state.story.pendingRankBattleId = null;
   els.storyBattleConfirmOverlay?.classList.add("is-hidden");
   els.storyBattleConfirmLayout?.classList.remove("is-rich-confirm");
@@ -5848,6 +5888,7 @@ function startBattle(options = {}) {
   state.dex = {
     open: false,
     characterId: null,
+    restrictToPurchased: false,
   };
   state.log = [
     `相手は ${activeEnemy().name} をくりだした！`,
@@ -6388,13 +6429,14 @@ function renderExchangePanel() {
   const enemySlotNeed = exchangeEnemySlotNeed();
   const nextPlayerSlotTotal = exchangeNextPlayerSlotTotal();
   const hasPlayerOffer = selectedPlayerIndices.length > 0;
-  const hasEnemyTarget = state.exchange.enemyIndex !== null;
+  const enemyTarget = exchangeEnemyMember();
+  const hasEnemyTarget = Boolean(enemyTarget);
   const canReceiveWithoutExchange = canReceiveEnemyWithoutExchange();
   const playerButtons = state.playerTeam
     .map((member, index) => exchangeChoiceButton("player", member, index))
     .join("");
   const enemyButtons = state.enemyTeam
-    .map((member, index) => exchangeChoiceButton("enemy", member, index))
+    .map((member, index) => (isBattleRewardFighterEligible(member) ? exchangeChoiceButton("enemy", member, index) : ""))
     .join("");
   const canExchange =
     hasEnemyTarget &&
@@ -6567,7 +6609,25 @@ function storyVictoryLabCaptureCandidates() {
       const character = state.characterMap.get(member?.id);
       return character ? { member, character, index } : null;
     })
-    .filter(Boolean);
+    .filter(Boolean)
+    .filter((candidate) => isBattleRewardCharacterEligible(candidate.character, state.story.currentRankBattleId));
+}
+
+function currentBattleRewardBattleId() {
+  return state.story.currentArenaBattleId || state.story.currentRankBattleId || "";
+}
+
+function isBattleRewardFighterEligible(fighter, battleId = currentBattleRewardBattleId()) {
+  return isBattleRewardCharacterEligible(
+    fighter?.originalBase || fighter?.base || state.characterMap.get(fighter?.id),
+    battleId,
+  );
+}
+
+function isBattleRewardCharacterEligible(character, battleId = currentBattleRewardBattleId()) {
+  if (!character) return false;
+  if (safeText(battleId) === SLOT1_REWARD_ALLOWED_BATTLE_ID) return true;
+  return Math.max(1, Math.floor(number(character.slot, 1))) > 1;
 }
 
 function renderStoryLabCaptureCandidate(candidate) {
@@ -6594,7 +6654,7 @@ function completeStoryVictoryLabCapture(characterId) {
   const character = isEnemyCharacter ? state.characterMap.get(id) : null;
   state.exchange.storyLabCaptureCompleted = true;
 
-  if (!character) {
+  if (!character || !isBattleRewardCharacterEligible(character, state.story.currentRankBattleId)) {
     state.exchange.storyLabCapture = null;
     return null;
   }
@@ -6801,6 +6861,9 @@ async function applyPostAttackChangeCharacter(side, actor, battleEffect) {
   const benchIndex = aliveBenchIndex(side);
   if (benchIndex < 0) return false;
 
+  const startText = battleEffectStartText(actor, battleEffect, actor, "");
+  if (startText) pushLog(startText);
+
   if (side === "player") {
     return requestPlayerPostAttackSwitch();
   }
@@ -6849,8 +6912,13 @@ function exchangePlayerSlotTotal() {
   return slotTotal(exchangePlayerMembers().map((member) => member.base));
 }
 
-function exchangeEnemySlotNeed() {
+function exchangeEnemyMember() {
   const enemyMember = state.enemyTeam[state.exchange.enemyIndex];
+  return isBattleRewardFighterEligible(enemyMember) ? enemyMember : null;
+}
+
+function exchangeEnemySlotNeed() {
+  const enemyMember = exchangeEnemyMember();
   return enemyMember ? Math.max(1, enemyMember.base.slot || 1) : 0;
 }
 
@@ -6866,7 +6934,7 @@ function exchangeNextPlayerSlotTotal() {
 }
 
 function canReceiveEnemyWithoutExchange() {
-  if (state.exchange.enemyIndex === null) return false;
+  if (!exchangeEnemyMember()) return false;
   return exchangeCurrentPlayerSlotTotal() + exchangeEnemySlotNeed() <= TEAM_SLOT_LIMIT;
 }
 
@@ -6893,7 +6961,7 @@ function completeVictoryExchange() {
   }
 
   const playerMembers = exchangePlayerMembers();
-  const enemyMember = state.enemyTeam[state.exchange.enemyIndex];
+  const enemyMember = exchangeEnemyMember();
   if (!enemyMember) return;
 
   if (!playerMembers.length) {
@@ -6935,7 +7003,7 @@ function completeVictoryExchange() {
 }
 
 function completeVictoryReceiveWithoutExchange(enemyMember) {
-  if (!enemyMember || !canReceiveEnemyWithoutExchange()) return;
+  if (!enemyMember || !isBattleRewardFighterEligible(enemyMember) || !canReceiveEnemyWithoutExchange()) return;
 
   state.playerTeam = [
     ...state.playerTeam,
@@ -6979,7 +7047,7 @@ function cancelVictoryExchange() {
 }
 
 function isValidVictoryExchange() {
-  const enemyMember = state.enemyTeam[state.exchange.enemyIndex];
+  const enemyMember = exchangeEnemyMember();
   const playerMembers = exchangePlayerMembers();
   if (!playerMembers.length || !enemyMember) return false;
 
@@ -7817,7 +7885,7 @@ function pushLog(message) {
 
 function applyBattleCoreEvents(events) {
   for (const event of events ?? []) {
-    if (event?.type === "log") {
+    if (event?.type === "log" && event.text) {
       pushLog(event.text);
     }
   }

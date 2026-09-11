@@ -1,6 +1,6 @@
 ﻿book_id,name,description,detail_level,character_id1,character_id2,character_id3,character_id4
 book_basic1,鳥竜種・上巻,鳥竜種の情報が閲覧できます。,1,character_001,character_003,character_004,none
-book_basic2,牙獣種・上巻,牙獣種の情報が閲覧できます。,1,character_002,character_005,character_009,none
+book_basic2,牙獣種・上巻,牙獣種の情報が閲覧できます。,1,character_002,character_005,character_009,character_059
 book_basic3,甲殻種・甲虫種,甲殻種・甲虫種の情報が閲覧できます。,1,character_006,character_012,character_055,character_060
 book_basic4,魚竜種,魚竜種の情報が閲覧できます。,2,character_007,character_011,none,none
 book_basic5,飛竜種・上巻,飛竜種の情報が閲覧できます。,2,character_063,character_013,character_014,character_015
@@ -11,7 +11,7 @@ book_advanced12,飛竜種・中巻,飛竜種の情報が閲覧できます。,3,
 book_advanced13,海竜種,海竜種の情報が閲覧できます。,3,character_020,character_021,character_039,character_058
 book_advanced14,牙竜種・蛇竜種・鋏角種・両生種,牙竜種・蛇竜種他の情報が閲覧できます。,3,character_023,character_043,character_038,character_045
 book_advanced15,獣竜種・下巻,獣竜種の情報が閲覧できます。,3,character_037,character_040,character_026,character_026
-book_advanced16,牙獣種・中巻,牙獣種の情報が閲覧できます。,3,character_050,character_052,character_059,none
+book_advanced16,牙獣種・中巻,牙獣種の情報が閲覧できます。,3,character_050,character_052,none,none
 book_advanced17,獣人種,獣人種の情報が閲覧できます。,,character_046,character_051,none,none
 ,,,,,,,
 book_legend21,牙獣種・下巻,古龍級牙獣種の情報が閲覧できます。,4,character_025,character_041,none,none
