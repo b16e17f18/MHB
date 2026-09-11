@@ -1,7 +1,7 @@
 ﻿character_id,name,hp,phy_atk,phy_def,sp_atk,sp_def,speed,regen_value,cost_charge,slot,weak_fire,weak_water,weak_thunder,weak_ice,weak_dragon,element,skill_1,skill_2,skill_3,skill_4,image,transparent_color,tolerance,render_offset_x,render_offset_y,species_id,display_order,ai_type,ai_setup_skill,ai_main_skill
 character_001,ドスランポス,420,220,185,70,220,405,105,1,1,100,100,100,100,50,none,skill_001,skill_002,skill_003,skill_004,character_001.png,#ffffff,8,,,bird_wyvern,1,disruptor,skill_004,skill_003
 character_002,ドスファンゴ,450,240,200,35,240,80,35,1,1,100,100,125,50,50,none,skill_001,skill_005,skill_006,skill_094,character_002.png,#ffffff,8,,,fanged_beast,11,aggressive,,skill_006
-character_003,ゲリョス,470,230,280,280,190,250,70,2,1,150,100,25,100,50,none,skill_009,skill_007,skill_008,skill_011,character_003.png,#ffffff,8,,,bird_wyvern,2,disruptor,skill_011,
+character_003,ゲリョス,470,230,280,220,190,250,70,2,1,150,100,25,100,50,none,skill_009,skill_007,skill_008,skill_011,character_003.png,#ffffff,8,,,bird_wyvern,2,disruptor,skill_011,
 character_004,イャンクック,460,235,270,230,180,120,70,1,1,50,50,100,150,50,fire,skill_001,skill_007,skill_077,skill_012,character_004.png,#ffffff,8,,,bird_wyvern,3,balanced,,
 character_005,ババコンガ,510,270,205,205,205,205,70,2,2,125,100,75,75,25,none,skill_013,skill_010,skill_014,skill_081,character_005.png,#ffffff,8,,,fanged_beast,12,defensive,skill_081,
 character_006,ダイミョウザザミ,455,255,370,205,180,90,70,2,1,150,50,125,100,25,water,skill_015,skill_016,skill_017,skill_111,character_006.png,#ffffff,8,,,carapaceon,21,defensive,skill_016,
