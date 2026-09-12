@@ -7495,7 +7495,7 @@ function blockedByControl(fighter) {
 
   const paralysis = fighter.statuses.find((status) => status.id === "paralysis");
   if (paralysis && Math.random() < 0.5) {
-    return `${fighter.name}はしびれて動けない！`;
+    return `${fighter.name}は痺れて動けない！`;
   }
 
   return "";
@@ -7506,7 +7506,7 @@ function consumeStunForMoveAction(fighter) {
     return "";
   }
   removeBattleEffect(fighter, STUN_BATTLE_EFFECT_ID);
-  return `${fighter.name}はスタンして動けない！`;
+  return `${fighter.name}は怯んで動けない！`;
 }
 
 async function endRound() {

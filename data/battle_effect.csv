@@ -1,4 +1,4 @@
-﻿battle_effect_id,name,battle_effect_group,damage_type,damage_value,turn,can_move,guard_type,weak_hit_type,damage_cut,start_text
+battle_effect_id,name,battle_effect_group,damage_type,damage_value,turn,can_move,guard_type,weak_hit_type,damage_cut,start_text
 protect,防御態勢,guard,none,50,1,TRUE,all_damage,guard_break,50,{actor}は防御態勢に入った！
 protect2,防御態勢(強),guard,none,75,1,TRUE,all_damage,guard_break,75,{actor}は防御態勢に入った！
 protect3,防御態勢(弱),guard,none,25,3,TRUE,all_damage,guard_break,25,{actor}は防御態勢に入った！
@@ -26,9 +26,9 @@ fly,上空,position,none,0,1,FALSE,ground_attack,anti_air,0,{actor}は上空へ�
 underground,地中,position,none,0,1,FALSE,surface_attack,ground_wave,0,{actor}は地中へ潜った！
 underwater,水中,position,none,0,1,FALSE,surface_attack,water_wave,0,{actor}は水中へ潜った！
 ghost_phase,消失,position,none,0,1,FALSE,all_damage,sure_hit,0,{actor}は姿を消した！
-charge_attack,溜め攻撃,charge,none,0,1,FALSE,none,none,0,{actor}は力を溜めている！
+charge_attack,溜,charge,none,0,1,FALSE,none,none,0,{actor}は力を溜めている！
 ,,,,,,,,,,
-future_blast,粉塵爆破,delayed_attack,fixed_power,40,2,TRUE,none,none,0,周囲に粉塵が舞う！
+future_blast,粉塵,delayed_attack,fixed_power,40,2,TRUE,none,none,0,周囲に粉塵が舞う！
 future_blast2,泡玉,delayed_attack,fixed_power,80,2,TRUE,none,none,0,周囲に泡玉が舞う！
 future_blast3,鱗粉,delayed_attack,fixed_power,70,1,TRUE,none,none,0,周囲に鱗粉が舞う！
 future_blast4,,,,,,,,,,
@@ -38,9 +38,9 @@ future_blast7,,,,,,,,,,
 future_blast8,,,,,,,,,,
 future_blast9,,,,,,,,,,
 ,,,,,,,,,,
-future_blast_plus,粘菌爆破,delayed_attack,fixed_power,50,2,TRUE,none,none,0,相手の場に粘菌が付着した！
-future_blast_plus2,雷光虫弾,delayed_attack,fixed_power,60,1,TRUE,none,none,0,相手の場に雷光虫が放たれた！
-future_blast_plus3,粉塵爆破,delayed_attack,fixed_power,40,1,TRUE,none,none,0,周囲に粉塵が舞う！
+future_blast_plus,粘菌,delayed_attack,fixed_power,50,2,TRUE,none,none,0,相手の場に粘菌が付着した！
+future_blast_plus2,雷光虫,delayed_attack,fixed_power,60,1,TRUE,none,none,0,相手の場に雷光虫が放たれた！
+future_blast_plus3,粉塵,delayed_attack,fixed_power,40,1,TRUE,none,none,0,周囲に粉塵が舞う！
 future_blast_plus4,,,,,,,,,,
 future_blast_plus5,,,,,,,,,,
 future_blast_plus6,,,,,,,,,,
