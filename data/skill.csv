@@ -15,7 +15,7 @@ skill_013,放屁,status,0,none,none,guard_break,phy_def_down,enemy,100,sp_def_do
 skill_014,きのこブレス,attack,90,none,special,guard_break,paralysis,enemy,75,sp_atk_down,enemy,100,none,enemy,0,none,0,none,0,enemy,0,3,相手の特殊攻撃を15%downさせ、75%の確率で相手を麻痺にする。,magic_mist02,750,1,,,,,
 skill_015,水ブレス,attack,110,water,special,normal,speed_down,enemy,75,none,enemy,0,none,enemy,0,fire_protect,100,none,0,enemy,0,2,75%の確率で相手の敏捷を15%downさせる。4ターンの間、火技のダメージを25%cutする。交代しても効果が持続する。,magic_holy01,500,1,,,,,
 skill_016,爪ガード,status,0,none,none,normal,phy_def_up,enemy,100,none,enemy,0,none,enemy,0,protect,100,revenge,100,self,1,1,物理防御が10%upする。ダメージを50%cutし、反撃する。技優先度+1。,magic_enhance02,250,1,,,,,
-skill_017,潜行突き上げ,attack,80,none,physical,normal,ice_weak_down,self,100,none,enemy,0,none,enemy,0,underground,100,none,0,enemy,0,1,1ターン目に地面に潜り、2ターン目に攻撃する。自分の氷耐性を25%upする。,attack_hit01,500,1,,,,,
+skill_017,潜行突き上げ,attack,80,none,physical,normal,ice_weak_down,self,100,clear_debuff,self,100,none,enemy,0,underground,100,none,0,enemy,0,1,1ターン目に地面に潜り、2ターン目に攻撃する。自分の氷耐性を25%upし、能力downを解除する。,attack_hit01,500,1,,,,,
 skill_018,炎ブレス,attack,90,fire,special,normal,burn,enemy,25,none,enemy,0,none,enemy,0,none,0,none,0,enemy,0,2,25%の確率で相手を火やられにする。,magic_fire02,500,1,,,,,
 skill_019,サマーソルト,attack,90,none,physical,normal,poison,enemy,50,none,enemy,0,none,enemy,0,none,0,none,0,enemy,0,3,50%の確率で相手を毒にする。,attack_slash03,250,2,,,,,
 skill_020,氷塊落とし,attack,100,ice,physical,normal,phy_def_down,enemy,50,speed_down,enemy,50,none,enemy,0,none,0,none,0,enemy,0,3,50%の確率で相手の物理防御と敏捷を15%downさせる。,magic_ice01,150,3,,,,,
