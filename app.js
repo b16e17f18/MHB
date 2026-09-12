@@ -216,7 +216,7 @@ const SWITCH_LOCK_BATTLE_EFFECT_ID = "switch_lock";
 const DELAYED_HEAL_BATTLE_EFFECT_GROUP = "delayed_heal";
 const CHANGE_CHARACTER_BATTLE_EFFECT_GROUP = "change_character";
 const SWITCH_PERSISTENT_BATTLE_EFFECT_IDS = new Set();
-const BATTLE_MESSAGE_DURATION = 1400;
+const BATTLE_MESSAGE_DURATION = 1800;
 const BATTLE_TEXT_SPEED_SCALE = 2;
 const ANIMATION_FRAME_WIDTH = 250;
 const ANIMATION_FRAME_HEIGHT = 43;
@@ -6626,7 +6626,8 @@ function isBattleRewardFighterEligible(fighter, battleId = currentBattleRewardBa
 
 function isBattleRewardCharacterEligible(character, battleId = currentBattleRewardBattleId()) {
   if (!character) return false;
-  if (safeText(battleId) === SLOT1_REWARD_ALLOWED_BATTLE_ID) return true;
+  const id = safeText(battleId);
+  if (!id || id === SLOT1_REWARD_ALLOWED_BATTLE_ID) return true;
   return Math.max(1, Math.floor(number(character.slot, 1))) > 1;
 }
 
@@ -6840,13 +6841,14 @@ function completePostAttackPlayerSwitch(index) {
 
   state.pendingPostAttackSwitch = null;
   state.commandMode = "fight";
-  const switched = switchAfterAttack("player", index);
+  const switchOptions = pending.hasStartText ? { message: pending.startText } : {};
+  const switched = switchAfterAttack("player", index, switchOptions);
   pending.resolve?.(switched);
 }
 
-function requestPlayerPostAttackSwitch() {
+function requestPlayerPostAttackSwitch(startText = "", hasStartText = false) {
   return new Promise((resolve) => {
-    state.pendingPostAttackSwitch = { side: "player", resolve };
+    state.pendingPostAttackSwitch = { side: "player", resolve, startText, hasStartText };
     state.commandMode = "switch";
     pushLog("次に出すBreederを選んでください。");
     renderBattle();
@@ -6861,23 +6863,27 @@ async function applyPostAttackChangeCharacter(side, actor, battleEffect) {
   const benchIndex = aliveBenchIndex(side);
   if (benchIndex < 0) return false;
 
+  const hasStartText = Boolean(safeText(battleEffect.start_text));
   const startText = battleEffectStartText(actor, battleEffect, actor, "");
-  if (startText) pushLog(startText);
 
   if (side === "player") {
-    return requestPlayerPostAttackSwitch();
+    return requestPlayerPostAttackSwitch(startText, hasStartText);
   }
 
-  return switchAfterAttack(side, benchIndex);
+  return switchAfterAttack(side, benchIndex, hasStartText ? { message: startText } : {});
 }
 
-function switchAfterAttack(side, index) {
+function switchAfterAttack(side, index, options = {}) {
   const previous = activeBySide(side);
   switchActive(side, index);
   const current = activeBySide(side);
   if (!previous || !current || previous === current) return false;
 
-  pushLog(`${previous.name}を戻した。${current.name}、出番だ！`);
+  if (Object.prototype.hasOwnProperty.call(options, "message")) {
+    if (options.message) pushLog(options.message);
+  } else {
+    pushLog(`${previous.name}を戻した。${current.name}、出番だ！`);
+  }
   renderBattle();
   return true;
 }
