@@ -388,6 +388,73 @@ function battleEffectStartLogEvents(actor, battleEffect, recipient = actor, fall
   return text ? [{ type: "log", text }] : [];
 }
 
+const EFFECT_START_STAT_LABELS = {
+  phy_atk: "物理攻撃",
+  phy_def: "物理防御",
+  sp_atk: "特殊攻撃",
+  sp_def: "特殊防御",
+  speed: "敏捷",
+  regen_value: "回復力",
+  weak_fire: "火耐性",
+  weak_water: "水耐性",
+  weak_thunder: "雷耐性",
+  weak_ice: "氷耐性",
+  weak_dragon: "龍耐性",
+  hp: "HP",
+  en: "EN",
+};
+
+function effectStartTemplate(effect) {
+  const template = safeText(effect?.start_text);
+  if (!template) return null;
+  return template.toLowerCase() === "none" ? "" : template;
+}
+
+function effectTargetStat(effect) {
+  return safeText(effect?.target_stat ?? effect?.targetStat, "none");
+}
+
+function effectDamageValue(effect) {
+  return number(effect?.damage_value ?? effect?.damageValue);
+}
+
+function effectStartStatLabel(effect, statLabels = {}) {
+  const stat = effectTargetStat(effect);
+  return EFFECT_START_STAT_LABELS[stat] ?? statLabels[stat] ?? stat;
+}
+
+function renderEffectStartTemplate(template, effect, actor, target, context = {}) {
+  const value = Math.abs(effectDamageValue(effect));
+  const changed = Object.prototype.hasOwnProperty.call(context, "changed")
+    ? Math.abs(number(context.changed))
+    : value;
+  const values = {
+    actor: actor?.name ?? "",
+    target: target?.name ?? "",
+    name: effect?.name ?? "",
+    stat: effectStartStatLabel(effect, context.statLabels),
+    value,
+    turn: effect?.turn ?? "",
+    changed,
+  };
+  return template.replace(/\{(actor|target|name|stat|value|turn|changed)\}/g, (_, key) => (
+    formatBattleEffectStartValue(values[key])
+  ));
+}
+
+function effectStartText(effect, actor, target, context = {}, fallbackText = null) {
+  const template = effectStartTemplate(effect);
+  if (template !== null) {
+    return template ? renderEffectStartTemplate(template, effect, actor, target, context) : "";
+  }
+  return fallbackText ?? "";
+}
+
+function effectStartLogEvents(effect, actor, target, context = {}, fallbackText = null) {
+  const text = effectStartText(effect, actor, target, context, fallbackText);
+  return text ? [{ type: "log", text }] : [];
+}
+
 function applyStandardBattleEffect(actor, target, battleEffect, currentTurn) {
   const appliedBattleEffects = [];
   const events = [];
@@ -885,7 +952,7 @@ function clearSleepOnAttackDamage(target) {
     : [];
 }
 
-function addTimedStatusEffect(effect, target) {
+function addTimedStatusEffect(effect, actor, target) {
   const current = target.statuses.find((status) => status.id === effect.effect_id);
   if (current) {
     current.turns = Math.max(current.turns, effect.turn);
@@ -902,10 +969,16 @@ function addTimedStatusEffect(effect, target) {
       turns: effect.turn,
     });
   }
-  return [{ type: "log", text: `${target.name}は${effect.name}になった！` }];
+  return effectStartLogEvents(
+    effect,
+    actor,
+    target,
+    {},
+    `${target.name}は${effect.name}になった！`,
+  );
 }
 
-function applyStatModifierEffect(effect, target, statLabels = {}) {
+function applyStatModifierEffect(effect, actor, target, statLabels = {}) {
   const stat = effect.target_stat;
   if (!target.statMods[stat] && target.statMods[stat] !== 0) return [];
 
@@ -913,16 +986,20 @@ function applyStatModifierEffect(effect, target, statLabels = {}) {
   const before = target.statMods[stat];
   const stageLimit = Math.max(0, Math.abs(effect.damage_value) * 4);
   target.statMods[stat] = clamp(target.statMods[stat] + amount, -stageLimit, stageLimit);
-  if (target.statMods[stat] !== before) {
-    return [{
-      type: "log",
-      text: `${target.name}の${statLabels[stat] ?? stat}が${amount > 0 ? "上がった" : "下がった"}！`,
-    }];
+  const changed = target.statMods[stat] - before;
+  if (changed !== 0) {
+    return effectStartLogEvents(
+      effect,
+      actor,
+      target,
+      { changed, statLabels },
+      `${target.name}の${statLabels[stat] ?? stat}が${amount > 0 ? "上がった" : "下がった"}！`,
+    );
   }
   return [];
 }
 
-function applyClearDebuffEffect(target) {
+function applyClearDebuffEffect(effect, actor, target) {
   if (!target?.statMods) return [];
 
   let cleared = false;
@@ -934,11 +1011,11 @@ function applyClearDebuffEffect(target) {
   }
 
   return cleared
-    ? [{ type: "log", text: `${target.name}の弱体が解除された！` }]
+    ? effectStartLogEvents(effect, actor, target, {}, `${target.name}の弱体が解除された！`)
     : [];
 }
 
-function applyClearBuffEffect(target) {
+function applyClearBuffEffect(effect, actor, target) {
   if (!target?.statMods) return [];
 
   let cleared = false;
@@ -950,11 +1027,11 @@ function applyClearBuffEffect(target) {
   }
 
   return cleared
-    ? [{ type: "log", text: `${target.name}の強化が解除された！` }]
+    ? effectStartLogEvents(effect, actor, target, {}, `${target.name}の強化が解除された！`)
     : [];
 }
 
-function applyGenericStatusEffect(effect, target) {
+function applyGenericStatusEffect(effect, actor, target) {
   const current = target.statuses.find((status) => status.id === effect.effect_id);
   if (current) {
     current.turns = Math.max(current.turns, effect.turn);
@@ -969,7 +1046,13 @@ function applyGenericStatusEffect(effect, target) {
       turns: effect.turn,
     });
   }
-  return [{ type: "log", text: `${target.name}は${effect.name}になった！` }];
+  return effectStartLogEvents(
+    effect,
+    actor,
+    target,
+    {},
+    `${target.name}は${effect.name}になった！`,
+  );
 }
 
 function applyEffect(effectId, actor, target, effects, statLabels = {}) {
@@ -986,30 +1069,30 @@ function applyEffect(effectId, actor, target, effects, statLabels = {}) {
   if (!effect) return [];
 
   if (effect.effect_group === "heal") {
-    return applyHealEffect(effect, target);
+    return applyHealEffect(effect, actor, target);
   }
 
   if (effect.effect_group === "energy_up" || effect.effect_group === "energy_down") {
-    return applyEnergyEffect(effect, target);
+    return applyEnergyEffect(effect, actor, target);
   }
 
   if (effect.effect_group === "buff" || effect.effect_group === "debuff") {
-    return applyStatModifierEffect(effect, target, statLabels);
+    return applyStatModifierEffect(effect, actor, target, statLabels);
   }
 
   if (effect.effect_group === "clear_debuff") {
-    return applyClearDebuffEffect(target);
+    return applyClearDebuffEffect(effect, actor, target);
   }
 
   if (effect.effect_group === "clear_buff") {
-    return applyClearBuffEffect(target);
+    return applyClearBuffEffect(effect, actor, target);
   }
 
   if (effect.effect_group === "resistance") {
-    return applyResistanceEffect(effect, target);
+    return applyResistanceEffect(effect, actor, target);
   }
 
-  return applyGenericStatusEffect(effect, target);
+  return applyGenericStatusEffect(effect, actor, target);
 }
 
 function normalizeEffectTarget(value) {
@@ -1078,19 +1161,26 @@ function resistanceWeakModDelta(effect) {
   return 0;
 }
 
-function applyResistanceEffect(effect, target) {
+function applyResistanceEffect(effect, actor, target) {
   const element = resistanceEffectElement(effect);
   const delta = resistanceWeakModDelta(effect);
   if (!element || !delta) return [];
 
   const weakMods = ensureFighterWeakMods(target);
   const current = weakMods[element];
+  const beforeValue = current.value;
   current.value = clamp(current.value + delta, TEMP_WEAK_MOD_MIN, TEMP_WEAK_MOD_MAX);
   current.turns = Math.max(0, Math.floor(number(effect.turn)));
-  return [{ type: "log", text: `${target.name}は${effect.name}になった！` }];
+  return effectStartLogEvents(
+    effect,
+    actor,
+    target,
+    { changed: current.value - beforeValue },
+    `${target.name}は${effect.name}になった！`,
+  );
 }
 
-function applyHealEffect(effect, target) {
+function applyHealEffect(effect, actor, target) {
   const amount = Math.max(0, Math.abs(effect.damage_value));
   if (amount <= 0) return [];
 
@@ -1099,7 +1189,13 @@ function applyHealEffect(effect, target) {
     target.hp = Math.min(target.maxHp, target.hp + amount);
     const healed = target.hp - beforeHp;
     if (healed > 0) {
-      return [{ type: "log", text: `${target.name}は ${healed} 回復した！` }];
+      return effectStartLogEvents(
+        effect,
+        actor,
+        target,
+        { changed: healed },
+        `${target.name}は ${healed} 回復した！`,
+      );
     }
     return [];
   }
@@ -1109,14 +1205,20 @@ function applyHealEffect(effect, target) {
     target.energy = clamp(target.energy + amount, 0, target.maxEnergy);
     const recovered = target.energy - beforeEnergy;
     if (recovered > 0) {
-      return [{ type: "log", text: `${target.name}のENが ${recovered} 回復した！` }];
+      return effectStartLogEvents(
+        effect,
+        actor,
+        target,
+        { changed: recovered },
+        `${target.name}のENが ${recovered} 回復した！`,
+      );
     }
   }
 
   return [];
 }
 
-function applyEnergyEffect(effect, target) {
+function applyEnergyEffect(effect, actor, target) {
   if (effect.target_stat !== "en") return [];
 
   const amount = Math.max(0, Math.abs(effect.damage_value));
@@ -1130,15 +1232,27 @@ function applyEnergyEffect(effect, target) {
     target.energy = clamp(nextEnergy, 0, target.maxEnergy);
     const changed = target.energy - beforeEnergy;
     if (changed > 0) {
-      return [{ type: "log", text: `${target.name}のENが ${changed} 増えた！` }];
+      return effectStartLogEvents(
+        effect,
+        actor,
+        target,
+        { changed },
+        `${target.name}のENが ${changed} 増えた！`,
+      );
     }
     if (changed < 0) {
-      return [{ type: "log", text: `${target.name}のENが ${Math.abs(changed)} 減った！` }];
+      return effectStartLogEvents(
+        effect,
+        actor,
+        target,
+        { changed },
+        `${target.name}のENが ${Math.abs(changed)} 減った！`,
+      );
     }
     return [];
   }
 
-  return addTimedStatusEffect(effect, target);
+  return addTimedStatusEffect(effect, actor, target);
 }
 
 function twoTurnBattleEffectId(move) {

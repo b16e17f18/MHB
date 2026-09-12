@@ -14,13 +14,13 @@ thunder_protect,雷軽減,guard,none,50,4,TRUE,thunder_damage,guard_break,50,{tu
 ice_protect,氷軽減,guard,none,50,4,TRUE,ice_damage,guard_break,50,{turn}ターンの間、氷属性ダメージが{damage_cut}%軽減される！
 dragon_protect,龍軽減,guard,none,50,4,TRUE,dragon_damage,guard_break,50,{turn}ターンの間、龍属性ダメージが{damage_cut}%軽減される！
 ,,,,,,,,,,
-endure,こらえる,trigger,none,1,1,TRUE,hp,none,0,none
-revenge,反撃準備,trigger,received_damage_rate,150,1,TRUE,none,none,0,{actor}はカウンターを狙っている！
+endure,根性,trigger,none,1,1,TRUE,hp,none,0,none
+revenge,反撃,trigger,received_damage_rate,150,1,TRUE,none,none,0,{actor}はカウンターを狙っている！
 ,,,,,,,,,,
-stun,スタン,control,none,0,1,FALSE,none,none,0,{target}は怯んで動けない！
+stun,怯,control,none,0,1,FALSE,none,none,0,{target}は怯んで動けない！
 wish,猫飯,delayed_heal,percent_maxhp,75,2,TRUE,none,none,0,{actor}は猫飯を用意した！
 switch_after_attack,交代技,change_character,none,0,1,TRUE,none,none,0,{actor}は戦線を離脱した！
-switch_lock,交代封じ,control,none,0,2,TRUE,none,none,0,{target}は交代を封じられた！
+switch_lock,交代封,control,none,0,2,TRUE,none,none,0,{target}は交代を封じられた！
 ,,,,,,,,,,
 fly,上空,position,none,0,1,FALSE,ground_attack,anti_air,0,{actor}は上空へ飛び上がった！
 underground,地中,position,none,0,1,FALSE,surface_attack,ground_wave,0,{actor}は地中へ潜った！

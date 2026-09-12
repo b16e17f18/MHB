@@ -4135,6 +4135,7 @@ function normalizeEffect(row) {
     turn: Math.max(0, number(row.turn, 1)),
     can_move: parseBoolean(row.can_move),
     target_stat: safeText(row.target_stat, "none"),
+    start_text: csvText(row.start_text),
   };
 }
 
