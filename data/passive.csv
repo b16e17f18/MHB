@@ -27,9 +27,9 @@ passive_025,闘争本能,turn_end_stat_up,speed,10,none,none,0,ターン終了�
 passive_026,捕食者の牙,damage_drain,physical_damage,25,element_damage_up,none,15,物理ダメージを与えた時、ダメージの25%を回復する。無属性技の威力が上がる。
 passive_027,深紅の角,two_turn_skip_once,all,1,debuff_immunity,speed_down,0,溜め技を1度だけ溜めがなしになる。敏捷が下がらない。
 passive_028,起源にして頂点,debuff_immunity,debuff,0,battle_effect_immunity,stun,0,怯まない。能力が下がらない。
-passive_029,止まらぬ怒り,debuff_immunity,phy_atk_down,0,debuff_immunity,sp_def_down,0,物理攻撃と敏捷が下がらない。
+passive_029,止まらぬ怒り,debuff_immunity,phy_atk_down,0,debuff_immunity,sp_speed_down,0,物理攻撃と敏捷が下がらない。
 passive_030,幻獣,status_immunity,paralysis,0,debuff_immunity,sp_atk_down,0,麻痺状態にならない。特殊攻撃が下がらない。
-passive_031,ブルーフレア,en_down_immunity,en_down,0,none,none,0,EN減衰を無効にする。火やられ状態にならない。
+passive_031,ブルーフレア,en_down_immunity,en_down,0,status_immunity,burn,0,EN減衰を無効にする。火やられ状態にならない。
 passive_032,風翔,en_down_immunity,en_down,0,element_damage_up,dragon,15,EN減衰を無効にする。龍属性技の威力が上がる。
 passive_033,毒霧,status_immunity,poison,0,debuff_immunity,phy_atk_down,0,毒状態にならない。物理攻撃が下がらない。
 passive_034,龍苔,debuff_immunity,debuff,0,status_immunity,all,0,能力が下がらない。状態異常にならない。
@@ -60,6 +60,6 @@ passive_058,凍土纏い,debuff_immunity,sp_def_down,0,none,none,0,特殊防御�
 passive_059,モンキーラダー,debuff_immunity,phy_atk_down,0,switch_heal,hp,25,物理攻撃が下がらない。場から戦線を離れた時、最大HPの25%を回復する。
 passive_060,動く砦,en_down_immunity,en_down,0,debuff_immunity,sp_def_down,0,EN減衰を無効にする。特殊防御が下がらない。
 passive_061,加速再生,debuff_immunity,speed_down,0,switch_heal,hp,25,敏捷が下がらない。場から戦線を離れた時、最大HPの25%を回復する。
-passive_062,大嵐,en_down_immunity,en_down,0,element_damage_up,thunder,0,EN減衰を無効にする。雷属性技の威力が上がる。
+passive_062,大嵐,en_down_immunity,en_down,0,element_damage_up,thunder,15,EN減衰を無効にする。雷属性技の威力が上がる。
 passive_063,岩竜の涙,status_immunity,burn,0,none,none,0,火やられ状態にならない。
 passive_064,侵攻,turn_end_stat_up,phy_atk,10,none,none,0,ターン終了時、物理攻撃が10%upする。
