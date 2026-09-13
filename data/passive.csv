@@ -18,7 +18,7 @@ passive_016,空の王者,element_damage_up,none,15,effect_chance_up,all,125,無�
 passive_017,黒狼鳥の眼光,heal_block,hp,0,none,none,0,相手はHPを回復する技を使えない。
 passive_018,絶対強者,passive_pierce,all,0,none,none,0,攻撃時、相手のpassiveを無視する。
 passive_019,暗殺者,clear_buff_immunity,clear_buff,0,none,none,0,能力upが解除されない。
-passive_020,海の王者,element_damage_up,watar,15,none,none,0,水属性技の威力が上がる。
+passive_020,海の王者,element_damage_up,water,15,none,none,0,水属性技の威力が上がる。
 passive_021,海綿体の鬣,physical_damage_cut,physical_damage,25,none,none,0,物理ダメージを25%cutする。
 passive_022,爆鎚,debuff_immunity,phy_atk_down,0,debuff_immunity,sp_def_down,0,物理攻撃と特殊防御が下がらない。
 passive_023,蓄電殻,debuff_immunity,sp_atk_down,0,none,none,0,特殊攻撃が下がらない。
