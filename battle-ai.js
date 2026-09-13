@@ -106,7 +106,10 @@ function chooseEnemyBattleAction(context) {
   const target = context.target;
   const aiConfig = enemyAiConfigFor(enemy);
   const allMoves = context.allMoves;
-  const usableMoves = allMoves.filter((move) => move.cost <= enemy.energy);
+  const usableMoves = allMoves.filter((move) => (
+    move.cost <= enemy.energy &&
+    !enemyAiMoveBlockedByHealBlock(enemy, target, move, context)
+  ));
   const usableAttackMoveScores = usableMoves
     .map((move) => scoreEnemyUsableMove(enemy, target, move, context, aiConfig))
     .filter(Boolean)
@@ -233,6 +236,18 @@ function chooseEnemyBattleAction(context) {
     reason: "scored",
   });
   return selected.action;
+}
+
+function enemyAiMoveBlockedByHealBlock(enemy, target, move, context) {
+  return Boolean(
+    typeof findHealBlockForMove === "function" &&
+      findHealBlockForMove({
+        actor: enemy,
+        opponent: target,
+        move,
+        effectLookup: context.effects,
+      })
+  );
 }
 
 function isEnemyAiScoredMove(move, battleEffects) {
