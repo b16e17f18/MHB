@@ -1762,6 +1762,36 @@ button {
   gap: 8px;
 }
 
+.detail-passive {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: 8px;
+}
+
+.detail-passive-card {
+  display: grid;
+  gap: 6px;
+  padding: 10px;
+  border: 3px solid #111111;
+  background: #ffffff;
+  font-weight: 900;
+}
+
+.detail-passive-name {
+  font-size: 1rem;
+  line-height: 1.2;
+}
+
+.detail-passive-text {
+  padding: 7px 8px;
+  border: 2px solid #111111;
+  background: #fff8d8;
+  font-size: 0.9rem;
+  line-height: 1.35;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
 .detail-section-title {
   font-size: 1.1rem;
   font-weight: 900;

@@ -1,5 +1,6 @@
 const DATA_PATHS = {
   characters: "./data/character.csv",
+  passives: "./data/passive.csv",
   skills: "./data/skill.csv",
   powerRules: "./data/power_rule.csv",
   battleEffects: "./data/battle_effect.csv",
@@ -252,6 +253,7 @@ const STAT_LABELS = {
 const STAT_MOD_KEYS = ["phy_atk", "phy_def", "sp_atk", "sp_def", "speed", "regen_value"];
 const STAT_STAGE_MOD_KEYS = ["phy_atk", "phy_def", "sp_atk", "sp_def", "speed"];
 const STAT_STAGE_MOD_KEY_SET = new Set(STAT_STAGE_MOD_KEYS);
+const TURN_END_STAT_UP_MAX = 40;
 
 const GENERATED_SKILLS = {
   basic_strike: {
@@ -305,6 +307,7 @@ const dialogueManager = new DialogueManager();
 const state = {
   characters: [],
   characterMap: new Map(),
+  passives: new Map(),
   skills: new Map(),
   powerRules: new Map(),
   effects: new Map(),
@@ -1551,6 +1554,7 @@ function renderLabOwnedMonsterDetailContent(entry) {
         ${renderLabDetailStat("敏捷", "speed", character.speed, displayedCharacter.speed)}
         ${renderLabDetailStat("回復力", "regen_value", displayedCharacter.regen_value, character.regen_value)}
       </div>
+      ${renderDexPassiveSection(character)}
       <div class="detail-skills">
         <div class="detail-section-title">技</div>
         ${movesForCharacter(character)
@@ -2727,6 +2731,7 @@ function renderMyHouseCompleteMonsterDetail(character, ownedMonster = null) {
         ${detailStat("敏捷", displayedCharacter.speed, "speed", { baseValue: character.speed })}
         ${detailStat("回復力", displayedCharacter.regen_value, "regen_value", { baseValue: character.regen_value })}
       </div>
+      ${renderDexPassiveSection(character)}
       <div class="detail-skills">
         <div class="detail-section-title">技</div>
         ${movesForCharacter(character)
@@ -2739,6 +2744,23 @@ function renderMyHouseCompleteMonsterDetail(character, ownedMonster = null) {
           ${ELEMENT_TYPES.map((element) => resistanceCell(displayedCharacter, element)).join("")}
         </div>
       </div>
+    </div>
+  `;
+}
+
+function renderDexPassiveSection(character) {
+  const passive = character?.passive ?? passiveForCharacter(character);
+  const passiveName = safeText(passive?.name);
+  const passiveText = safeText(passive?.text);
+  if (!passive || (!passiveName && !passiveText)) return "";
+
+  return `
+    <div class="detail-passive">
+      <div class="detail-section-title">特性</div>
+      <article class="detail-passive-card">
+        ${passiveName ? `<strong class="detail-passive-name">${escapeHtml(passiveName)}</strong>` : ""}
+        ${passiveText ? `<div class="detail-passive-text">${escapeHtml(passiveText)}</div>` : ""}
+      </article>
     </div>
   `;
 }
@@ -3423,6 +3445,7 @@ function renderShopMonsterConfirmDetail(monster) {
         <span>特殊防御 <strong>${escapeHtml(monster.sp_def)}</strong></span>
         <span>敏捷 <strong>${escapeHtml(monster.speed)}</strong></span>
       </div>
+      ${renderDexPassiveSection(monster)}
     </div>
   `;
 }
@@ -3788,6 +3811,7 @@ async function loadGameData() {
   try {
     const [
       characterText,
+      passiveText,
       skillText,
       powerRuleText,
       battleEffectText,
@@ -3804,6 +3828,7 @@ async function loadGameData() {
       npcText,
     ] = await Promise.all([
       loadCsvText("characters", DATA_PATHS.characters),
+      loadCsvText("passives", DATA_PATHS.passives),
       loadCsvText("skills", DATA_PATHS.skills),
       loadOptionalCsvText("powerRules", DATA_PATHS.powerRules),
       loadCsvText("battleEffects", DATA_PATHS.battleEffects),
@@ -3826,6 +3851,18 @@ async function loadGameData() {
     state.characterMap = new Map(
       state.characters.map((character) => [character.character_id, character]),
     );
+
+    state.passives.clear();
+    for (const passive of rowsFromCsv(passiveText).map(normalizePassive)) {
+      if (passive.passive_id) {
+        state.passives.set(passive.passive_id, passive);
+      }
+    }
+
+    for (const character of state.characters) {
+      character.passive = passiveForCharacter(character);
+      character.passiveEffects = character.passive?.effects ?? [];
+    }
 
     state.bgmMap.clear();
     for (const bgm of rowsFromCsv(bgmText).map(normalizeBgm)) {
@@ -4060,6 +4097,7 @@ function normalizeCharacter(row) {
     ai_type: safeText(row.ai_type, "balanced"),
     ai_setup_skill: safeText(row.ai_setup_skill),
     ai_main_skill: safeText(row.ai_main_skill),
+    passive_id: safeText(row.passive_id),
     element,
     weaknesses: {
       fire: number(row.weak_fire, 100) / 100,
@@ -4512,6 +4550,7 @@ function renderDetailPanel() {
         ${detailStat("敏捷", character.speed, "speed")}
         ${detailStat("回復力", character.regen_value, "regen_value")}
       </div>
+      ${renderDexPassiveSection(character)}
       <div class="detail-skills">
         <div class="detail-section-title">技</div>
         ${movesForCharacter(character)
@@ -4666,6 +4705,17 @@ function renderDexPanel() {
       </div>
     `
     : "";
+  const dexPassiveSection = canViewCharacter ? renderDexPassiveSection(character) : "";
+  const dexSkillsSection = canViewCharacter
+    ? `
+      <div class="detail-skills">
+        <div class="detail-section-title">技</div>
+        ${movesForCharacter(character)
+          .map((move) => renderSkillDetail(move))
+          .join("")}
+      </div>
+    `
+    : "";
 
   els.dexPanel.innerHTML = `
     <div class="detail-header">
@@ -4704,6 +4754,8 @@ function renderDexPanel() {
         </div>
         ${dexStatsSection}
         ${dexResistanceSection}
+        ${dexPassiveSection}
+        ${dexSkillsSection}
       </section>
     </div>
   `;
@@ -5932,9 +5984,17 @@ function selectedBattleFighterSources() {
     .filter(Boolean);
 }
 
+function passiveForCharacter(character) {
+  const passiveId = safeText(character?.passive_id);
+  return passiveId ? state.passives.get(passiveId) ?? null : null;
+}
+
 function createFighter(character, options = {}) {
   const equipment = equippedAccessoryForOwnedMonster(options.ownedMonster, character);
   const battleBase = applyEquipmentBonusesToCharacter(character, equipment);
+  const passive = passiveForCharacter(character);
+  const passiveEffects = passive?.effects ?? [];
+  const maxEnergy = 7;
   return {
     id: character.character_id,
     name: character.name,
@@ -5942,10 +6002,17 @@ function createFighter(character, options = {}) {
     equipment,
     base: battleBase,
     originalBase: character,
+    passiveId: passive?.passive_id ?? safeText(character.passive_id),
+    passive,
+    passiveEffects,
+    passiveState: {
+      survive_once_used: false,
+      two_turn_skip_once_used: false,
+    },
     maxHp: battleBase.hp,
     hp: battleBase.hp,
-    maxEnergy: 7,
-    energy: START_ENERGY,
+    maxEnergy,
+    energy: clamp(startEnergyFromPassiveEffects(passiveEffects, START_ENERGY), 0, maxEnergy),
     fainted: false,
     statMods: createEmptyStatMods(),
     weakMods: createEmptyWeakMods(),
@@ -6220,6 +6287,7 @@ function renderEnemyInfoPanel(enemy, inspectSide = "enemy") {
         <span>状態</span>
         <strong>${renderFighterStatusChips(enemy)}</strong>
       </div>
+      ${renderDexPassiveSection(enemy)}
       <div class="detail-section-title">属性耐性</div>
       <div class="resistance-grid battle-inspect-resistance-grid">
         ${ELEMENT_TYPES.map((element) => resistanceCell(enemy.base, element)).join("")}
@@ -6318,6 +6386,7 @@ function renderMoveGrid(fighter) {
   }
 
   const pendingMoveId = pendingSkillId(fighter);
+  const opponent = activeEnemy();
   const saveEnergyDisabled =
     state.busy ||
     state.gameOver ||
@@ -6325,17 +6394,22 @@ function renderMoveGrid(fighter) {
     Boolean(pendingMoveId);
   const moveButtons = movesForCharacter(fighter.base)
     .map((move) => {
+      const healBlockReason = healBlockMoveDisabledReason(fighter, opponent, move);
       const disabled =
         state.busy ||
         state.gameOver ||
         Boolean(state.pendingSwitchSide) ||
-        (pendingMoveId ? move.skill_id !== pendingMoveId : fighter.energy < move.cost);
+        (pendingMoveId ? move.skill_id !== pendingMoveId : fighter.energy < move.cost) ||
+        Boolean(healBlockReason);
       const powerText = move.category === "attack" ? move.power : "-";
       const elementClassName = elementClass(move.element);
       const kindText = move.category === "attack" ? attackTypeLabel(move.attack_type) : moveCategoryLabel(move.category);
       const moveText = move.text;
+      const disabledTitle = healBlockReason
+        ? ` title="${escapeHtml(healBlockReason)}" aria-label="${escapeHtml(`${move.name} ${healBlockReason}`)}"`
+        : "";
       return `
-        <button class="move-button move-element-${elementClassName}" type="button" data-move-id="${move.skill_id}" ${disabled ? "disabled" : ""}>
+        <button class="move-button move-element-${elementClassName}" type="button" data-move-id="${move.skill_id}" ${disabled ? "disabled" : ""}${disabledTitle}>
           <span class="move-name">${escapeHtml(move.name)}</span>
           <span class="move-cost">${energyBadge(move.cost)}</span>
           <span class="move-element">${escapeHtml(elementName(move.element))}</span>
@@ -6768,6 +6842,25 @@ function skillNamesFor(character) {
     .map((skill) => skill.name);
 }
 
+function healBlockForMove(actor, opponent, move) {
+  return findHealBlockForMove({
+    actor,
+    opponent,
+    move,
+    effectLookup: state.effects,
+  });
+}
+
+function healBlockMoveDisabledReason(actor, opponent, move) {
+  const healBlock = healBlockForMove(actor, opponent, move);
+  if (!healBlock) return "";
+
+  const passiveName = safeText(healBlock.passive_name ?? healBlock.name);
+  return passiveName && opponent
+    ? `${opponent.name}の${passiveName}で使用できない`
+    : "使用できない";
+}
+
 function playerChooseMove(moveId) {
   if (state.busy || state.gameOver || state.pendingSwitchSide) return;
   const fighter = activePlayer();
@@ -6777,6 +6870,7 @@ function playerChooseMove(moveId) {
 
   const move = moveForFighter(fighter, selectedMoveId);
   if (!move || (!pendingMoveId && fighter.energy < move.cost)) return;
+  if (!pendingMoveId && healBlockForMove(fighter, activeEnemy(), move)) return;
   resolveTurn({ side: "player", type: "move", moveId: selectedMoveId });
 }
 
@@ -6876,7 +6970,7 @@ async function applyPostAttackChangeCharacter(side, actor, battleEffect) {
 
 function switchAfterAttack(side, index, options = {}) {
   const previous = activeBySide(side);
-  switchActive(side, index);
+  switchActive(side, index, { switchHeal: true });
   const current = activeBySide(side);
   if (!previous || !current || previous === current) return false;
 
@@ -7123,7 +7217,7 @@ function decorateAction(action) {
   return {
     ...action,
     actorRef: actor,
-    priority: move ? move.priority : 0,
+    priority: move ? movePriorityWithPassive(actor, move, move.priority) : 0,
     speed: actor ? effectiveStat(actor, "speed") : 0,
   };
 }
@@ -7145,7 +7239,7 @@ async function executeAction(action) {
       await pause(420);
       return;
     }
-    switchActive(action.side, action.index);
+    switchActive(action.side, action.index, { switchHeal: true });
     if (action.side === "player") {
       state.commandMode = "fight";
     }
@@ -7180,11 +7274,14 @@ async function executeAction(action) {
   const positionBeforeAction = positionEffectId(actor);
 
   const targetSide = pendingSkill?.targetSide ?? (action.side === "player" ? "enemy" : "player");
+  const opponent = activeBySide(action.side === "player" ? "enemy" : "player");
   const target = baseMove.target === "self" ? actor : activeBySide(targetSide);
   if (!target || target.fainted) return;
   const move = completingTwoTurnMove
     ? moveWithPendingPower(baseMove, pendingSkill, actor, target, state.powerRules)
     : moveWithEffectivePower(baseMove, actor, target, state.powerRules);
+
+  if (!completingTwoTurnMove && healBlockForMove(actor, opponent, move)) return;
 
   const blockText = blockedByControl(actor);
   if (blockText) {
@@ -7200,16 +7297,28 @@ async function executeAction(action) {
     return;
   }
 
+  const twoTurnEffectId = !completingTwoTurnMove && move.category === "attack"
+    ? twoTurnBattleEffectId(move)
+    : "";
+  const twoTurnSkipOnce = twoTurnEffectId && !actor.passiveState?.two_turn_skip_once_used
+    ? twoTurnSkipOncePassiveEffect(actor, move)
+    : null;
+
   if (!completingTwoTurnMove) {
     actor.energy = clamp(actor.energy - move.cost, 0, actor.maxEnergy);
+  }
+  if (twoTurnSkipOnce) {
+    actor.passiveState = actor.passiveState ?? {};
+    actor.passiveState.two_turn_skip_once_used = true;
+    applyBattleCoreEvents(passiveActivationLogEvents(actor, twoTurnSkipOnce));
+    await pause(300);
   }
   pushLog(`${actor.name}の ${move.name}！`);
   await pause(420);
 
   if (!completingTwoTurnMove && move.category === "attack") {
-    const twoTurnEffectId = twoTurnBattleEffectId(move);
     const pendingTargetSide = move.target === "self" ? action.side : targetSide;
-    const startedTwoTurnMove = twoTurnEffectId
+    const startedTwoTurnMove = twoTurnEffectId && !twoTurnSkipOnce
       ? startTwoTurnMove(actor, move, twoTurnEffectId, pendingTargetSide, state.battleEffects, state.turn)
       : null;
     if (startedTwoTurnMove) {
@@ -7234,7 +7343,7 @@ async function executeAction(action) {
         target,
         state.effects,
         STAT_LABELS,
-        { targets: ["self"] },
+        { targets: ["self"], opponent },
       ));
       renderBattle();
       await playBattleEffectAnimation(startedTwoTurnMove.battleEffect, action.side);
@@ -7268,7 +7377,11 @@ async function executeAction(action) {
     if (result.damage > 0) {
       flashSprite(targetSide);
       pushLog(`${target.name}に ${result.damage} ダメージ！${result.effectText}`);
+      applyBattleCoreEvents(result.events);
       applyBattleCoreEvents(clearSleepOnAttackDamage(target));
+      if (result.drainHeal > 0) {
+        pushLog(`${actor.name}は ${result.drainHeal} 回復した！`);
+      }
     } else {
       pushLog(result.effectText.trim());
     }
@@ -7289,7 +7402,10 @@ async function executeAction(action) {
         target,
         state.effects,
         STAT_LABELS,
-        target.fainted ? { targets: ["self"] } : completingTwoTurnMove ? { targets: ["enemy"] } : {},
+        {
+          ...(target.fainted ? { targets: ["self"] } : completingTwoTurnMove ? { targets: ["enemy"] } : {}),
+          opponent,
+        },
       );
       applyBattleCoreEvents(skillEffectEvents);
       if (!target.fainted) {
@@ -7309,7 +7425,7 @@ async function executeAction(action) {
       changeCharacterBattleEffect = triggeredChangeCharacterBattleEffect(move);
     }
   } else {
-    applyBattleCoreEvents(applySkillEffects(move, actor, target, state.effects, STAT_LABELS));
+    applyBattleCoreEvents(applySkillEffects(move, actor, target, state.effects, STAT_LABELS, { opponent }));
     await pause(360);
   }
 
@@ -7322,6 +7438,9 @@ async function executeAction(action) {
   }
 
   if (!completingTwoTurnMove) {
+    const excludedBattleEffectIds = new Set();
+    if (returnedPosition) excludedBattleEffectIds.add(returnedPosition);
+    if (twoTurnSkipOnce && twoTurnEffectId) excludedBattleEffectIds.add(twoTurnEffectId);
     const battleEffectResult = applyBattleEffects(
       move,
       actor,
@@ -7330,7 +7449,7 @@ async function executeAction(action) {
       state.turn,
       state.fieldEffects,
       state.nextFieldEffectId,
-      returnedPosition ? new Set([returnedPosition]) : null,
+      excludedBattleEffectIds.size ? excludedBattleEffectIds : null,
       sideForActiveFighter(actor),
       sideForActiveFighter(target),
     );
@@ -7509,6 +7628,22 @@ function consumeStunForMoveAction(fighter) {
   return `${fighter.name}は怯んで動けない！`;
 }
 
+function applyTurnEndStatUpPassive(fighter) {
+  if (!fighter || fighter.fainted || !fighter.statMods) return false;
+
+  const statUp = turnEndStatUpFromPassive(fighter);
+  if (!statUp || statUp.value <= 0) return false;
+  if (!Object.prototype.hasOwnProperty.call(fighter.statMods, statUp.stat)) return false;
+
+  const before = number(fighter.statMods[statUp.stat]);
+  const after = Math.min(TURN_END_STAT_UP_MAX, before + statUp.value);
+  if (after === before) return false;
+
+  fighter.statMods[statUp.stat] = after;
+  applyBattleCoreEvents(passiveActivationLogEvents(fighter, statUp.passiveEffect));
+  return true;
+}
+
 async function endRound() {
   const energyChargeThisRound = new Map();
 
@@ -7535,6 +7670,10 @@ async function endRound() {
     tickWeakModsAfterRound(fighter);
     await handleFaint(side);
     if (state.gameOver) return;
+
+    if (applyTurnEndStatUpPassive(fighter)) {
+      await pause(300);
+    }
 
     const regenValue = effectiveRegenValue(fighter);
     if (!fighter.fainted && regenValue > 0 && fighter.hp < fighter.maxHp) {
@@ -7818,6 +7957,9 @@ function switchActive(side, index, options = {}) {
   const next = team[index];
   if (!next || next.fainted) return;
   if (previous && previous !== next) {
+    if (options.switchHeal) {
+      applySwitchHealPassive(previous);
+    }
     clearSwitchVolatileState(previous);
   }
 
@@ -7831,6 +7973,24 @@ function switchActive(side, index, options = {}) {
   if (options.resetEnergy && fighter && !fighter.fainted) {
     fighter.energy = START_ENERGY;
   }
+}
+
+function applySwitchHealPassive(fighter) {
+  if (!fighter || fighter.fainted || fighter.hp <= 0 || fighter.hp >= fighter.maxHp) return 0;
+
+  const healPercent = switchHealPercentFromPassive(fighter);
+  if (healPercent <= 0) return 0;
+
+  const healAmount = Math.floor(fighter.maxHp * healPercent / 100);
+  if (healAmount <= 0) return 0;
+
+  const beforeHp = fighter.hp;
+  fighter.hp = Math.min(fighter.maxHp, fighter.hp + healAmount);
+  const healed = fighter.hp - beforeHp;
+  if (healed > 0) {
+    pushLog(`${fighter.name}は ${healed} 回復した！`);
+  }
+  return healed;
 }
 
 function clearSwitchVolatileState(fighter) {

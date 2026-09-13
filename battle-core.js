@@ -202,7 +202,10 @@ function dealDamage(attacker, target, move, targetFieldEffects = []) {
     return {
       damage: 0,
       effectText: ` ${hitCheck.reason}`,
+      actualDamage: 0,
+      drainHeal: 0,
       revengeDamage: 0,
+      events: [],
     };
   }
 
@@ -213,21 +216,51 @@ function dealDamage(attacker, target, move, targetFieldEffects = []) {
   const elementMultiplier = weaknessMultiplier(target, move.element);
   const sameElementBonus =
     move.element !== "none" && move.element === attacker.base.element ? 1.15 : 1;
+  const elementPassiveMultiplier = elementDamageMultiplierFromPassive(attacker, move);
+  const physicalPassiveMultiplier = physicalDamageMultiplierFromPassive(target, move, { actor: attacker });
   const variance = 0.9 + Math.random() * 0.15;
   let damage = (move.power * 1.45 + attackStat * 0.48) * ratio;
   let effectText = effectivenessText(elementMultiplier);
 
-  damage *= elementMultiplier * sameElementBonus * variance;
+  damage *= elementMultiplier *
+    sameElementBonus *
+    elementPassiveMultiplier *
+    physicalPassiveMultiplier *
+    variance;
   damage = applyIncomingBattleEffects(target, damage, move, targetFieldEffects);
   damage = Math.max(1, Math.round(damage));
 
+  const beforeTargetHp = target.hp;
+  const events = [];
   const endure = target.battleEffects.find((effect) => effect.id === "endure");
   if (endure && target.hp - damage <= 0) {
     target.hp = 1;
     removeBattleEffect(target, "endure");
     effectText += " こらえた！";
+  } else if (attacker !== target && target.hp === target.maxHp && target.hp - damage <= 0) {
+    const surviveOnce = target.passiveState?.survive_once_used
+      ? null
+      : surviveOncePassiveEffect(target, move, { actor: attacker });
+    if (surviveOnce) {
+      target.passiveState = target.passiveState ?? {};
+      target.passiveState.survive_once_used = true;
+      target.hp = 1;
+      events.push(...passiveActivationLogEvents(target, surviveOnce));
+    } else {
+      target.hp = Math.max(0, target.hp - damage);
+    }
   } else {
     target.hp = Math.max(0, target.hp - damage);
+  }
+  const actualDamage = Math.max(0, beforeTargetHp - target.hp);
+
+  let drainHeal = 0;
+  const drainPercent = attacker !== target ? damageDrainPercentFromPassive(attacker, move) : 0;
+  if (actualDamage > 0 && drainPercent > 0 && attacker && !attacker.fainted && attacker.hp < attacker.maxHp) {
+    const drainAmount = Math.floor(actualDamage * drainPercent / 100);
+    const beforeAttackerHp = attacker.hp;
+    attacker.hp = Math.min(attacker.maxHp, attacker.hp + drainAmount);
+    drainHeal = attacker.hp - beforeAttackerHp;
   }
 
   const revenge = target.battleEffects.find((effect) => effect.id === "revenge");
@@ -235,7 +268,7 @@ function dealDamage(attacker, target, move, targetFieldEffects = []) {
     revenge && damage > 0 ? Math.max(1, Math.round(damage * ((revenge.damage_value || 50) / 100))) : 0;
   if (revenge) removeBattleEffect(target, "revenge");
 
-  return { damage, effectText, revengeDamage };
+  return { damage, effectText, actualDamage, drainHeal, revengeDamage, events };
 }
 
 function addBattleEffect(fighter, battleEffect, currentTurn, extra = {}) {
@@ -285,6 +318,12 @@ function applyDamageLinkedStun(move, actor, target, battleEffects, currentTurn) 
   for (const [battleEffectId, chance] of pairs) {
     if (battleEffectId !== STUN_BATTLE_EFFECT_ID || chance <= 0) continue;
     if (Math.random() * 100 > chance) continue;
+
+    const blockedBy = findBlockingBattleEffectPassive({ actor, target, battleEffect: stunEffect, move });
+    if (blockedBy) {
+      events.push(...passiveActivationLogEvents(target, blockedBy));
+      continue;
+    }
 
     addBattleEffect(target, stunEffect, currentTurn);
     events.push(...battleEffectStartLogEvents(actor, stunEffect, target));
@@ -455,11 +494,17 @@ function effectStartLogEvents(effect, actor, target, context = {}, fallbackText 
   return text ? [{ type: "log", text }] : [];
 }
 
-function applyStandardBattleEffect(actor, target, battleEffect, currentTurn) {
+function applyStandardBattleEffect(actor, target, battleEffect, currentTurn, move = null) {
   const appliedBattleEffects = [];
   const events = [];
   const recipient = battleEffect.battle_effect_id === STUN_BATTLE_EFFECT_ID ? target : actor;
   if (!recipient) return { appliedBattleEffects, events };
+
+  const blockedBy = findBlockingBattleEffectPassive({ actor, target: recipient, battleEffect, move });
+  if (blockedBy) {
+    events.push(...passiveActivationLogEvents(recipient, blockedBy));
+    return { appliedBattleEffects, events };
+  }
 
   addBattleEffect(recipient, battleEffect, currentTurn);
   events.push(...battleEffectStartLogEvents(actor, battleEffect, recipient));
@@ -560,6 +605,7 @@ function delayedBattleEffectPayload(move, actor, battleEffect) {
       animation_id: safeText(move.animation_id),
       animation_duration_ms: Math.max(0, number(move.animation_duration_ms)),
       repeat_count: Math.max(0, number(move.repeat_count)),
+      isBattleEffectDamage: true,
     },
     source: {
       name: actor.name,
@@ -863,6 +909,7 @@ function applyBattleEffects(
       target,
       battleEffect,
       currentTurn,
+      move,
     );
     events.push(...standardBattleEffectResult.events);
     appliedBattleEffects.push(...standardBattleEffectResult.appliedBattleEffects);
@@ -1055,18 +1102,21 @@ function applyGenericStatusEffect(effect, actor, target) {
   );
 }
 
-function applyEffect(effectId, actor, target, effects, statLabels = {}) {
+function applyEffect(effectId, actor, target, effects, statLabels = {}, context = {}) {
   if (!target) return [];
 
   if (effectId === "def_down") {
     return [
-      ...applyEffect("phy_def_down", actor, target, effects, statLabels),
-      ...applyEffect("sp_def_down", actor, target, effects, statLabels),
+      ...applyEffect("phy_def_down", actor, target, effects, statLabels, context),
+      ...applyEffect("sp_def_down", actor, target, effects, statLabels, context),
     ];
   }
 
   const effect = effects?.get(effectId);
   if (!effect) return [];
+
+  const blockedBy = findBlockingEffectPassive({ actor, target, effect, move: context.move });
+  if (blockedBy) return passiveActivationLogEvents(target, blockedBy);
 
   if (effect.effect_group === "heal") {
     return applyHealEffect(effect, actor, target);
@@ -1101,6 +1151,7 @@ function normalizeEffectTarget(value) {
 
 function applySkillEffects(move, actor, target, effects, statLabels, options = {}) {
   const events = [];
+  const context = { ...options, move };
   const allowedTargets = Array.isArray(options.targets)
     ? new Set(options.targets.map(normalizeEffectTarget))
     : null;
@@ -1114,13 +1165,14 @@ function applySkillEffects(move, actor, target, effects, statLabels, options = {
     if (!effectId || effectId === "none" || chance <= 0) continue;
     const normalizedTarget = normalizeEffectTarget(effectTarget);
     if (allowedTargets && !allowedTargets.has(normalizedTarget)) continue;
-    if (Math.random() * 100 <= chance) {
+    if (Math.random() * 100 <= effectChanceWithPassive(actor, chance)) {
       events.push(...applyEffect(
         effectId,
         actor,
         skillEffectRecipient(normalizedTarget, actor, target),
         effects,
         statLabels,
+        context,
       ));
     }
   }
@@ -1293,6 +1345,7 @@ function delayedEffectMove(effect) {
     animation_id: safeText(effect.delayedMove.animation_id),
     animation_duration_ms: Math.max(0, number(effect.delayedMove.animation_duration_ms)),
     repeat_count: Math.max(0, number(effect.delayedMove.repeat_count)),
+    isBattleEffectDamage: true,
     target: "enemy",
   };
 }

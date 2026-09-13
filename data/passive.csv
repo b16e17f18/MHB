@@ -1,65 +1,65 @@
-character_id,character_name,passive_id,name,passive_type1,target_id1,value1,passive_type2,target_id2,value2,condition_type1,condition_value1,condition_type2,condition_value2,text
-character_001,ƒhƒXƒ‰ƒ“ƒ|ƒX,passive_001,’Ç‰ÁŒø‰ÊŠm—¦1.5”{,effect_chance_up,all,150,none,none,0,none,0,none,0,’Ç‰ÁŒø‰Ê‚Ì”­¶—¦‚ª1.5”{B
-character_002,ƒhƒXƒtƒ@ƒ“ƒS,passive_002,•¨—UŒ‚down–³Œø,debuff_immunity,phy_atk_down,0,none,none,0,none,0,none,0,•¨—UŒ‚‚ª‰º‚ª‚ç‚È‚¢B
-character_003,ƒQƒŠƒ‡ƒX,passive_003,“Å–³Œø,status_immunity,poison,0,none,none,0,none,0,none,0,“Åó‘Ô‚É‚È‚ç‚È‚¢B
-character_004,ƒCƒƒƒ“ƒNƒbƒN,passive_004,debuff–³Œø,debuff_immunity,debuff,0,none,none,0,none,0,none,0,”\—Í‚ª‰º‚ª‚ç‚È‚¢B
-character_005,ƒoƒoƒRƒ“ƒK,passive_005,,,,,,,,,,,,
-character_006,ƒ_ƒCƒ~ƒ‡ƒEƒUƒUƒ~,passive_006,•¨—–hŒädown–³Œø,debuff_immunity,phy_def_down,0,none,none,0,none,0,none,0,•¨—–hŒä‚ª‰º‚ª‚ç‚È‚¢B
-character_007,ƒhƒXƒKƒŒƒIƒX,passive_007,‡–°–³Œø,status_immunity,sleep,0,none,none,0,none,0,none,0,‡–°ó‘Ô‚É‚È‚ç‚È‚¢B
-character_008,ƒŠƒIƒŒƒCƒA,passive_008,,,,,,,,,,,,
-character_009,ƒhƒhƒuƒ‰ƒ“ƒS,passive_009,‹¯‚İ–³Œø,battle_effect_immunity,stun,0,none,none,0,none,0,none,0,‹¯‚Ü‚È‚¢B
-character_010,ƒhƒXƒQƒlƒ|ƒX,passive_010,’Ç‰ÁŒø‰ÊŠm—¦1.5”{,effect_chance_up,all,150,none,none,0,none,0,none,0,’Ç‰ÁŒø‰Ê‚Ì”­¶—¦‚ª1.5”{B
-character_011,ƒKƒmƒgƒgƒX,passive_011,,,,,,,,,,,,
-character_012,ƒVƒ‡ƒEƒOƒ“ƒMƒUƒ~,passive_012,,,,,,,,,,,,
-character_013,ƒtƒ‹ƒtƒ‹,passive_013,–ƒáƒ–³Œø,status_immunity,paralysis,0,none,none,0,none,0,none,0,–ƒáƒó‘Ô‚É‚È‚ç‚È‚¢B
-character_014,ƒOƒ‰ƒrƒ‚ƒX,passive_014,,,,,,,,,,,,
-character_015,ƒfƒBƒAƒuƒƒX,passive_015,•¨—UŒ‚down–³Œø,debuff_immunity,phy_atk_down,0,none,none,0,none,0,none,0,•¨—UŒ‚‚ª‰º‚ª‚ç‚È‚¢B
-character_016,ƒŠƒIƒŒƒEƒX,passive_016,,,,,,,,,,,,
-character_017,ƒCƒƒƒ“ƒKƒ‹ƒ‹ƒK,passive_017,,,,,,,,,,,,
-character_018,ƒeƒBƒKƒŒƒbƒNƒX,passive_018,‚©‚½‚â‚Ô‚è,passive_pierce,all,0,none,none,0,none,0,none,0,UŒ‚A‘Šè‚ÌƒpƒbƒVƒuŒø‰Ê‚ğ–³‹‚·‚éB
-character_019,ƒiƒ‹ƒKƒNƒ‹ƒK,passive_019,,,,,,,,,,,,
-character_020,ƒ‰ƒMƒAƒNƒ‹ƒX,passive_020,–³‘®«‹­‰»,element_damage_up,none,15,none,none,0,none,0,none,0,–³‘®«‹Z‚ÌˆĞ—Í‚ªã‚ª‚éB
-character_021,ƒƒAƒ‹ƒhƒƒX,passive_021,•¨—ƒ_ƒ[ƒWŒ¸,physical_damage_cut,physical_damage,25,none,none,0,none,0,none,0,•¨—ƒ_ƒ[ƒW‚ğcut‚·‚éB
-character_022,ƒEƒ‰ƒKƒ“ƒLƒ“,passive_022,,,,,,,,,,,,
-character_023,ƒWƒ“ƒIƒEƒK,passive_023,,,,,,,,,,,,
-character_024,ƒxƒŠƒIƒƒX,passive_024,,,,,,,,,,,,
-character_025,ƒ‰[ƒWƒƒƒ“,passive_025,,,,,,,,,,,,
-character_026,ƒCƒrƒ‹ƒWƒ‡[,passive_026,,,,,,,,,,,,
-character_027,ƒ‚ƒmƒuƒƒX,passive_027,,,,,,,,,,,,
-character_028,ƒAƒJƒ€ƒgƒ‹ƒ€,passive_028,debuff–³Œø,debuff_immunity,debuff,0,none,none,0,none,0,none,0,”\—Í‚ª‰º‚ª‚ç‚È‚¢B
-character_029,ƒGƒXƒsƒiƒX,passive_029,,,,,,,,,,,,
-character_030,ƒLƒŠƒ“,passive_030,,,,,,,,,,,,
-character_031,ƒiƒiƒeƒXƒJƒgƒŠ,passive_031,,,,,,,,,,,,
-character_032,ƒNƒVƒƒƒ‹ƒ_ƒIƒ‰,passive_032,,,,,,,,,,,,
-character_033,ƒIƒIƒiƒYƒ`,passive_033,,,,,,,,,,,,
-character_034,ƒ„ƒ}ƒcƒJƒ~,passive_034,debuff–³Œø,debuff_immunity,debuff,0,none,none,0,none,0,none,0,”\—Í‚ª‰º‚ª‚ç‚È‚¢B
-character_035,ƒeƒIƒeƒXƒJƒgƒ‹,passive_035,,,,,,,,,,,,
-character_036,ƒ~ƒ‰ƒ{ƒŒƒAƒX,passive_036,,,,,,,,,,,,
-character_037,ƒuƒ‰ƒLƒfƒBƒIƒX,passive_037,,,,,,,,,,,,
-character_038,ƒlƒ‹ƒXƒLƒ…ƒ‰,passive_038,,,,,,,,,,,,
-character_039,ƒ^ƒ}ƒ~ƒcƒl,passive_039,‹­‰»‰ğœ–³Œø,clear_buff_immunity,clear_buff,0,none,none,0,none,0,none,0,”\—Íup‚ª‰ğœ‚³‚ê‚È‚¢B
-character_040,ƒfƒBƒmƒoƒ‹ƒh,passive_040,,,,,,,,,,,,
-character_041,ƒKƒ€[ƒg,passive_041,‰ŠúEN‚Q,start_energy,en,2,none,none,0,none,0,none,0,EN2‚Åí“¬ŠJn‚·‚éB
-character_042,ƒ‰ƒCƒ[ƒNƒX,passive_042,,,,,,,,,,,,
-character_043,ƒKƒ‰ƒ‰ƒAƒWƒƒƒ‰,passive_043,ENŒ¸Š–³Œø,energy_down_immunity,en_down,0,none,none,0,none,0,none,0,ENŒ¸Š‚ğ–³Œø‚É‚·‚éB
-character_044,ƒSƒAEƒ}ƒKƒ‰,passive_044,,,,,,,,,,,,
-character_045,ƒUƒ{ƒAƒUƒMƒ‹,passive_045,,,,,,,,,,,,
-character_046,ƒƒ‰ƒ‹[,passive_046,,,,,,,,,,,,
-character_047,ƒEƒJƒ€ƒ‹ƒoƒX,passive_047,debuff–³Œø,debuff_immunity,debuff,0,none,none,0,none,0,none,0,”\—Í‚ª‰º‚ª‚ç‚È‚¢B
-character_048,ƒAƒ‹ƒoƒgƒŠƒIƒ“,passive_048,‰ŠúEN‚Q,start_energy,en,2,none,none,0,none,0,none,0,EN2‚Åí“¬ŠJn‚·‚éB
-character_049,ƒhƒXƒC[ƒIƒX,passive_049,’Ç‰ÁŒø‰ÊŠm—¦1.5”{,effect_chance_up,all,150,none,none,0,none,0,none,0,’Ç‰ÁŒø‰Ê‚Ì”­¶—¦‚ª1.5”{B
-character_050,ƒAƒIƒAƒVƒ‰,passive_050,,,,,,,,,,,,
-character_051,ƒLƒ“ƒOƒ`ƒƒƒ`ƒƒƒu[,passive_051,,,,,,,,,,,,
-character_052,ƒEƒ‹ƒNƒXƒX,passive_052,,,,,,,,,,,,
-character_053,ƒzƒƒƒzƒ‹ƒ‹,passive_053,‡–°–³Œø,status_immunity,sleep,0,none,none,0,none,0,none,0,‡–°ó‘Ô‚É‚È‚ç‚È‚¢B
-character_054,ƒZƒ‹ƒŒƒMƒIƒX,passive_054,,,,,,,,,,,,
-character_055,ƒQƒlƒ‹EƒZƒ‹ƒ^ƒX,passive_055,•Ï‰»‹Z—Dæ“x+1B,status_move_priority_up,all,1,none,none,0,none,0,none,0,•Ï‰»‹Z—Dæ“x+1B
-character_056,ƒoƒ‹ƒtƒ@ƒ‹ƒN,passive_056,,,,,,,,,,,,
-character_057,ƒ{ƒ‹ƒ{ƒƒX,passive_057,,,,,,,,,,,,
-character_058,ƒAƒOƒiƒRƒgƒ‹ˆŸí,passive_058,,,,,,,,,,,,
-character_059,ƒPƒ`ƒƒƒƒ`ƒƒ,passive_059,,,,,,,,,,,,
-character_060,ƒVƒFƒ“ƒKƒIƒŒƒ“,passive_060,,,,,,,,,,,,
-character_061,ƒlƒ‹ƒMƒKƒ“ƒe,passive_061,,,,,,,,,,,,
-character_062,ƒAƒ}ƒcƒ}ƒKƒcƒ`,passive_062,,,,,,,,,,,,
-character_063,ƒoƒTƒ‹ƒ‚ƒX,passive_063,,,,,,,,,,,,
-character_064,ƒ‰ƒIƒVƒƒƒ“ƒƒ“,passive_064,,,,,,,,,,,,
+ï»¿passive_id,name,passive_type1,target_id1,value1,passive_type2,target_id2,value2,text
+passive_001,ç¾¤ã‚Œã®ä¸»,effect_chance_up,all,125,none,none,0,è¿½åŠ åŠ¹æœã®ç™ºç”Ÿç‡ãŒ1.25å€ã€‚
+passive_002,å¤§çŒªã®ä¸»,debuff_immunity,phy_atk_down,0,none,none,0,ç‰©ç†æ”»æ’ƒãŒä¸‹ãŒã‚‰ãªã„ã€‚
+passive_003,ç‹‚èµ°ã‚¨ã‚­ã‚¹,status_immunity,poison,0,debuff_immunity,speed_down,0,æ¯’çŠ¶æ…‹ã«ãªã‚‰ãªã„ã€‚æ•æ·ãŒä¸‹ãŒã‚‰ãªã„ã€‚
+passive_004,æ€ªé³¥ã®åœ°ç„è€³,debuff_immunity,debuff,0,none,none,0,èƒ½åŠ›ãŒä¸‹ãŒã‚‰ãªã„ã€‚
+passive_005,å°»å°¾ã®ã‚­ãƒã‚³,start_energy,en,2,physical_damage_cut,special_damage,25,EN2ã§æˆ¦é—˜é–‹å§‹ã™ã‚‹ã€‚ç‰¹æ®Šãƒ€ãƒ¡ãƒ¼ã‚¸ã‚’25%cutã™ã‚‹ã€‚
+passive_006,ä¸€è§’ç«œã®é ­éª¨,debuff_immunity,phy_def_down,0,none,none,0,ç‰©ç†é˜²å¾¡ãŒä¸‹ãŒã‚‰ãªã„ã€‚
+passive_007,ç ‚ç«œã®é°­,status_immunity,sleep,0,none,none,0,ç¡çœ çŠ¶æ…‹ã«ãªã‚‰ãªã„ã€‚
+passive_008,é™¸ã®å¥³ç‹,effect_chance_up,all,150,none,none,0,è¿½åŠ åŠ¹æœã®ç™ºç”Ÿç‡ãŒ1.5å€ã€‚
+passive_009,é›ªå±±ã®ä¸»,battle_effect_immunity,stun,0,none,none,0,æ€¯ã¾ãªã„ã€‚
+passive_010,ç¾¤ã‚Œã®ä¸»,effect_chance_up,all,125,none,none,0,è¿½åŠ åŠ¹æœã®ç™ºç”Ÿç‡ãŒ1.25å€ã€‚
+passive_011,æ°´ã®ç‹è€…,status_immunity,sleep,0,effect_chance_up,all,25,ç¡çœ çŠ¶æ…‹ã«ãªã‚‰ãªã„ã€‚è¿½åŠ åŠ¹æœã®ç™ºç”Ÿç‡ãŒ1.25å€ã€‚
+passive_012,é§ç«œã®é ­éª¨,debuff_immunity,phy_def_down,0,debuff_immunity,sp_atk_down,0,ç‰©ç†é˜²å¾¡ã¨ç‰¹æ®Šæ”»æ’ƒãŒä¸‹ãŒã‚‰ãªã„ã€‚
+passive_013,å¸è¡€ç‰™,damage_drain,physical_damage,25,none,none,0,ç‰©ç†ãƒ€ãƒ¡ãƒ¼ã‚¸ã‚’ä¸ãˆãŸæ™‚ã€ãƒ€ãƒ¡ãƒ¼ã‚¸ã®25%ã‚’å›å¾©ã™ã‚‹ã€‚
+passive_014,æ’ç†±æ©Ÿæ§‹,status_immunity,burn,0,debuff_immunity,sp_atk_down,0,ç«ã‚„ã‚‰ã‚ŒçŠ¶æ…‹ã«ãªã‚‰ãªã„ã€‚ç‰¹æ®Šæ”»æ’ƒãŒä¸‹ãŒã‚‰ãªã„ã€‚
+passive_015,ç ‚æ¼ ã®æš´å›,turn_end_stat_up,speed,10,debuff_immunity,phy_atk_down,0,ã‚¿ãƒ¼ãƒ³çµ‚äº†æ™‚ã€æ•æ·ãŒ10%upã™ã‚‹ã€‚ç‰©ç†æ”»æ’ƒãŒä¸‹ãŒã‚‰ãªã„ã€‚
+passive_016,ç©ºã®ç‹è€…,element_damage_up,none,15,effect_chance_up,all,125,ç„¡å±æ€§æŠ€ã®å¨åŠ›ãŒä¸ŠãŒã‚‹ã€‚è¿½åŠ åŠ¹æœã®ç™ºç”Ÿç‡ãŒ1.25å€ã€‚
+passive_017,é»’ç‹¼é³¥ã®çœ¼å…‰,heal_block,hp,0,none,none,0,ç›¸æ‰‹ã¯HPã‚’å›å¾©ã™ã‚‹æŠ€ã‚’ä½¿ãˆãªã„ã€‚
+passive_018,çµ¶å¯¾å¼·è€…,passive_pierce,all,0,none,none,0,æ”»æ’ƒæ™‚ã€ç›¸æ‰‹ã®passiveã‚’ç„¡è¦–ã™ã‚‹ã€‚
+passive_019,æš—æ®ºè€…,clear_buff_immunity,clear_buff,0,none,none,0,èƒ½åŠ›upãŒè§£é™¤ã•ã‚Œãªã„ã€‚
+passive_020,æµ·ã®ç‹è€…,element_damage_up,watar,15,none,none,0,æ°´å±æ€§æŠ€ã®å¨åŠ›ãŒä¸ŠãŒã‚‹ã€‚
+passive_021,æµ·ç¶¿ä½“ã®é¬£,physical_damage_cut,physical_damage,25,none,none,0,ç‰©ç†ãƒ€ãƒ¡ãƒ¼ã‚¸ã‚’25%cutã™ã‚‹ã€‚
+passive_022,çˆ†éš,debuff_immunity,phy_atk_down,0,debuff_immunity,sp_def_down,0,ç‰©ç†æ”»æ’ƒã¨ç‰¹æ®Šé˜²å¾¡ãŒä¸‹ãŒã‚‰ãªã„ã€‚
+passive_023,è“„é›»æ®»,debuff_immunity,sp_atk_down,0,none,none,0,ç‰¹æ®Šæ”»æ’ƒãŒä¸‹ãŒã‚‰ãªã„ã€‚
+passive_024,æ°·ç‰™ç«œã®æ£˜,debuff_immunity,phy_atk_down,0,debuff_immunity,sp_atk_down,0,ç‰©ç†æ”»æ’ƒã¨ç‰¹æ®Šæ”»æ’ƒãŒä¸‹ãŒã‚‰ãªã„ã€‚
+passive_025,é—˜äº‰æœ¬èƒ½,turn_end_stat_up,speed,10,none,none,0,ã‚¿ãƒ¼ãƒ³çµ‚äº†æ™‚ã€æ•æ·ãŒ10%upã™ã‚‹ã€‚
+passive_026,æ•é£Ÿè€…ã®ç‰™,damage_drain,physical_damage,25,element_damage_up,none,15,ç‰©ç†ãƒ€ãƒ¡ãƒ¼ã‚¸ã‚’ä¸ãˆãŸæ™‚ã€ãƒ€ãƒ¡ãƒ¼ã‚¸ã®25%ã‚’å›å¾©ã™ã‚‹ã€‚ç„¡å±æ€§æŠ€ã®å¨åŠ›ãŒä¸ŠãŒã‚‹ã€‚
+passive_027,æ·±ç´…ã®è§’,two_turn_skip_once,all,1,debuff_immunity,speed_down,0,æºœã‚æŠ€ã‚’1åº¦ã ã‘æºœã‚ãŒãªã—ã«ãªã‚‹ã€‚æ•æ·ãŒä¸‹ãŒã‚‰ãªã„ã€‚
+passive_028,èµ·æºã«ã—ã¦é ‚ç‚¹,debuff_immunity,debuff,0,battle_effect_immunity,stun,0,æ€¯ã¾ãªã„ã€‚èƒ½åŠ›ãŒä¸‹ãŒã‚‰ãªã„ã€‚
+passive_029,æ­¢ã¾ã‚‰ã¬æ€’ã‚Š,debuff_immunity,phy_atk_down,0,debuff_immunity,sp_def_down,0,ç‰©ç†æ”»æ’ƒã¨æ•æ·ãŒä¸‹ãŒã‚‰ãªã„ã€‚
+passive_030,å¹»ç£,status_immunity,paralysis,0,debuff_immunity,sp_atk_down,0,éº»ç—ºçŠ¶æ…‹ã«ãªã‚‰ãªã„ã€‚ç‰¹æ®Šæ”»æ’ƒãŒä¸‹ãŒã‚‰ãªã„ã€‚
+passive_031,ãƒ–ãƒ«ãƒ¼ãƒ•ãƒ¬ã‚¢,en_down_immunity,en_down,0,none,none,0,ENæ¸›è¡°ã‚’ç„¡åŠ¹ã«ã™ã‚‹ã€‚ç«ã‚„ã‚‰ã‚ŒçŠ¶æ…‹ã«ãªã‚‰ãªã„ã€‚
+passive_032,é¢¨ç¿”,en_down_immunity,en_down,0,element_damage_up,dragon,15,ENæ¸›è¡°ã‚’ç„¡åŠ¹ã«ã™ã‚‹ã€‚é¾å±æ€§æŠ€ã®å¨åŠ›ãŒä¸ŠãŒã‚‹ã€‚
+passive_033,æ¯’éœ§,status_immunity,poison,0,debuff_immunity,phy_atk_down,0,æ¯’çŠ¶æ…‹ã«ãªã‚‰ãªã„ã€‚ç‰©ç†æ”»æ’ƒãŒä¸‹ãŒã‚‰ãªã„ã€‚
+passive_034,é¾è‹”,debuff_immunity,debuff,0,status_immunity,all,0,èƒ½åŠ›ãŒä¸‹ãŒã‚‰ãªã„ã€‚çŠ¶æ…‹ç•°å¸¸ã«ãªã‚‰ãªã„ã€‚
+passive_035,ç‚ç‹,battle_effect_immunity,stun,15,element_damage_up,dragon,15,æ€¯ã¾ãªã„ã€‚é¾å±æ€§æŠ€ã®å¨åŠ›ãŒä¸ŠãŒã‚‹ã€‚
+passive_036,ç¦å¿Œã®åŠ›,en_down_immunity,en_down,0,status_immunity,all,15,ENæ¸›è¡°ã‚’ç„¡åŠ¹ã«ã™ã‚‹ã€‚çŠ¶æ…‹ç•°å¸¸ã«ãªã‚‰ãªã„ã€‚
+passive_037,é»’æ›œçŸ³,debuff_immunity,phy_atk_down,0,element_damage_up,none,15,ç‰©ç†æ”»æ’ƒãŒä¸‹ãŒã‚‰ãªã„ã€‚ç„¡å±æ€§æŠ€ã®å¨åŠ›ãŒä¸ŠãŒã‚‹ã€‚
+passive_038,èœ˜è››ã®ç³¸,debuff_immunity,speed_down,0,none,none,0,æ•æ·ãŒä¸‹ãŒã‚‰ãªã„ã€‚
+passive_039,æ»‘æ¶²,clear_buff_immunity,clear_buff,0,element_damage_up,none,15,èƒ½åŠ›upãŒè§£é™¤ã•ã‚Œãªã„ã€‚ç„¡å±æ€§æŠ€ã®å¨åŠ›ãŒä¸ŠãŒã‚‹ã€‚
+passive_040,å°»åˆƒ,two_turn_skip_once,all,1,none,none,0,æºœã‚æŠ€ã‚’1åº¦ã ã‘æºœã‚ãŒãªã—ã«ãªã‚‹ã€‚
+passive_041,ä¸å‹•ã®å±±ç¥,start_energy,en,2,none,none,0,EN2ã§æˆ¦é—˜é–‹å§‹ã™ã‚‹ã€‚
+passive_042,é›·ã®åé€†è€…,switch_heal,hp,25,none,none,0,å ´ã‹ã‚‰æˆ¦ç·šã‚’é›¢ã‚ŒãŸæ™‚ã€æœ€å¤§HPã®25%ã‚’å›å¾©ã™ã‚‹ã€‚
+passive_043,å¯’æ°—ç«‹ã¤å˜´,en_down_immunity,en_down,0,none,none,0,ENæ¸›è¡°ã‚’ç„¡åŠ¹ã«ã™ã‚‹ã€‚
+passive_044,ç‹‚ç«œåŒ–,status_immunity,all,0,element_damage_up,none,15,çŠ¶æ…‹ç•°å¸¸ã«ãªã‚‰ãªã„ã€‚ç„¡å±æ€§æŠ€ã®å¨åŠ›ãŒä¸ŠãŒã‚‹ã€‚
+passive_045,åŒ–ã‘é®«,physical_damage_cut,physical_damage,25,element_damage_up,water,15,ç‰©ç†ãƒ€ãƒ¡ãƒ¼ã‚¸ã‚’25%cutã™ã‚‹ã€‚æ°´å±æ€§æŠ€ã®å¨åŠ›ãŒä¸ŠãŒã‚‹ã€‚
+passive_046,ãƒã‚³ã®ãƒ‰æ ¹æ€§ï¼,survive_once,none,1,none,none,0,HPãŒæœ€å¤§ã®æ™‚ã€1åº¦ã ã‘HPãŒ1æ®‹ã‚‹ã€‚
+passive_047,ç™½ãç¥,debuff_immunity,debuff,0,physical_damage_cut,special_damage,25,èƒ½åŠ›ãŒä¸‹ãŒã‚‰ãªã„ã€‚ç‰¹æ®Šãƒ€ãƒ¡ãƒ¼ã‚¸ã‚’25%cutã™ã‚‹ã€‚
+passive_048,å¤©å¤‰åœ°ç•°,start_energy,en,2,battle_effect_immunity,stun,0,æ€¯ã¾ãªã„ã€‚EN2ã§æˆ¦é—˜é–‹å§‹ã™ã‚‹ã€‚
+passive_049,ç¾¤ã‚Œã®ä¸»,effect_chance_up,all,125,none,none,0,è¿½åŠ åŠ¹æœã®ç™ºç”Ÿç‡ãŒ1.25å€ã€‚
+passive_050,ç†Šæ‰‹,start_energy,en,2,debuff_immunity,sp_def_down,0,EN2ã§æˆ¦é—˜é–‹å§‹ã™ã‚‹ã€‚ç‰¹æ®Šé˜²å¾¡ãŒä¸‹ãŒã‚‰ãªã„ã€‚
+passive_051,ç¾¤ã‚Œã®ç‹,element_damage_up,fire,15,none,none,0,ç«å±æ€§æŠ€ã®å¨åŠ›ãŒä¸ŠãŒã‚‹ã€‚
+passive_052,ç™½ã„æ¯›çš®,debuff_immunity,sp_def_down,0,debuff_immunity,speed_down,0,ç‰¹æ®Šé˜²å¾¡ã¨æ•æ·ãŒä¸‹ãŒã‚‰ãªã„ã€‚
+passive_053,å¤œé³¥ã®ç¾½æ¯›,status_immunity,sleep,0,debuff_immunity,phy_def_down,0,ç¡çœ çŠ¶æ…‹ã«ãªã‚‰ãªã„ã€‚ç‰©ç†é˜²å¾¡ãŒä¸‹ãŒã‚‰ãªã„ã€‚
+passive_054,åé€†é±—,battle_effect_immunity,stun,0,debuff_immunity,speed_down,0,æ€¯ã¾ãªã„ã€‚æ•æ·ãŒä¸‹ãŒã‚‰ãªã„ã€‚
+passive_055,å¥³ç‹ã®ãƒ•ã‚§ãƒ­ãƒ¢ãƒ³,status_move_priority_up,all,1,none,none,0,å¤‰åŒ–æŠ€å„ªå…ˆåº¦+1ã€‚
+passive_056,å¥‡ã—ãèµ«è€€,turn_end_stat_up,sp_atk,10,none,none,0,ã‚¿ãƒ¼ãƒ³çµ‚äº†æ™‚ã€ç‰¹æ®Šæ”»æ’ƒãŒ10%upã™ã‚‹ã€‚
+passive_057,åœŸç ‚ç«œã®é ­æ®»,clear_buff_immunity,clear_buff,0,debuff_immunity,phy_def_down,0,èƒ½åŠ›upãŒè§£é™¤ã•ã‚Œãªã„ã€‚ç‰©ç†é˜²å¾¡ãŒä¸‹ãŒã‚‰ãªã„ã€‚
+passive_058,å‡åœŸçºã„,debuff_immunity,sp_def_down,0,none,none,0,ç‰¹æ®Šé˜²å¾¡ãŒä¸‹ãŒã‚‰ãªã„ã€‚
+passive_059,ãƒ¢ãƒ³ã‚­ãƒ¼ãƒ©ãƒ€ãƒ¼,debuff_immunity,phy_atk_down,0,switch_heal,hp,25,ç‰©ç†æ”»æ’ƒãŒä¸‹ãŒã‚‰ãªã„ã€‚å ´ã‹ã‚‰æˆ¦ç·šã‚’é›¢ã‚ŒãŸæ™‚ã€æœ€å¤§HPã®25%ã‚’å›å¾©ã™ã‚‹ã€‚
+passive_060,å‹•ãç ¦,en_down_immunity,en_down,0,debuff_immunity,sp_def_down,0,ENæ¸›è¡°ã‚’ç„¡åŠ¹ã«ã™ã‚‹ã€‚ç‰¹æ®Šé˜²å¾¡ãŒä¸‹ãŒã‚‰ãªã„ã€‚
+passive_061,åŠ é€Ÿå†ç”Ÿ,debuff_immunity,speed_down,0,switch_heal,hp,25,æ•æ·ãŒä¸‹ãŒã‚‰ãªã„ã€‚å ´ã‹ã‚‰æˆ¦ç·šã‚’é›¢ã‚ŒãŸæ™‚ã€æœ€å¤§HPã®25%ã‚’å›å¾©ã™ã‚‹ã€‚
+passive_062,å¤§åµ,en_down_immunity,en_down,0,element_damage_up,thunder,0,ENæ¸›è¡°ã‚’ç„¡åŠ¹ã«ã™ã‚‹ã€‚é›·å±æ€§æŠ€ã®å¨åŠ›ãŒä¸ŠãŒã‚‹ã€‚
+passive_063,å²©ç«œã®æ¶™,status_immunity,burn,0,none,none,0,ç«ã‚„ã‚‰ã‚ŒçŠ¶æ…‹ã«ãªã‚‰ãªã„ã€‚
+passive_064,ä¾µæ”»,turn_end_stat_up,phy_atk,10,none,none,0,ã‚¿ãƒ¼ãƒ³çµ‚äº†æ™‚ã€ç‰©ç†æ”»æ’ƒãŒ10%upã™ã‚‹ã€‚
