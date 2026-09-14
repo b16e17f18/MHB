@@ -9,7 +9,7 @@ passive_007,砂竜の鰭,status_immunity,sleep,0,none,none,0,睡眠状態にな�
 passive_008,陸の女王,effect_chance_up,all,150,none,none,0,追加効果の発生率が1.5倍。
 passive_009,雪山の主,battle_effect_immunity,stun,0,none,none,0,怯まない。
 passive_010,群れの主,effect_chance_up,all,125,none,none,0,追加効果の発生率が1.25倍。
-passive_011,水の王者,status_immunity,sleep,0,effect_chance_up,all,25,睡眠状態にならない。追加効果の発生率が1.25倍。
+passive_011,水の王者,status_immunity,sleep,0,effect_chance_up,all,125,睡眠状態にならない。追加効果の発生率が1.25倍。
 passive_012,鎧竜の頭骨,debuff_immunity,phy_def_down,0,debuff_immunity,sp_atk_down,0,物理防御と特殊攻撃が下がらない。
 passive_013,吸血牙,damage_drain,physical_damage,25,none,none,0,物理ダメージを与えた時、ダメージの25%を回復する。
 passive_014,排熱機構,status_immunity,burn,0,debuff_immunity,sp_atk_down,0,火やられ状態にならない。特殊攻撃が下がらない。
@@ -27,7 +27,7 @@ passive_025,闘争本能,turn_end_stat_up,speed,10,none,none,0,ターン終了�
 passive_026,捕食者の牙,damage_drain,physical_damage,25,element_damage_up,none,15,物理ダメージを与えた時、ダメージの25%を回復する。無属性技の威力が上がる。
 passive_027,深紅の角,two_turn_skip_once,all,1,debuff_immunity,speed_down,0,溜め技を1度だけ溜めがなしになる。敏捷が下がらない。
 passive_028,起源にして頂点,debuff_immunity,debuff,0,battle_effect_immunity,stun,0,怯まない。能力が下がらない。
-passive_029,止まらぬ怒り,debuff_immunity,phy_atk_down,0,debuff_immunity,sp_speed_down,0,物理攻撃と敏捷が下がらない。
+passive_029,止まらぬ怒り,debuff_immunity,phy_atk_down,0,debuff_immunity,speed_down,0,物理攻撃と敏捷が下がらない。
 passive_030,幻獣,status_immunity,paralysis,0,debuff_immunity,sp_atk_down,0,麻痺状態にならない。特殊攻撃が下がらない。
 passive_031,ブルーフレア,en_down_immunity,en_down,0,status_immunity,burn,0,EN減衰を無効にする。火やられ状態にならない。
 passive_032,風翔,en_down_immunity,en_down,0,element_damage_up,dragon,15,EN減衰を無効にする。龍属性技の威力が上がる。
