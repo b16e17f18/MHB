@@ -9,6 +9,7 @@ const PASSIVE_TARGET_ALL = "all";
 const PASSIVE_TARGET_EN = "en";
 const PASSIVE_TARGET_HP = "hp";
 const PASSIVE_TARGET_PHYSICAL_DAMAGE = "physical_damage";
+const PASSIVE_TARGET_SPECIAL_DAMAGE = "special_damage";
 const PASSIVE_TYPE_EFFECT_CHANCE_UP = "effect_chance_up";
 const PASSIVE_TYPE_ELEMENT_DAMAGE_UP = "element_damage_up";
 const PASSIVE_TYPE_PHYSICAL_DAMAGE_CUT = "physical_damage_cut";
@@ -20,6 +21,13 @@ const PASSIVE_TYPE_SWITCH_HEAL = "switch_heal";
 const PASSIVE_TYPE_STATUS_MOVE_PRIORITY_UP = "status_move_priority_up";
 const PASSIVE_TYPE_HEAL_BLOCK = "heal_block";
 const PASSIVE_TYPE_PASSIVE_PIERCE = "passive_pierce";
+const PASSIVE_STATUS_IMMUNITY_ALL_EFFECT_IDS = new Set([
+  "poison",
+  "paralysis",
+  "sleep",
+  "burn",
+  "blood",
+]);
 
 function normalizePassive(row) {
   const passive = {
@@ -153,11 +161,14 @@ function ignoresOpponentPassives(actor, move, passiveOwner) {
 }
 
 function physicalDamageMultiplierFromPassive(target, move, context = {}) {
-  if (!move || move.isBattleEffectDamage || move.attack_type === "special") return 1;
+  if (!move || move.isBattleEffectDamage) return 1;
   if (ignoresOpponentPassives(context.actor, move, target)) return 1;
+  const damageTarget = move.attack_type === "special"
+    ? PASSIVE_TARGET_SPECIAL_DAMAGE
+    : PASSIVE_TARGET_PHYSICAL_DAMAGE;
   const passiveEffect = findPassiveEffect(target, (effect) => (
     passiveEffectType(effect) === PASSIVE_TYPE_PHYSICAL_DAMAGE_CUT &&
-    passiveTargetMatches(effect, PASSIVE_TARGET_PHYSICAL_DAMAGE)
+    passiveTargetMatches(effect, damageTarget)
   ));
   return passiveEffect ? 1 - passiveEffectValue(passiveEffect) / 100 : 1;
 }
@@ -261,7 +272,11 @@ function findBlockingEffectPassive({ actor, target, effect, move }) {
     const type = passiveEffectType(passiveEffect);
 
     if (type === "status_immunity") {
-      return passiveTargetMatches(passiveEffect, effectId);
+      return passiveTargetMatches(passiveEffect, effectId) ||
+        (
+          passiveTargetMatches(passiveEffect, PASSIVE_TARGET_ALL) &&
+          PASSIVE_STATUS_IMMUNITY_ALL_EFFECT_IDS.has(effectId)
+        );
     }
 
     if (type === "debuff_immunity") {
