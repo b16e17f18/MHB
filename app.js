@@ -7281,7 +7281,13 @@ async function executeAction(action) {
     ? moveWithPendingPower(baseMove, pendingSkill, actor, target, state.powerRules)
     : moveWithEffectivePower(baseMove, actor, target, state.powerRules);
 
-  if (!completingTwoTurnMove && healBlockForMove(actor, opponent, move)) return;
+  const healBlock = !completingTwoTurnMove ? healBlockForMove(actor, opponent, move) : null;
+  if (healBlock) {
+    const events = passiveActivationLogEvents(opponent, healBlock);
+    applyBattleCoreEvents(events);
+    if (events.length) await pause(520);
+    return;
+  }
 
   const blockText = blockedByControl(actor);
   if (blockText) {
@@ -7978,7 +7984,8 @@ function switchActive(side, index, options = {}) {
 function applySwitchHealPassive(fighter) {
   if (!fighter || fighter.fainted || fighter.hp <= 0 || fighter.hp >= fighter.maxHp) return 0;
 
-  const healPercent = switchHealPercentFromPassive(fighter);
+  const passiveEffect = switchHealPassiveEffect(fighter);
+  const healPercent = passiveEffect ? passiveEffectValue(passiveEffect) : 0;
   if (healPercent <= 0) return 0;
 
   const healAmount = Math.floor(fighter.maxHp * healPercent / 100);
@@ -7988,6 +7995,7 @@ function applySwitchHealPassive(fighter) {
   fighter.hp = Math.min(fighter.maxHp, fighter.hp + healAmount);
   const healed = fighter.hp - beforeHp;
   if (healed > 0) {
+    applyBattleCoreEvents(passiveActivationLogEvents(fighter, passiveEffect));
     pushLog(`${fighter.name}は ${healed} 回復した！`);
   }
   return healed;

@@ -40,6 +40,8 @@ function normalizePassive(row) {
     target_id2: safeText(row.target_id2, PASSIVE_EFFECT_TYPE_NONE),
     value2: number(row.value2),
     text: csvText(row.text),
+    trigger_text1: csvText(row.trigger_text1),
+    trigger_text2: csvText(row.trigger_text2),
   };
   passive.effect1 = normalizePassiveEffect(passive, 1);
   passive.effect2 = normalizePassiveEffect(passive, 2);
@@ -60,6 +62,7 @@ function normalizePassiveEffect(passive, slot) {
     passive_type: type,
     target_id: safeText(passive[`target_id${slot}`], PASSIVE_EFFECT_TYPE_NONE),
     value: number(passive[`value${slot}`]),
+    trigger_text: csvText(passive[`trigger_text${slot}`]),
   };
 }
 
@@ -102,9 +105,9 @@ function externalPassiveSource(actor, target) {
 }
 
 function passiveActivationLogEvents(target, passiveEffect) {
-  const passiveName = safeText(passiveEffect?.passive_name ?? passiveEffect?.name);
-  return passiveName && target
-    ? [{ type: "log", text: `${target.name}の${passiveName}！` }]
+  const triggerText = csvText(passiveEffect?.trigger_text);
+  return triggerText && triggerText !== PASSIVE_EFFECT_TYPE_NONE
+    ? [{ type: "log", text: triggerText }]
     : [];
 }
 
@@ -183,11 +186,15 @@ function damageDrainPercentFromPassive(actor, move) {
 }
 
 function switchHealPercentFromPassive(fighter) {
-  const passiveEffect = findPassiveEffect(fighter, (effect) => (
+  const passiveEffect = switchHealPassiveEffect(fighter);
+  return passiveEffect ? passiveEffectValue(passiveEffect) : 0;
+}
+
+function switchHealPassiveEffect(fighter) {
+  return findPassiveEffect(fighter, (effect) => (
     passiveEffectType(effect) === PASSIVE_TYPE_SWITCH_HEAL &&
     passiveTargetMatches(effect, PASSIVE_TARGET_HP)
   ));
-  return passiveEffect ? passiveEffectValue(passiveEffect) : 0;
 }
 
 function statusMovePriorityBonusFromPassive(actor, move) {
