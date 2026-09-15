@@ -7501,6 +7501,7 @@ function chooseEnemyAction() {
   return chooseEnemyBattleAction({
     enemy,
     target,
+    battleId: state.story.currentArenaBattleId || state.story.currentRankBattleId,
     enemyBenchIndex: aliveBenchIndex("enemy"),
     enemySwitchCandidates,
     allMoves: movesForCharacter(enemy.base),

@@ -83,6 +83,22 @@ const ENEMY_AI_ELEMENT_GUARD_TYPES = {
   dragon_damage: "dragon",
 };
 const ENEMY_AI_SWITCH_LOCK_BATTLE_EFFECT_ID = "switch_lock";
+const ENEMY_AI_NO_VOLUNTARY_SWITCH_BATTLE_IDS = new Set([
+  "rank_f_1",
+  "rank_f_2",
+  "rank_e_1",
+  "rank_e_2",
+  "rank_d_1",
+  "rank_d_2",
+]);
+
+function isLowRankNoSwitchBattle(context) {
+  return ENEMY_AI_NO_VOLUNTARY_SWITCH_BATTLE_IDS.has(safeText(context?.battleId));
+}
+
+function canAiVoluntarilySwitch(context, enemy) {
+  return !isLowRankNoSwitchBattle(context) && !enemyAiHasSwitchLock(enemy);
+}
 
 function chooseEnemyBattleAction(context) {
   const enemy = context.enemy;
@@ -93,9 +109,9 @@ function chooseEnemyBattleAction(context) {
 
   const lowHp = enemy.hp / enemy.maxHp <= 0.28;
   const bench = context.enemyBenchIndex;
-  const switchLocked = enemyAiHasSwitchLock(enemy);
+  const canVoluntarilySwitch = canAiVoluntarilySwitch(context, enemy);
 
-  if (!switchLocked && lowHp && bench >= 0 && Math.random() < 0.22) {
+  if (canVoluntarilySwitch && lowHp && bench >= 0 && Math.random() < 0.22) {
     return {
       side: "enemy",
       type: "switch",
@@ -155,7 +171,7 @@ function chooseEnemyBattleAction(context) {
     return { side: "enemy", type: "move", moveId: selected.move.skill_id };
   }
 
-  const matchupSwitchIndex = !switchLocked && !lowHp
+  const matchupSwitchIndex = canVoluntarilySwitch && !lowHp
     ? chooseEnemyMatchupSwitchIndex(context, bench, aiConfig)
     : -1;
   if (matchupSwitchIndex >= 0) {
