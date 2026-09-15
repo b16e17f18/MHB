@@ -24,7 +24,7 @@ character_022,ウラガンキン,570,275,450,255,255,60,70,1,2,25,150,50,100,125
 character_023,ジンオウガ,640,310,310,250,250,350,70,1,2,75,100,25,150,50,thunder,skill_056,skill_010,skill_085,skill_025,character_023.png,#ffffff,8,,,fanged_wyvern,61,tactical,skill_056,skill_085,passive_023
 character_024,ベリオロス,585,320,290,270,270,410,35,2,2,150,75,125,25,50,ice,skill_001,skill_077,skill_039,skill_040,character_024.png,#ffffff,8,,,flying_wyvern,309,balanced,,skill_039,passive_024
 character_025,ラージャン,555,360,280,320,320,320,70,2,2,25,100,25,150,50,thunder,skill_004,skill_038,skill_024,skill_041,character_025.png,#ffffff,8,,,fanged_beast,18,aggressive,skill_041,,passive_025
-character_026,イビルジョー,800,365,260,330,220,280,0,2,2,50,75,100,50,125,dragon,skill_046,skill_010,skill_042,skill_043,character_026.png,#ffffff,8,,,brute_wyvern,51,aggressive,skill_046,,passive_026
+character_026,イビルジョー,800,365,260,330,220,260,0,2,2,75,75,100,75,125,dragon,skill_046,skill_010,skill_042,skill_043,character_026.png,#ffffff,8,,,brute_wyvern,51,aggressive,skill_046,,passive_026
 character_027,モノブロス,735,320,360,35,300,200,35,2,2,50,50,100,150,25,none,skill_001,skill_006,skill_017,skill_094,character_027.png,#ffffff,8,,,flying_wyvern,310,aggressive,skill_094,,passive_027
 character_028,アカムトルム,870,380,250,250,250,175,105,1,4,50,75,125,50,150,none,skill_001,skill_004,skill_017,skill_044,character_028.png,#ffffff,8,,,flying_wyvern,802,patient,,skill_044,passive_028
 character_029,エスピナス,510,345,345,280,280,220,105,1,2,25,50,50,150,75,fire,skill_001,skill_010,skill_045,skill_046,character_029.png,#ffffff,8,,,flying_wyvern,311,disruptor,skill_046,,passive_029
@@ -37,7 +37,7 @@ character_035,テオテスカトル,690,400,360,360,360,360,70,1,4,25,150,50,125
 character_036,ミラボレアス,1200,475,425,425,425,95,35,2,5,100,100,75,100,125,dragon,skill_118,skill_120,skill_119,skill_055,character_036.png,#ffffff,8,-150,0,elder_dragon,999,patient,,skill_055,passive_036
 character_037,ブラキディオス,600,350,300,265,265,300,70,2,2,25,150,50,125,75,fire,skill_001,skill_083,skill_010,skill_059,character_037.png,#ffffff,8,,,brute_wyvern,54,patient,skill_059,,passive_037
 character_038,ネルスキュラ,540,275,285,225,185,265,105,1,2,125,50,125,75,25,none,skill_001,skill_089,skill_060,skill_061,character_038.png,#ffffff,8,,,temnoceran,71,disruptor,,skill_060,passive_038
-character_039,タマミツネ,605,305,260,260,380,260,70,2,2,75,50,150,50,125,water,skill_062,skill_010,skill_015,skill_063,character_039.png,#ffffff,8,,,leviathan,43,tactical,skill_062,skill_063,passive_039
+character_039,タマミツネ,605,305,240,280,380,280,70,2,2,75,50,150,50,125,water,skill_062,skill_010,skill_015,skill_063,character_039.png,#ffffff,8,,,leviathan,43,tactical,skill_062,skill_063,passive_039
 character_040,ディノバルド,585,350,340,270,270,270,70,2,2,25,150,50,100,100,fire,skill_082,skill_005,skill_018,skill_064,character_040.png,#ffffff,8,,,brute_wyvern,55,aggressive,,skill_064,passive_040
 character_041,ガムート,880,370,340,220,220,35,35,1,2,125,50,75,25,25,ice,skill_001,skill_010,skill_020,skill_065,character_041.png,#ffffff,8,,,fanged_beast,17,defensive,skill_065,,passive_041
 character_042,ライゼクス,560,295,210,305,305,425,105,2,2,75,75,25,125,75,thunder,skill_066,skill_127,skill_117,skill_113,character_042.png,#ffffff,8,,,flying_wyvern,312,aggressive,skill_117,skill_113,passive_042

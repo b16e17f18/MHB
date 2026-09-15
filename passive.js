@@ -21,6 +21,7 @@ const PASSIVE_TYPE_SWITCH_HEAL = "switch_heal";
 const PASSIVE_TYPE_STATUS_MOVE_PRIORITY_UP = "status_move_priority_up";
 const PASSIVE_TYPE_HEAL_BLOCK = "heal_block";
 const PASSIVE_TYPE_PASSIVE_PIERCE = "passive_pierce";
+const PASSIVE_TYPE_FIELD_EFFECT_IMMUNITY = "field_effect_immunity";
 const PASSIVE_STATUS_IMMUNITY_ALL_EFFECT_IDS = new Set([
   "poison",
   "paralysis",
@@ -161,6 +162,27 @@ function ignoresOpponentPassives(actor, move, passiveOwner) {
     safeText(move.category) === "attack" &&
     passivePierceEffect(actor)
   );
+}
+
+function fieldEffectImmunityPassiveEffect(fighter) {
+  return findPassiveEffect(fighter, (effect) => (
+    passiveEffectType(effect) === PASSIVE_TYPE_FIELD_EFFECT_IMMUNITY &&
+    passiveTargetMatches(effect, PASSIVE_TARGET_ALL)
+  ));
+}
+
+function hasFieldEffectImmunity(fighter) {
+  return Boolean(fieldEffectImmunityPassiveEffect(fighter));
+}
+
+function ignoresOpponentFieldEffect(source, target, fieldEffect, context = {}) {
+  if (!target || !fieldEffect || !hasFieldEffectImmunity(target)) return false;
+
+  const sourceSide = safeText(context.sourceSide ?? fieldEffect.sourceSide ?? fieldEffect.source?.side);
+  const targetSide = safeText(context.targetSide ?? fieldEffect.targetSide);
+  if (sourceSide && targetSide) return sourceSide !== targetSide;
+
+  return Boolean(source && source !== target);
 }
 
 function physicalDamageMultiplierFromPassive(target, move, context = {}) {

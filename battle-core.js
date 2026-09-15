@@ -227,7 +227,7 @@ function dealDamage(attacker, target, move, targetFieldEffects = []) {
     elementPassiveMultiplier *
     physicalPassiveMultiplier *
     variance;
-  damage = applyIncomingBattleEffects(target, damage, move, targetFieldEffects);
+  damage = applyIncomingBattleEffects(target, damage, move, targetFieldEffects, { actor: attacker });
   damage = Math.max(1, Math.round(damage));
 
   const beforeTargetHp = target.hp;
@@ -515,7 +515,9 @@ function applyStandardBattleEffect(actor, target, battleEffect, currentTurn, mov
 function isSideGuardBattleEffectId(effectId) {
   return [
     "phy_protect",
+    "phy_protect2",
     "sp_protect",
+    "sp_protect2",
     "fire_protect",
     "water_protect",
     "thunder_protect",
@@ -588,7 +590,7 @@ function applyChargeAttackBattleEffect(actor, battleEffect) {
   return battleEffectStartLogEvents(actor, battleEffect, actor, `${actor.name}は勢いづいた！`);
 }
 
-function delayedBattleEffectPayload(move, actor, battleEffect) {
+function delayedBattleEffectPayload(move, actor, battleEffect, sourceSide = "", targetSide = "") {
   const fixedPower = battleEffect.damage_type === "fixed_power" ? battleEffect.damage_value : 0;
   const ratePower =
     battleEffect.damage_type === "skill_power_rate"
@@ -609,6 +611,8 @@ function delayedBattleEffectPayload(move, actor, battleEffect) {
     },
     source: {
       name: actor.name,
+      side: sourceSide,
+      targetSide,
       element: actor.base.element,
       phy_atk: effectiveStat(actor, "phy_atk"),
       sp_atk: effectiveStat(actor, "sp_atk"),
@@ -625,6 +629,7 @@ function applyDelayedAttackBattleEffect(
   target,
   currentTurn,
   nextFieldEffectId,
+  actorSide = "",
 ) {
   const appliedBattleEffects = [];
   const events = [];
@@ -643,7 +648,7 @@ function applyDelayedAttackBattleEffect(
     battleEffect,
     currentTurn,
     nextFieldEffectId,
-    delayedBattleEffectPayload(move, actor, battleEffect),
+    delayedBattleEffectPayload(move, actor, battleEffect, actorSide, targetSide),
   );
   appliedBattleEffects.push(battleEffect);
   events.push(...battleEffectStartLogEvents(actor, battleEffect, target));
@@ -880,6 +885,7 @@ function applyBattleEffects(
         target,
         currentTurn,
         updatedNextFieldEffectId,
+        actorSide,
       );
       if (!delayedBattleEffectResult.created) continue;
       updatedNextFieldEffectId = delayedBattleEffectResult.nextFieldEffectId;
@@ -922,11 +928,16 @@ function applyBattleEffects(
   };
 }
 
-function applyIncomingBattleEffects(target, damage, move, targetFieldEffects = []) {
+function applyIncomingBattleEffects(target, damage, move, targetFieldEffects = [], context = {}) {
   let adjusted = damage;
+  const activeFieldEffects = (targetFieldEffects ?? []).filter((effect) => !(
+    effect?.group === "guard" &&
+    isSideGuardBattleEffectId(effect.id) &&
+    ignoresOpponentFieldEffect(target, context.actor, effect)
+  ));
   const incomingBattleEffects = [
     ...(target?.battleEffects ?? []),
-    ...(targetFieldEffects ?? []),
+    ...activeFieldEffects,
   ];
   const applicableGuards = incomingBattleEffects
     .filter((effect) => effect.group === "guard" && guardAppliesToMove(effect, move));
@@ -999,12 +1010,25 @@ function clearSleepOnAttackDamage(target) {
     : [];
 }
 
-function addTimedStatusEffect(effect, actor, target) {
+function statusSourceMetadata(actor, context = {}) {
+  const metadata = {};
+  const sourceName = safeText(actor?.name);
+  const sourceSide = safeText(context.actorSide);
+  const targetSide = safeText(context.targetSide);
+  if (sourceName) metadata.sourceName = sourceName;
+  if (sourceSide) metadata.sourceSide = sourceSide;
+  if (targetSide) metadata.targetSide = targetSide;
+  return metadata;
+}
+
+function addTimedStatusEffect(effect, actor, target, context = {}) {
   const current = target.statuses.find((status) => status.id === effect.effect_id);
+  const sourceMetadata = statusSourceMetadata(actor, context);
   if (current) {
     current.turns = Math.max(current.turns, effect.turn);
     current.damageValue = effect.damage_value;
     current.targetStat = effect.target_stat;
+    Object.assign(current, sourceMetadata);
   } else {
     target.statuses.push({
       id: effect.effect_id,
@@ -1014,6 +1038,7 @@ function addTimedStatusEffect(effect, actor, target) {
       damageValue: effect.damage_value,
       targetStat: effect.target_stat,
       turns: effect.turn,
+      ...sourceMetadata,
     });
   }
   return effectStartLogEvents(
@@ -1078,10 +1103,12 @@ function applyClearBuffEffect(effect, actor, target) {
     : [];
 }
 
-function applyGenericStatusEffect(effect, actor, target) {
+function applyGenericStatusEffect(effect, actor, target, context = {}) {
   const current = target.statuses.find((status) => status.id === effect.effect_id);
+  const sourceMetadata = statusSourceMetadata(actor, context);
   if (current) {
     current.turns = Math.max(current.turns, effect.turn);
+    Object.assign(current, sourceMetadata);
   } else {
     target.statuses.push({
       id: effect.effect_id,
@@ -1091,6 +1118,7 @@ function applyGenericStatusEffect(effect, actor, target) {
       damageValue: effect.damage_value,
       targetStat: effect.target_stat,
       turns: effect.turn,
+      ...sourceMetadata,
     });
   }
   return effectStartLogEvents(
@@ -1142,7 +1170,7 @@ function applyEffect(effectId, actor, target, effects, statLabels = {}, context 
     return applyResistanceEffect(effect, actor, target);
   }
 
-  return applyGenericStatusEffect(effect, actor, target);
+  return applyGenericStatusEffect(effect, actor, target, context);
 }
 
 function normalizeEffectTarget(value) {
@@ -1166,13 +1194,17 @@ function applySkillEffects(move, actor, target, effects, statLabels, options = {
     const normalizedTarget = normalizeEffectTarget(effectTarget);
     if (allowedTargets && !allowedTargets.has(normalizedTarget)) continue;
     if (Math.random() * 100 <= effectChanceWithPassive(actor, chance)) {
+      const recipient = skillEffectRecipient(normalizedTarget, actor, target);
       events.push(...applyEffect(
         effectId,
         actor,
-        skillEffectRecipient(normalizedTarget, actor, target),
+        recipient,
         effects,
         statLabels,
-        context,
+        {
+          ...context,
+          targetSide: normalizedTarget === "self" ? options.actorSide : options.targetSide,
+        },
       ));
     }
   }

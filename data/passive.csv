@@ -16,7 +16,7 @@ passive_014,排熱機構,status_immunity,burn,0,debuff_immunity,sp_atk_down,0,�
 passive_015,砂漠の暴君,turn_end_stat_up,speed,10,debuff_immunity,phy_atk_down,0,ターン終了時、敏捷が10%upする。物理攻撃が下がらない。,ディアブロスは怒りで敏捷が10%upした！,ディアブロスの物理攻撃は下がらない！
 passive_016,空の王者,element_damage_up,none,15,effect_chance_up,all,125,無技の威力が上がる。追加効果の発生率が1.25倍。,none,none
 passive_017,黒狼鳥の眼光,heal_block,hp,0,none,none,0,相手はHPを回復する技を使えない。,回復技は使えない！,none
-passive_018,絶対強者,passive_pierce,all,0,none,none,0,攻撃時、相手の特性を無視する。,none,none
+passive_018,絶対強者,passive_pierce,all,0,debuff_immunity,phy_atk_down,0,攻撃時、相手の特性を無視する。物理攻撃が下がらない。,none,ティガレックスの物理攻撃は下がらない！
 passive_019,暗殺者,clear_buff_immunity,clear_buff,0,none,none,0,能力upが解除されない。,ナルガクルガの能力upは解除されない！,none
 passive_020,海の王者,element_damage_up,water,15,none,none,0,水技の威力が上がる。,none,none
 passive_021,海綿体の鬣,physical_damage_cut,physical_damage,25,none,none,0,物理ダメージを25%cutする。,none,none
@@ -25,7 +25,7 @@ passive_023,蓄電殻,debuff_immunity,sp_atk_down,0,none,none,0,特殊攻撃が�
 passive_024,氷牙竜の棘,debuff_immunity,phy_atk_down,0,debuff_immunity,sp_atk_down,0,物理攻撃と特殊攻撃が下がらない。,ベリオロスの物理攻撃は下がらない！,ベリオロスの特殊攻撃は下がらない！
 passive_025,闘気硬化,turn_end_stat_up,phy_def,10,none,none,0,ターン終了時、物理防御が10%upする。,ラージャンは闘気により物理防御が10%upした！,none
 passive_026,捕食者の牙,damage_drain,physical_damage,25,element_damage_up,none,15,物理ダメージを与えた時、ダメージの25%を回復する。無技の威力が上がる。,none,none
-passive_027,深紅の角,two_turn_skip_once,all,1,debuff_immunity,speed_down,0,溜め技を1度だけ溜めがなしになる。敏捷が下がらない。,none,none
+passive_027,深紅の角,two_turn_skip_once,all,1,debuff_immunity,speed_down,0,溜め技が1度だけ溜めがなしになる。敏捷が下がらない。,none,none
 passive_028,起源にして頂点,debuff_immunity,debuff,0,battle_effect_immunity,stun,0,怯まない。能力が下がらない。,アカムトルムの能力は下がらない！,アカムトルムは怯まない！
 passive_029,止まらぬ怒り,debuff_immunity,phy_atk_down,0,debuff_immunity,speed_down,0,物理攻撃と敏捷が下がらない。,エスピナスの物理攻撃は下がらない！,エスピナスの敏捷は下がらない！
 passive_030,幻獣の蒼角,status_immunity,paralysis,0,debuff_immunity,sp_atk_down,0,麻痺状態にならない。特殊攻撃が下がらない。,キリンは麻痺状態にならない！,キリンの特殊攻撃は下がらない！
@@ -35,10 +35,10 @@ passive_033,毒霧,status_immunity,poison,0,debuff_immunity,phy_atk_down,0,毒�
 passive_034,龍苔,debuff_immunity,debuff,0,status_immunity,all,0,能力が下がらない。状態異常にならない。,ヤマツカミの能力は下がらない！,ヤマツカミは状態異常にならない！
 passive_035,炎王,battle_effect_immunity,stun,15,element_damage_up,dragon,15,怯まない。龍技の威力が上がる。,テオテスカトルは怯まない！,none
 passive_036,禁忌の力,en_down_immunity,en_down,0,status_immunity,all,15,EN減衰を無効にする。状態異常にならない。,ミラボレアスはEN減衰効果を受けない！,ミラボレアスは状態異常にならない！
-passive_037,黒曜石,debuff_immunity,phy_atk_down,0,element_damage_up,none,15,物理攻撃が下がらない。無技の威力が上がる。,ブラキディオスの物理攻撃は下がらない！,none
+passive_037,黒曜石,passive_pierce,all,0,status_immunity,burn,0,攻撃時、相手の特性を無視する。火やられ状態にならない。,none,ブラキディオスは火やられ状態にならない！
 passive_038,蜘蛛の糸,debuff_immunity,speed_down,0,none,none,0,敏捷が下がらない。,ネルスキュラの敏捷は下がらない！,none
 passive_039,滑液,clear_buff_immunity,clear_buff,0,element_damage_up,none,15,能力upが解除されない。無技の威力が上がる。,タマミツネの能力upは解除されない！,none
-passive_040,尻刃,two_turn_skip_once,all,1,none,none,0,溜め技を1度だけ溜めがなしになる。,none,none
+passive_040,尻刃,two_turn_skip_once,all,1,none,none,0,溜め技が1度だけ溜めがなしになる。,none,none
 passive_041,不動の山神,start_energy,en,2,turn_end_stat_up,sp_def,10,EN2で戦闘開始する。ターン終了時、特殊防御が10%upする。,none,ガムートは身震いし、特殊防御が10%upした！
 passive_042,雷の反逆者,switch_heal,hp,25,none,none,0,場から戦線を離れた時、最大HPの25%を回復する。,none,none
 passive_043,寒気立つ嘴,en_down_immunity,en_down,0,none,none,0,EN減衰を無効にする。,ガララアジャラはEN減衰効果を受けない！,none
@@ -60,6 +60,6 @@ passive_058,凍土纏い,debuff_immunity,sp_def_down,0,none,none,0,特殊防御�
 passive_059,モンキーラダー,debuff_immunity,phy_atk_down,0,switch_heal,hp,25,物理攻撃が下がらない。場から戦線を離れた時、最大HPの25%を回復する。,ケチャワチャの物理攻撃は下がらない！,none
 passive_060,動く砦,en_down_immunity,en_down,0,debuff_immunity,sp_def_down,0,EN減衰を無効にする。特殊防御が下がらない。,シェンガオレンはEN減衰効果を受けない！,シェンガオレンの特殊防御は下がらない！
 passive_061,加速再生,debuff_immunity,speed_down,0,switch_heal,hp,25,敏捷が下がらない。場から戦線を離れた時、最大HPの25%を回復する。,ネルギガンテの敏捷は下がらない！,none
-passive_062,大嵐,en_down_immunity,en_down,0,element_damage_up,thunder,15,EN減衰を無効にする。雷技の威力が上がる。,アマツマガツチはEN減衰効果を受けない！,none
+passive_062,大嵐,field_effect_immunity,all,0,none,none,0,相手が発生させるフィールド効果を無効にする。,none,none
 passive_063,岩竜の涙,status_immunity,burn,0,none,none,0,火やられ状態にならない。,バサルモスは火やられ状態にならない！,none
 passive_064,侵攻,turn_end_stat_up,phy_atk,10,none,none,0,ターン終了時、物理攻撃が10%upする。,ラオシャンロンの激しく怒り、物理攻撃が10%upした！,none

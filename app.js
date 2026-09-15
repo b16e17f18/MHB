@@ -7349,7 +7349,12 @@ async function executeAction(action) {
         target,
         state.effects,
         STAT_LABELS,
-        { targets: ["self"], opponent },
+        {
+          targets: ["self"],
+          opponent,
+          actorSide: action.side,
+          targetSide,
+        },
       ));
       renderBattle();
       await playBattleEffectAnimation(startedTwoTurnMove.battleEffect, action.side);
@@ -7411,6 +7416,8 @@ async function executeAction(action) {
         {
           ...(target.fainted ? { targets: ["self"] } : completingTwoTurnMove ? { targets: ["enemy"] } : {}),
           opponent,
+          actorSide: action.side,
+          targetSide,
         },
       );
       applyBattleCoreEvents(skillEffectEvents);
@@ -7431,7 +7438,18 @@ async function executeAction(action) {
       changeCharacterBattleEffect = triggeredChangeCharacterBattleEffect(move);
     }
   } else {
-    applyBattleCoreEvents(applySkillEffects(move, actor, target, state.effects, STAT_LABELS, { opponent }));
+    applyBattleCoreEvents(applySkillEffects(
+      move,
+      actor,
+      target,
+      state.effects,
+      STAT_LABELS,
+      {
+        opponent,
+        actorSide: action.side,
+        targetSide,
+      },
+    ));
     await pause(360);
   }
 
@@ -7587,6 +7605,14 @@ async function resolveDelayedAttackEffect(side, effect) {
   pushLog(`${target.name}に${effect.name}が炸裂した！`);
   await pause(420);
   await playSkillAnimation(move, side);
+  if (ignoresOpponentFieldEffect(attacker, target, effect, {
+    sourceSide: effect.source?.side,
+    targetSide: side,
+  })) {
+    pushLog(`${target.name}に 0 ダメージ！`);
+    await pause(520);
+    return;
+  }
   const result = dealDamage(attacker, target, move, fieldEffectsForSide(state.fieldEffects, side));
   if (result.damage > 0) {
     flashSprite(side);
@@ -7660,14 +7686,20 @@ async function endRound() {
 
     for (const status of [...fighter.statuses]) {
       if (status.group === "damage" && status.damageType === "percent_maxhp") {
-        const damage = Math.max(1, Math.round(fighter.maxHp * (status.damageValue / 100)));
-        fighter.hp = Math.max(0, fighter.hp - damage);
-        if (status.id === "blood") {
-          pushLog(`${fighter.name}は多量出血した！ ${damage} ダメージ。`);
-        } else {
-          pushLog(`${fighter.name}は${status.name}で ${damage} ダメージ。`);
+        const ignoreDamage = status.id === "wind" && ignoresOpponentFieldEffect(null, fighter, status, {
+          sourceSide: status.sourceSide,
+          targetSide: side,
+        });
+        if (!ignoreDamage) {
+          const damage = Math.max(1, Math.round(fighter.maxHp * (status.damageValue / 100)));
+          fighter.hp = Math.max(0, fighter.hp - damage);
+          if (status.id === "blood") {
+            pushLog(`${fighter.name}は多量出血した！ ${damage} ダメージ。`);
+          } else {
+            pushLog(`${fighter.name}は${status.name}で ${damage} ダメージ。`);
+          }
+          await pause(420);
         }
-        await pause(420);
       }
       status.turns -= 1;
     }
