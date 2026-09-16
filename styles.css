@@ -1447,7 +1447,8 @@ button {
 }
 
 .detail-stat-fill,
-.detail-stat-bonus-fill {
+.detail-stat-bonus-fill,
+.detail-stat-penalty-fill {
   display: block;
   position: absolute;
   top: 0;
@@ -1466,6 +1467,12 @@ button {
   left: var(--base-bar-width);
   width: var(--bonus-bar-width);
   background: #c8f2ff;
+}
+
+.detail-stat-penalty-fill {
+  left: var(--penalty-bar-left);
+  width: var(--penalty-bar-width);
+  background: #dccbff;
 }
 
 .detail-stat-hp .detail-stat-fill {
@@ -1907,6 +1914,34 @@ button {
   min-height: 76px;
   padding: 6px 4px;
   font-size: 0.78rem;
+}
+
+.battle-inspect-stats {
+  display: grid;
+  gap: 8px;
+}
+
+.battle-inspect-stat-list {
+  gap: 6px;
+}
+
+.battle-inspect-stats .detail-stat {
+  grid-template-columns: 82px minmax(96px, 1fr) minmax(88px, auto);
+  min-height: 34px;
+  padding: 6px 8px;
+  font-size: 0.88rem;
+}
+
+.battle-inspect-stats .detail-stat-track {
+  height: 16px;
+}
+
+.battle-inspect-stats .detail-stat-bonus-fill {
+  background: #bfefff;
+}
+
+.battle-inspect-stats .detail-stat-penalty-fill {
+  background: #dccbff;
 }
 
 .dialogue-overlay {

@@ -12,7 +12,7 @@ const PASSIVE_TARGET_PHYSICAL_DAMAGE = "physical_damage";
 const PASSIVE_TARGET_SPECIAL_DAMAGE = "special_damage";
 const PASSIVE_TYPE_EFFECT_CHANCE_UP = "effect_chance_up";
 const PASSIVE_TYPE_ELEMENT_DAMAGE_UP = "element_damage_up";
-const PASSIVE_TYPE_PHYSICAL_DAMAGE_CUT = "physical_damage_cut";
+const PASSIVE_TYPE_DAMAGE_CUT = "damage_cut";
 const PASSIVE_TYPE_TURN_END_STAT_UP = "turn_end_stat_up";
 const PASSIVE_TYPE_DAMAGE_DRAIN = "damage_drain";
 const PASSIVE_TYPE_SURVIVE_ONCE = "survive_once";
@@ -40,13 +40,18 @@ function normalizePassive(row) {
     passive_type2: safeText(row.passive_type2, PASSIVE_EFFECT_TYPE_NONE),
     target_id2: safeText(row.target_id2, PASSIVE_EFFECT_TYPE_NONE),
     value2: number(row.value2),
+    passive_type3: safeText(row.passive_type3, PASSIVE_EFFECT_TYPE_NONE),
+    target_id3: safeText(row.target_id3, PASSIVE_EFFECT_TYPE_NONE),
+    value3: number(row.value3),
     text: csvText(row.text),
     trigger_text1: csvText(row.trigger_text1),
     trigger_text2: csvText(row.trigger_text2),
+    trigger_text3: csvText(row.trigger_text3),
   };
   passive.effect1 = normalizePassiveEffect(passive, 1);
   passive.effect2 = normalizePassiveEffect(passive, 2);
-  passive.effects = [passive.effect1, passive.effect2].filter(
+  passive.effect3 = normalizePassiveEffect(passive, 3);
+  passive.effects = [passive.effect1, passive.effect2, passive.effect3].filter(
     (effect) => effect.type && effect.type !== PASSIVE_EFFECT_TYPE_NONE,
   );
   return passive;
@@ -136,11 +141,28 @@ function effectChanceWithPassive(actor, baseChance) {
   return Math.min(100, number(baseChance) * effectChanceMultiplierFromPassive(actor));
 }
 
+function moveElementTargetsForPassive(move) {
+  if (typeof moveElements === "function") return moveElements(move);
+
+  const elements = [move?.element, move?.element2]
+    .map((element) => safeText(element, PASSIVE_EFFECT_TYPE_NONE))
+    .filter((element) => element && element !== PASSIVE_EFFECT_TYPE_NONE);
+  return [...new Set(elements)];
+}
+
+function passiveElementDamageTargetMatches(passiveEffect, move) {
+  const targetId = passiveEffectTargetId(passiveEffect);
+  if (targetId === PASSIVE_TARGET_ALL) return true;
+
+  const moveElementTargets = moveElementTargetsForPassive(move);
+  if (targetId === PASSIVE_EFFECT_TYPE_NONE) return moveElementTargets.length === 0;
+  return moveElementTargets.includes(targetId);
+}
+
 function elementDamageMultiplierFromPassive(actor, move) {
-  const moveElement = safeText(move?.element, PASSIVE_EFFECT_TYPE_NONE);
   const passiveEffect = findPassiveEffect(actor, (effect) => (
     passiveEffectType(effect) === PASSIVE_TYPE_ELEMENT_DAMAGE_UP &&
-    passiveTargetMatches(effect, moveElement)
+    passiveElementDamageTargetMatches(effect, move)
   ));
   return passiveEffect ? 1 + passiveEffectValue(passiveEffect) / 100 : 1;
 }
@@ -185,14 +207,14 @@ function ignoresOpponentFieldEffect(source, target, fieldEffect, context = {}) {
   return Boolean(source && source !== target);
 }
 
-function physicalDamageMultiplierFromPassive(target, move, context = {}) {
+function damageMultiplierFromPassive(target, move, context = {}) {
   if (!move || move.isBattleEffectDamage) return 1;
   if (ignoresOpponentPassives(context.actor, move, target)) return 1;
   const damageTarget = move.attack_type === "special"
     ? PASSIVE_TARGET_SPECIAL_DAMAGE
     : PASSIVE_TARGET_PHYSICAL_DAMAGE;
   const passiveEffect = findPassiveEffect(target, (effect) => (
-    passiveEffectType(effect) === PASSIVE_TYPE_PHYSICAL_DAMAGE_CUT &&
+    passiveEffectType(effect) === PASSIVE_TYPE_DAMAGE_CUT &&
     passiveTargetMatches(effect, damageTarget)
   ));
   return passiveEffect ? 1 - passiveEffectValue(passiveEffect) / 100 : 1;

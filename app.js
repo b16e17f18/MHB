@@ -239,6 +239,8 @@ const STAT_GRAPH_MAX = {
   speed: 500,
   regen_value: 105,
 };
+const BATTLE_STAT_GRAPH_MAX = 700;
+const BATTLE_INSPECT_GRAPH_STAT_KEYS = ["phy_atk", "phy_def", "sp_atk", "sp_def", "speed"];
 
 const STAT_LABELS = {
   hp: "体力",
@@ -262,6 +264,7 @@ const GENERATED_SKILLS = {
     category: "attack",
     power: 60,
     element: "none",
+    element2: "none",
     attack_type: "physical",
     hit_type: "normal",
     effect1: "none",
@@ -4125,6 +4128,7 @@ function normalizeSkill(row) {
     category: safeText(row.category),
     power: number(row.power),
     element: safeText(row.element, "none"),
+    element2: safeText(row.element2, "none"),
     attack_type: safeText(row.attack_type, "none"),
     hit_type: safeText(row.hit_type, "normal"),
     effect1: safeText(row.effect1, "none"),
@@ -4573,18 +4577,20 @@ function renderDetailPanel() {
 }
 
 function detailStat(label, value, statKey, options = {}) {
-  const barPercent = detailStatBarPercent(statKey, value);
+  const barPercent = detailStatBarPercent(statKey, value, options);
   const baseBarPercent = options.baseValue == null
     ? barPercent
-    : detailStatBarPercent(statKey, options.baseValue);
+    : detailStatBarPercent(statKey, options.baseValue, options);
   const visibleBaseBarPercent = Math.min(baseBarPercent, barPercent);
-  const displayValue = statKey === "hp" && value > STAT_GRAPH_MAX.hp ? "???" : value;
+  const displayValue = options.displayValue ?? (statKey === "hp" && value > STAT_GRAPH_MAX.hp ? "???" : value);
   const bonusPercent = Math.max(0, barPercent - visibleBaseBarPercent);
+  const penaltyPercent = options.showPenalty ? Math.max(0, baseBarPercent - barPercent) : 0;
   const bonusBar = bonusPercent > 0 ? `<span class="detail-stat-bonus-fill"></span>` : "";
+  const penaltyBar = penaltyPercent > 0 ? `<span class="detail-stat-penalty-fill"></span>` : "";
   return `
-    <div class="detail-stat detail-stat-${statKey}" style="--bar-width: ${barPercent}%; --base-bar-width: ${visibleBaseBarPercent}%; --bonus-bar-width: ${bonusPercent}%">
+    <div class="detail-stat detail-stat-${statKey}" style="--bar-width: ${barPercent}%; --base-bar-width: ${visibleBaseBarPercent}%; --bonus-bar-width: ${bonusPercent}%; --penalty-bar-left: ${barPercent}%; --penalty-bar-width: ${penaltyPercent}%">
       <span class="detail-stat-label">${escapeHtml(label)}</span>
-      <div class="detail-stat-track"><span class="detail-stat-fill"></span>${bonusBar}</div>
+      <div class="detail-stat-track"><span class="detail-stat-fill"></span>${bonusBar}${penaltyBar}</div>
       <strong class="detail-stat-value">${escapeHtml(displayValue)}</strong>
     </div>
   `;
@@ -4603,15 +4609,27 @@ function characterBattleNo(character) {
   return idMatch ? idMatch[1] : "";
 }
 
-function detailStatBarPercent(statKey, value) {
-  const maxStatValue = STAT_GRAPH_MAX[statKey] ?? 250;
+function detailStatBarPercent(statKey, value, options = {}) {
+  const maxStatValue = options.graphMax ?? STAT_GRAPH_MAX[statKey] ?? 250;
   return Math.round(clamp(value / maxStatValue, 0, 1) * 100);
+}
+
+function moveElementText(move) {
+  const elements = typeof moveElements === "function"
+    ? moveElements(move)
+    : [move?.element, move?.element2]
+      .map((element) => safeText(element, "none"))
+      .filter((element) => element && element !== "none" && ELEMENT_TYPES.includes(element));
+  const uniqueElements = [...new Set(elements)];
+  return uniqueElements.length
+    ? uniqueElements.map((element) => elementName(element)).join(" / ")
+    : elementName("none");
 }
 
 function renderSkillDetail(move) {
   const powerText = move.category === "attack" ? move.power : "-";
   const kindText = skillKindLabel(move);
-  const elementText = elementName(move.element);
+  const elementText = moveElementText(move);
   return `
     <article class="detail-skill-card">
       <div class="detail-skill-top">
@@ -6287,6 +6305,7 @@ function renderEnemyInfoPanel(enemy, inspectSide = "enemy") {
         <span>状態</span>
         <strong>${renderFighterStatusChips(enemy)}</strong>
       </div>
+      ${renderBattleInspectStats(enemy)}
       ${renderDexPassiveSection(enemy)}
       <div class="detail-section-title">属性耐性</div>
       <div class="resistance-grid battle-inspect-resistance-grid">
@@ -6296,6 +6315,55 @@ function renderEnemyInfoPanel(enemy, inspectSide = "enemy") {
   `;
 
   bindBattleInspectBackButton();
+}
+
+function renderBattleInspectStats(fighter) {
+  if (!fighter) return "";
+
+  const stats = [
+    ...BATTLE_INSPECT_GRAPH_STAT_KEYS.map((statKey) => ({
+      label: STAT_LABELS[statKey],
+      statKey,
+      value: effectiveStat(fighter, statKey),
+      baseValue: number(fighter.base?.[statKey]),
+      graphMax: BATTLE_STAT_GRAPH_MAX,
+      modifierSuffix: "%",
+    })),
+    {
+      label: STAT_LABELS.regen_value,
+      statKey: "regen_value",
+      value: effectiveRegenValue(fighter),
+      baseValue: number(fighter.base?.regen_value),
+      modifierSuffix: "",
+    },
+  ];
+
+  return `
+    <div class="battle-inspect-stats">
+      <div class="detail-section-title">能力値</div>
+      <div class="detail-stats battle-inspect-stat-list">
+        ${stats.map((stat) => renderBattleInspectStat(fighter, stat)).join("")}
+      </div>
+    </div>
+  `;
+}
+
+function renderBattleInspectStat(fighter, stat) {
+  const modifier = number(fighter.statMods?.[stat.statKey]);
+  return detailStat(stat.label, stat.value, stat.statKey, {
+    baseValue: stat.baseValue,
+    displayValue: battleInspectStatDisplayValue(stat.value, modifier, stat.modifierSuffix),
+    graphMax: stat.graphMax,
+    showPenalty: true,
+  });
+}
+
+function battleInspectStatDisplayValue(value, modifier, suffix = "%") {
+  const roundedValue = Math.round(number(value));
+  if (!modifier) return `${roundedValue}`;
+  const roundedModifier = Math.round(modifier);
+  const sign = roundedModifier > 0 ? "+" : "";
+  return `${roundedValue} (${sign}${roundedModifier}${suffix})`;
 }
 
 function bindBattleInspectBackButton() {
@@ -6408,11 +6476,12 @@ function renderMoveGrid(fighter) {
       const disabledTitle = healBlockReason
         ? ` title="${escapeHtml(healBlockReason)}" aria-label="${escapeHtml(`${move.name} ${healBlockReason}`)}"`
         : "";
+      const elementText = moveElementText(move);
       return `
         <button class="move-button move-element-${elementClassName}" type="button" data-move-id="${move.skill_id}" ${disabled ? "disabled" : ""}${disabledTitle}>
           <span class="move-name">${escapeHtml(move.name)}</span>
           <span class="move-cost">${energyBadge(move.cost)}</span>
-          <span class="move-element">${escapeHtml(elementName(move.element))}</span>
+          <span class="move-element">${escapeHtml(elementText)}</span>
           <span class="move-kind">${escapeHtml(kindText)}</span>
           <span class="move-power power-chip">威力 ${escapeHtml(powerText)}</span>
           ${moveText ? `<span class="move-text">${escapeHtml(moveText)}</span>` : ""}
@@ -6921,7 +6990,7 @@ function completeForcedSwitch(index) {
   const target = state.playerTeam[index];
   if (!target || target.fainted) return;
 
-  switchActive("player", index, { resetEnergy: true });
+  switchActive("player", index);
   state.pendingSwitchSide = null;
   state.commandMode = "fight";
   pushLog(`${target.name}、出番だ！`);
@@ -7798,7 +7867,7 @@ async function handleFaint(side) {
     return;
   }
 
-  switchActive(side, nextIndex, { resetEnergy: true });
+  switchActive(side, nextIndex);
   pushLog(`${activeBySide(side).name}が場に出た！`);
   await pause(520);
 }
@@ -8008,10 +8077,6 @@ function switchActive(side, index, options = {}) {
     state.enemyActiveIndex = index;
   }
 
-  const fighter = activeBySide(side);
-  if (options.resetEnergy && fighter && !fighter.fainted) {
-    fighter.energy = START_ENERGY;
-  }
 }
 
 function applySwitchHealPassive(fighter) {

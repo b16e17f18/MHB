@@ -30,6 +30,14 @@ const ELEMENT_GUARD_TYPES = {
   dragon_damage: "dragon",
 };
 
+const POWER_RULE_STATUS_IDS = new Set([
+  "poison",
+  "paralysis",
+  "sleep",
+  "burn",
+  "blood",
+]);
+
 function createEmptyStatMods() {
   return STAT_MOD_KEYS.reduce((mods, stat) => {
     mods[stat] = 0;
@@ -67,6 +75,34 @@ function ensureFighterWeakMods(fighter) {
   }
 
   return fighter.weakMods;
+}
+
+function moveElements(move) {
+  const elements = [move?.element, move?.element2]
+    .map((element) => safeText(element, "none"))
+    .filter((element) => element !== "none" && ELEMENT_TYPES.includes(element));
+  return [...new Set(elements)];
+}
+
+function moveHasElement(move, element) {
+  const normalizedElement = safeText(element, "none");
+  return normalizedElement !== "none" && moveElements(move).includes(normalizedElement);
+}
+
+function moveWeaknessMultiplier(target, move) {
+  const elements = moveElements(move);
+  if (!elements.length) return 1;
+
+  const totalMultiplier = elements.reduce(
+    (total, element) => total + weaknessMultiplier(target, element),
+    0,
+  );
+  return totalMultiplier / elements.length;
+}
+
+function sameElementBonusForMove(attacker, move) {
+  const attackerElement = safeText(attacker?.base?.element, "none");
+  return moveHasElement(move, attackerElement) ? 1.15 : 1;
 }
 
 function moveWithEffectivePower(move, actor, target, powerRules) {
@@ -131,9 +167,28 @@ function powerRuleValue(ruleGroup, move, actor, target) {
     }
     return clamp(Math.floor((actor.hp / actor.maxHp) * 100), 0, 100);
   }
+  if (ruleGroup === "self_status") {
+    if (!actor) {
+      warnPowerRuleFallback(ruleGroup, move, "actor not found");
+      return Number.NaN;
+    }
+    return hasPowerRuleStatus(actor) ? 1 : 0;
+  }
+  if (ruleGroup === "target_status") {
+    if (!target) {
+      warnPowerRuleFallback(ruleGroup, move, "target not found");
+      return Number.NaN;
+    }
+    return hasPowerRuleStatus(target) ? 1 : 0;
+  }
 
   warnPowerRuleFallback(ruleGroup, move, "rule value calculation not implemented");
   return Number.NaN;
+}
+
+function hasPowerRuleStatus(fighter) {
+  return Array.isArray(fighter?.statuses) &&
+    fighter.statuses.some((status) => POWER_RULE_STATUS_IDS.has(status?.id));
 }
 
 function speedRatioValue(numeratorFighter, denominatorFighter, ruleGroup, move) {
@@ -186,9 +241,8 @@ function estimateMoveDamage(
   const attackStat = effectiveStat(attacker, physical ? "phy_atk" : "sp_atk");
   const defenseStat = effectiveStat(target, physical ? "phy_def" : "sp_def");
   const ratio = attackStat / Math.max(45, defenseStat + 60);
-  const elementMultiplier = weaknessMultiplier(target, move.element);
-  const sameElementBonus =
-    move.element !== "none" && move.element === attacker.base.element ? 1.15 : 1;
+  const elementMultiplier = moveWeaknessMultiplier(target, move);
+  const sameElementBonus = sameElementBonusForMove(attacker, move);
   let damage = (damageMove.power * 1.45 + attackStat * 0.48) * ratio;
 
   damage *= elementMultiplier * sameElementBonus * aiConfig.AVERAGE_DAMAGE_VARIANCE;
@@ -213,11 +267,10 @@ function dealDamage(attacker, target, move, targetFieldEffects = []) {
   const attackStat = effectiveStat(attacker, physical ? "phy_atk" : "sp_atk");
   const defenseStat = effectiveStat(target, physical ? "phy_def" : "sp_def");
   const ratio = attackStat / Math.max(45, defenseStat + 60);
-  const elementMultiplier = weaknessMultiplier(target, move.element);
-  const sameElementBonus =
-    move.element !== "none" && move.element === attacker.base.element ? 1.15 : 1;
+  const elementMultiplier = moveWeaknessMultiplier(target, move);
+  const sameElementBonus = sameElementBonusForMove(attacker, move);
   const elementPassiveMultiplier = elementDamageMultiplierFromPassive(attacker, move);
-  const physicalPassiveMultiplier = physicalDamageMultiplierFromPassive(target, move, { actor: attacker });
+  const damagePassiveMultiplier = damageMultiplierFromPassive(target, move, { actor: attacker });
   const variance = 0.9 + Math.random() * 0.15;
   let damage = (move.power * 1.45 + attackStat * 0.48) * ratio;
   let effectText = effectivenessText(elementMultiplier);
@@ -225,7 +278,7 @@ function dealDamage(attacker, target, move, targetFieldEffects = []) {
   damage *= elementMultiplier *
     sameElementBonus *
     elementPassiveMultiplier *
-    physicalPassiveMultiplier *
+    damagePassiveMultiplier *
     variance;
   damage = applyIncomingBattleEffects(target, damage, move, targetFieldEffects, { actor: attacker });
   damage = Math.max(1, Math.round(damage));
@@ -602,6 +655,7 @@ function delayedBattleEffectPayload(move, actor, battleEffect, sourceSide = "", 
       name: move.name,
       power: delayedPower,
       element: safeText(move.element, "none"),
+      element2: safeText(move.element2, "none"),
       attack_type: safeText(move.attack_type, "special"),
       hit_type: safeText(move.hit_type, "sure_hit"),
       animation_id: safeText(move.animation_id),
