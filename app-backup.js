@@ -6033,6 +6033,7 @@ function createFighter(character, options = {}) {
     energy: clamp(startEnergyFromPassiveEffects(passiveEffects, START_ENERGY), 0, maxEnergy),
     fainted: false,
     statMods: createEmptyStatMods(),
+    timedStatMods: [],
     weakMods: createEmptyWeakMods(),
     statuses: [],
     battleEffects: [],
@@ -7793,6 +7794,8 @@ async function endRound() {
         await pause(420);
       }
     }
+
+    tickTimedStatModsAfterRound(fighter);
   }
 
   for (const side of ["player", "enemy"]) {
@@ -8105,6 +8108,7 @@ function clearSwitchVolatileState(fighter) {
     ? []
     : fighter.battleEffects.filter((effect) => SWITCH_PERSISTENT_BATTLE_EFFECT_IDS.has(effect.id));
   fighter.statMods = createEmptyStatMods();
+  fighter.timedStatMods = [];
 }
 
 function moveForFighter(fighter, moveId) {

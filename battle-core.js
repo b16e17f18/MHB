@@ -1177,6 +1177,16 @@ function applyClearDebuffEffect(effect, actor, target) {
     }
   }
 
+  const weakMods = ensureFighterWeakMods(target);
+  for (const element of ELEMENT_TYPES) {
+    const current = weakMods[element];
+    if (current.value > 0) {
+      current.value = 0;
+      current.turns = 0;
+      cleared = true;
+    }
+  }
+
   return cleared
     ? effectStartLogEvents(effect, actor, target, {}, `${target.name}の弱体が解除された！`)
     : [];
