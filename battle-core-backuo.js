@@ -1104,37 +1104,6 @@ function addTimedStatusEffect(effect, actor, target, context = {}) {
   );
 }
 
-function ensureTimedStatMods(fighter) {
-  if (!Array.isArray(fighter?.timedStatMods)) {
-    if (!fighter) return [];
-    fighter.timedStatMods = [];
-  }
-  return fighter.timedStatMods;
-}
-
-function clearTimedStatModsForStat(fighter, stat) {
-  if (!fighter || !Array.isArray(fighter.timedStatMods)) return;
-  fighter.timedStatMods = fighter.timedStatMods.filter((entry) => entry.stat !== stat);
-}
-
-function tickTimedStatModsAfterRound(fighter) {
-  if (!fighter || !fighter.statMods || !Array.isArray(fighter.timedStatMods)) return;
-
-  const remaining = [];
-  for (const entry of fighter.timedStatMods) {
-    const turns = Math.max(0, Math.floor(number(entry.turns))) - 1;
-    if (turns > 0) {
-      remaining.push({ ...entry, turns });
-      continue;
-    }
-
-    const stat = safeText(entry.stat);
-    if (!stat || !Object.prototype.hasOwnProperty.call(fighter.statMods, stat)) continue;
-    fighter.statMods[stat] = number(fighter.statMods[stat]) - number(entry.amount);
-  }
-  fighter.timedStatMods = remaining;
-}
-
 function applyStatModifierEffect(effect, actor, target, statLabels = {}) {
   const stat = effect.target_stat;
   if (!target.statMods[stat] && target.statMods[stat] !== 0) return [];
@@ -1144,15 +1113,6 @@ function applyStatModifierEffect(effect, actor, target, statLabels = {}) {
   const stageLimit = Math.max(0, Math.abs(effect.damage_value) * 4);
   target.statMods[stat] = clamp(target.statMods[stat] + amount, -stageLimit, stageLimit);
   const changed = target.statMods[stat] - before;
-
-  if (changed !== 0 && stat === "regen_value" && effect.turn > 0) {
-    ensureTimedStatMods(target).push({
-      stat,
-      amount: changed,
-      turns: effect.turn,
-    });
-  }
-
   if (changed !== 0) {
     return effectStartLogEvents(
       effect,
@@ -1172,7 +1132,6 @@ function applyClearDebuffEffect(effect, actor, target) {
   for (const stat of Object.keys(target.statMods)) {
     if (target.statMods[stat] < 0) {
       target.statMods[stat] = 0;
-      clearTimedStatModsForStat(target, stat);
       cleared = true;
     }
   }
@@ -1189,7 +1148,6 @@ function applyClearBuffEffect(effect, actor, target) {
   for (const stat of Object.keys(target.statMods)) {
     if (target.statMods[stat] > 0) {
       target.statMods[stat] = 0;
-      clearTimedStatModsForStat(target, stat);
       cleared = true;
     }
   }
