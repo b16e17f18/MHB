@@ -60,6 +60,6 @@ passive_058,凍土纏い,debuff_immunity,sp_def_down,0,none,none,0,none,none,0,�
 passive_059,モンキーラダー,debuff_immunity,phy_atk_down,0,switch_heal,hp,25,none,none,0,物理攻撃が下がらない。場から戦線を離れた時、最大HPの25%を回復する。,ケチャワチャの物理攻撃は下がらない！,none,none
 passive_060,動く砦,en_down_immunity,en_down,0,debuff_immunity,sp_def_down,0,none,none,0,EN減衰を無効にする。特殊防御が下がらない。,シェンガオレンはEN減衰効果を受けない！,シェンガオレンの特殊防御は下がらない！,none
 passive_061,加速再生,debuff_immunity,speed_down,0,switch_heal,hp,25,none,none,0,敏捷が下がらない。場から戦線を離れた時、最大HPの25%を回復する。,ネルギガンテの敏捷は下がらない！,none,none
-passive_062,大嵐,field_effect_immunity,all,0,status_immunity,all,0,none,none,0,相手が発生させるフィールド効果をの影響を受けない。状態異常にならない。,none,アマツマガツチは状態異常にならない！,none
+passive_062,大嵐,field_effect_immunity,all,0,status_immunity,all,0,none,none,0,相手が発生させるフィールド効果の影響を受けない。状態異常にならない。,none,アマツマガツチは状態異常にならない！,none
 passive_063,岩竜の涙,status_immunity,burn,0,start_energy,en,7,effect_chance_up,all,150,EN7で戦闘開始する。火やられ状態にならない。追加効果の発生率が1.5倍。,バサルモスは火やられ状態にならない！,none,none
 passive_064,侵攻,turn_end_stat_up,phy_atk,10,none,none,0,none,none,0,ターン終了時、物理攻撃が10%upする。,ラオシャンロンの激しく怒り、物理攻撃が10%upした！,none,none
