@@ -102,6 +102,13 @@ function moveWeaknessMultiplier(target, move) {
 
 function sameElementBonusForMove(attacker, move) {
   const attackerElement = safeText(attacker?.base?.element, "none");
+
+  if (attackerElement === "none") {
+    const moveElement = safeText(move?.element, "none");
+    const moveElement2 = safeText(move?.element2, "none");
+    return moveElement === "none" && moveElement2 === "none" ? 1.15 : 1;
+  }
+
   return moveHasElement(move, attackerElement) ? 1.15 : 1;
 }
 
