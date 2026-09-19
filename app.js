@@ -4114,11 +4114,18 @@ function normalizeCharacter(row) {
     transparencyTolerance: number(row.tolerance),
     renderOffsetX: number(row.render_offset_x),
     renderOffsetY: number(row.render_offset_y),
+    battle_anchor_x: normalizeBattleAnchor(row.battle_anchor_x),
+    battle_anchor_y: normalizeBattleAnchor(row.battle_anchor_y),
     display_order: number(row.display_order, 9999),
     skillIds: [row.skill_1, row.skill_2, row.skill_3, row.skill_4, row.skill_5]
       .map((skillId) => safeText(skillId))
       .filter(Boolean),
   };
+}
+
+function normalizeBattleAnchor(value) {
+  const text = safeText(value);
+  return text ? clamp(number(text, 50), 0, 100) : 50;
 }
 
 function normalizeSkill(row) {
@@ -8313,6 +8320,7 @@ async function playBattleAnimation(config, side) {
 
 function battleAnimationTargetCenter(side) {
   const sprite = side === "player" ? els.playerSprite : els.enemySprite;
+  const fighter = activeBySide(side);
   const field = sprite?.closest(".battle-field");
   const targetNode = sprite?.querySelector(".sprite-image") ?? sprite;
   if (!field || !targetNode) return { x: Number.NaN, y: Number.NaN };
@@ -8323,9 +8331,12 @@ function battleAnimationTargetCenter(side) {
     return { x: Number.NaN, y: Number.NaN };
   }
 
+  const anchorX = normalizeBattleAnchor(fighter?.base?.battle_anchor_x);
+  const anchorY = normalizeBattleAnchor(fighter?.base?.battle_anchor_y);
+
   return {
-    x: targetRect.left - fieldRect.left + targetRect.width / 2,
-    y: targetRect.top - fieldRect.top + targetRect.height / 2,
+    x: targetRect.left - fieldRect.left + targetRect.width * anchorX / 100,
+    y: targetRect.top - fieldRect.top + targetRect.height * anchorY / 100,
   };
 }
 
