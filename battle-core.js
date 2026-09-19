@@ -557,7 +557,11 @@ function effectStartLogEvents(effect, actor, target, context = {}, fallbackText 
 function applyStandardBattleEffect(actor, target, battleEffect, currentTurn, move = null) {
   const appliedBattleEffects = [];
   const events = [];
-  const recipient = battleEffect.battle_effect_id === STUN_BATTLE_EFFECT_ID ? target : actor;
+  const recipient =
+    battleEffect.battle_effect_id === STUN_BATTLE_EFFECT_ID ||
+    battleEffect.battle_effect_id === SWITCH_LOCK_BATTLE_EFFECT_ID
+      ? target
+      : actor;
   if (!recipient) return { appliedBattleEffects, events };
 
   const blockedBy = findBlockingBattleEffectPassive({ actor, target: recipient, battleEffect, move });
