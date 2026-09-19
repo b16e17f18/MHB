@@ -50,7 +50,7 @@ character_048,アルバトリオン,999,425,400,400,400,299,35,2,5,75,100,75,75,
 character_049,ドスイーオス,430,230,185,105,260,395,105,2,1,50,150,100,100,50,none,skill_001,skill_002,skill_003,skill_008,character_049.png,#ffffff,8,,,75,15,bird_wyvern,5,disruptor,,skill_008,passive_049
 character_050,アオアシラ,495,250,250,105,330,115,105,2,1,125,50,125,100,25,none,skill_001,skill_026,skill_010,skill_091,character_050.png,#ffffff,8,,,75,50,fanged_beast,14,defensive,skill_091,,passive_050
 character_051,キングチャチャブー,295,295,105,105,105,295,105,1,1,25,25,25,25,50,none,skill_082,skill_092,skill_012,skill_116,character_051.png,#ffffff,8,,,50,45,unknown,402,disruptor,skill_116,skill_092,passive_051
-character_052,ウルクスス,460,235,210,105,350,230,70,2,1,125,50,75,25,25,ice,skill_001,skill_002,skill_020,skill_090,character_052.png,#ffffff,8,,,77,68,fanged_beast,15,tactical,skill_002,skill_090,passive_052
+character_052,ウルクスス,460,235,210,105,350,230,70,2,1,125,50,75,25,25,ice,skill_001,skill_002,skill_020,skill_090,character_052.png,#ffffff,8,,,77,55,fanged_beast,15,tactical,skill_002,skill_090,passive_052
 character_053,ホロロホルル,580,240,240,240,360,240,105,2,2,125,150,100,50,50,none,skill_001,skill_077,skill_067,skill_076,character_053.png,#ffffff,8,,,62,22,bird_wyvern,6,disruptor,skill_067,skill_076,passive_053
 character_054,セルレギオス,595,330,285,145,285,415,70,2,2,50,100,150,100,50,none,skill_001,skill_127,skill_079,skill_078,character_054.png,#ffffff,8,,-25,50,50,flying_wyvern,313,tactical,,skill_078,passive_054
 character_055,ゲネル・セルタス,585,310,355,285,255,45,35,0,2,125,50,50,100,25,water,skill_001,skill_130,skill_015,skill_080,character_055.png,#ffffff,8,,,44,75,carapaceon,23,defensive,skill_080,,passive_055

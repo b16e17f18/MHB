@@ -688,6 +688,8 @@ function bindEvents() {
 
   els.setupPlayerModeButton?.addEventListener("click", () => setSetupSide("player"));
   els.setupEnemyModeButton?.addEventListener("click", () => setSetupSide("enemy"));
+  els.selectedSlots?.addEventListener("click", handleSetupPartySlotsClick);
+  els.rosterGrid?.addEventListener("click", handleRosterClick);
 
   els.randomTeamButton.addEventListener("click", () => {
     setSetupSelectionIds(
@@ -704,6 +706,9 @@ function bindEvents() {
   });
 
   els.startButton.addEventListener("click", startBattle);
+  els.moveGrid.addEventListener("click", handleMoveGridClick);
+  els.switchGrid.addEventListener("click", handleSwitchGridClick);
+  els.enemyInfoPanel.addEventListener("click", handleBattleInspectClick);
 
   els.fightTab.addEventListener("click", () => {
     if (state.busy || state.gameOver || state.pendingSwitchSide) return;
@@ -4451,10 +4456,12 @@ function renderSelectedSlots() {
     ${renderSetupPartySlots("player", "自分", selectedCharactersForSetup())}
     ${renderSetupPartySlots("enemy", "相手", selectedEnemyCharactersForSetup())}
   `;
+}
 
-  for (const button of els.selectedSlots.querySelectorAll("[data-setup-side]")) {
-    button.addEventListener("click", () => setSetupSide(button.dataset.setupSide));
-  }
+function handleSetupPartySlotsClick(event) {
+  const button = event.target.closest("[data-setup-side]");
+  if (!button || !els.selectedSlots.contains(button)) return;
+  setSetupSide(button.dataset.setupSide);
 }
 
 function renderSetupPartySlots(side, label, selectedCharacters) {
@@ -4513,16 +4520,37 @@ function renderRoster() {
     })
     .join("");
 
-  for (const card of els.rosterGrid.querySelectorAll(".card-select-button")) {
-    card.addEventListener("click", () => toggleCharacter(card.dataset.characterId));
+}
+
+function handleRosterClick(event) {
+  const selectButton = event.target.closest(".card-select-button");
+  if (selectButton && els.rosterGrid.contains(selectButton)) {
+    toggleCharacter(selectButton.dataset.characterId);
+    return;
   }
 
-  for (const button of els.rosterGrid.querySelectorAll(".detail-button")) {
-    button.addEventListener("click", () => {
-      state.detailCharacterId = button.dataset.detailId;
-      renderDetailPanel();
-    });
+  const detailButton = event.target.closest(".detail-button");
+  if (!detailButton || !els.rosterGrid.contains(detailButton)) return;
+  state.detailCharacterId = detailButton.dataset.detailId;
+  renderDetailPanel();
+}
+
+function renderSetupSelection() {
+  const selectedIds = new Set(setupSelectionIds());
+  renderSelectedSlots();
+  for (const button of els.rosterGrid.querySelectorAll(".card-select-button")) {
+    button.closest(".character-card")?.classList.toggle(
+      "is-selected",
+      selectedIds.has(button.dataset.characterId),
+    );
   }
+
+  const playerSlots = selectedSlotTotal();
+  const enemySlots = selectedEnemySlotTotal();
+  els.startButton.disabled =
+    playerSlots <= 0 ||
+    playerSlots > TEAM_SLOT_LIMIT ||
+    enemySlots > TEAM_SLOT_LIMIT;
 }
 
 function renderDetailPanel() {
@@ -5627,7 +5655,7 @@ function toggleCharacter(characterId) {
     if (setupSlotTotal() + character.slot > TEAM_SLOT_LIMIT) return;
     selectedIds.push(characterId);
   }
-  renderSetup();
+  renderSetupSelection();
 }
 
 function startRandomBattle() {
@@ -6064,11 +6092,10 @@ function renderBattle() {
 
   els.enemyHud.innerHTML = renderHud(enemy, state.enemyTeam, state.enemyActiveIndex, "enemy");
   els.playerHud.innerHTML = renderHud(player, state.playerTeam, state.playerActiveIndex, "player");
-  els.enemySprite.innerHTML = renderSprite(enemy, "enemy", state.enemyActiveIndex);
-  els.playerSprite.innerHTML = renderSprite(player, "player", state.playerActiveIndex);
+  renderBattleSprite(els.enemySprite, enemy, "enemy", state.enemyActiveIndex);
+  renderBattleSprite(els.playerSprite, player, "player", state.playerActiveIndex);
   applyPositionEffectClass(els.enemySprite, enemy);
   applyPositionEffectClass(els.playerSprite, player);
-  bindSpriteStatusClicks();
   renderBattleMessage();
   renderBattleAnimationLayer();
 
@@ -6242,9 +6269,19 @@ function renderSprite(fighter, side, activeIndex = 0) {
   `;
 }
 
-function bindSpriteStatusClicks() {
-  for (const control of [els.enemySprite, els.playerSprite].flatMap((sprite) => (
-    sprite ? [...sprite.querySelectorAll("[data-fighter-side]")] : []
+function renderBattleSprite(container, fighter, side, activeIndex) {
+  if (!container) return;
+  const renderKey = fighter ? `${fighter.id}:${activeIndex}` : "";
+  if (container.dataset.renderedFighterKey === renderKey) return;
+
+  container.innerHTML = renderSprite(fighter, side, activeIndex);
+  container.dataset.renderedFighterKey = renderKey;
+  bindSpriteStatusClicks(container);
+}
+
+function bindSpriteStatusClicks(sprite) {
+  for (const control of [sprite].flatMap((spriteNode) => (
+    spriteNode ? [...spriteNode.querySelectorAll("[data-fighter-side]")] : []
   ))) {
     const showStatus = () => showFighterStatus(control.dataset.fighterSide);
     control.addEventListener("click", showStatus);
@@ -6296,7 +6333,6 @@ function renderEnemyInfoPanel(enemy, inspectSide = "enemy") {
         <div class="command-note">対応する図鑑を購入すると情報を確認できます</div>
       </div>
     `;
-    bindBattleInspectBackButton();
     return;
   }
 
@@ -6322,7 +6358,6 @@ function renderEnemyInfoPanel(enemy, inspectSide = "enemy") {
     </div>
   `;
 
-  bindBattleInspectBackButton();
 }
 
 function renderBattleInspectStats(fighter) {
@@ -6374,11 +6409,11 @@ function battleInspectStatDisplayValue(value, modifier, suffix = "%") {
   return `${roundedValue} (${sign}${roundedModifier}${suffix})`;
 }
 
-function bindBattleInspectBackButton() {
-  els.enemyInfoPanel.querySelector(".battle-inspect-back")?.addEventListener("click", () => {
-    state.commandMode = "fight";
-    renderBattle();
-  });
+function handleBattleInspectClick(event) {
+  const button = event.target.closest(".battle-inspect-back");
+  if (!button || !els.enemyInfoPanel.contains(button)) return;
+  state.commandMode = "fight";
+  renderBattle();
 }
 
 function renderBattleMessage() {
@@ -6508,13 +6543,15 @@ function renderMoveGrid(fighter) {
     </button>
   ` : "";
   els.moveGrid.innerHTML = `${moveButtons}${saveEnergyButton}`;
+}
 
-  for (const button of els.moveGrid.querySelectorAll(".move-button")) {
-    if (button.dataset.saveEnergy) {
-      button.addEventListener("click", () => playerChooseSaveEnergy());
-    } else {
-      button.addEventListener("click", () => playerChooseMove(button.dataset.moveId));
-    }
+function handleMoveGridClick(event) {
+  const button = event.target.closest(".move-button");
+  if (!button || !els.moveGrid.contains(button) || button.disabled) return;
+  if (button.dataset.saveEnergy) {
+    playerChooseSaveEnergy();
+  } else {
+    playerChooseMove(button.dataset.moveId);
   }
 }
 
@@ -6554,9 +6591,12 @@ function renderSwitchGrid() {
     );
   }
 
-  for (const button of els.switchGrid.querySelectorAll(".switch-button")) {
-    button.addEventListener("click", () => playerChooseSwitch(Number(button.dataset.memberIndex)));
-  }
+}
+
+function handleSwitchGridClick(event) {
+  const button = event.target.closest(".switch-button");
+  if (!button || !els.switchGrid.contains(button) || button.disabled) return;
+  playerChooseSwitch(Number(button.dataset.memberIndex));
 }
 
 function renderExchangePanel() {
