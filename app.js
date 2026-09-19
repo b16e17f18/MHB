@@ -8331,7 +8331,8 @@ function battleAnimationTargetCenter(side) {
     return { x: Number.NaN, y: Number.NaN };
   }
 
-  const anchorX = normalizeBattleAnchor(fighter?.base?.battle_anchor_x);
+  const sourceAnchorX = normalizeBattleAnchor(fighter?.base?.battle_anchor_x);
+  const anchorX = side === "enemy" ? 100 - sourceAnchorX : sourceAnchorX;
   const anchorY = normalizeBattleAnchor(fighter?.base?.battle_anchor_y);
 
   return {
