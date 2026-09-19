@@ -8417,10 +8417,52 @@ function playBattleAnimationFrames(sequence, duration, sheetMeta) {
   const startedAt = window.performance.now();
 
   return new Promise((resolve) => {
+    let completed = false;
+    let animationFrameId = null;
+    let fallbackTimer = null;
+
+    const finish = () => {
+      if (completed) return;
+      completed = true;
+      if (animationFrameId !== null) {
+        window.cancelAnimationFrame(animationFrameId);
+        animationFrameId = null;
+      }
+      if (fallbackTimer !== null) {
+        window.clearTimeout(fallbackTimer);
+        fallbackTimer = null;
+      }
+      resolve();
+    };
+
+    const scheduleNextFrame = () => {
+      animationFrameId = window.requestAnimationFrame((timestamp) => {
+        animationFrameId = null;
+        updateFrame(timestamp);
+      });
+      fallbackTimer = window.setTimeout(
+        () => {
+          fallbackTimer = null;
+          if (animationFrameId !== null) {
+            window.cancelAnimationFrame(animationFrameId);
+            animationFrameId = null;
+          }
+          updateFrame(window.performance.now());
+        },
+        Math.min(100, totalDuration),
+      );
+    };
+
     const updateFrame = (timestamp) => {
+      if (completed) return;
+      if (fallbackTimer !== null) {
+        window.clearTimeout(fallbackTimer);
+        fallbackTimer = null;
+      }
+
       const animation = state.battleAnimation;
       if (!animation || animation.sequence !== sequence) {
-        resolve();
+        finish();
         return;
       }
 
@@ -8435,15 +8477,15 @@ function playBattleAnimationFrames(sequence, duration, sheetMeta) {
       }
 
       if (progress < 1) {
-        window.requestAnimationFrame(updateFrame);
+        scheduleNextFrame();
         return;
       }
 
-      resolve();
+      finish();
     };
 
     updateBattleAnimationFrame(frameOrder[0] ?? 0, sheetMeta);
-    window.requestAnimationFrame(updateFrame);
+    scheduleNextFrame();
   });
 }
 
