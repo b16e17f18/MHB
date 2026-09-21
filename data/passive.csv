@@ -25,7 +25,7 @@ passive_023,蓄電殻,debuff_immunity,sp_atk_down,0,none,none,0,none,none,0,特�
 passive_024,氷牙竜の棘,debuff_immunity,phy_atk_down,0,debuff_immunity,sp_atk_down,0,none,none,0,物理攻撃と特殊攻撃が下がらない。,ベリオロスの物理攻撃は下がらない！,ベリオロスの特殊攻撃は下がらない！,none
 passive_025,闘気硬化,turn_end_stat_up,phy_def,10,none,none,0,none,none,0,ターン終了時、物理防御が10%upする。,ラージャンは闘気により物理防御が10%upした！,none,none
 passive_026,捕食者の牙,damage_drain,physical_damage,25,element_damage_up,none,15,none,none,0,物理ダメージを与えた時、ダメージの25%を回復する。無属性技の威力が上がる。,none,none,none
-passive_027,深紅の角,two_turn_skip_once,all,1,start_energy,en,2,low_hp_damage_up,none,50,EN2で戦闘を開始する。溜め技が1度だけ溜めがなしになる。HP33%以下で無属性技の威力が50%upする。,none,none,none
+passive_027,深紅の角,two_turn_skip_once,all,1,start_energy,en,2,low_hp_damage_up,none,50,EN2で戦闘を開始する。溜め技が1度だけ溜めがなしになる。HP33%以下で無属性技の威力が1.5倍。,none,none,none
 passive_028,起源にして頂点,debuff_immunity,debuff,0,battle_effect_immunity,stun,0,low_hp_damage_up,all,0,怯まない。能力が下がらない。,アカムトルムの能力は下がらない！,アカムトルムは怯まない！,none
 passive_029,樹海の主,turn_end_stat_down,phy_def,15,turn_end_stat_up,speed,10,low_hp_damage_up,none,50,ターン終了時、物理防御が15%down、敏捷が10upする。HP33%以下で無属性技の威力が1.5倍。,エスピナスは怒り狂い、物理防御が15%down、敏捷が10%upした！,none,none
 passive_030,幻獣の蒼角,status_immunity,paralysis,0,debuff_immunity,sp_atk_down,0,none,none,0,麻痺状態にならない。特殊攻撃が下がらない。,キリンは麻痺状態にならない！,キリンの特殊攻撃は下がらない！,none
