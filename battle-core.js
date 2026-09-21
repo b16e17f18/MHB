@@ -250,9 +250,13 @@ function estimateMoveDamage(
   const ratio = attackStat / Math.max(45, defenseStat + 60);
   const elementMultiplier = moveWeaknessMultiplier(target, move);
   const sameElementBonus = sameElementBonusForMove(attacker, move);
+  const lowHpDamageMultiplier = lowHpDamageMultiplierFromPassive(attacker, damageMove);
   let damage = (damageMove.power * 1.45 + attackStat * 0.48) * ratio;
 
-  damage *= elementMultiplier * sameElementBonus * aiConfig.AVERAGE_DAMAGE_VARIANCE;
+  damage *= elementMultiplier *
+    sameElementBonus *
+    lowHpDamageMultiplier *
+    aiConfig.AVERAGE_DAMAGE_VARIANCE;
   damage = applyIncomingBattleEffects(target, damage, damageMove, targetFieldEffects);
   return Math.max(1, Math.round(damage));
 }
@@ -277,6 +281,7 @@ function dealDamage(attacker, target, move, targetFieldEffects = []) {
   const elementMultiplier = moveWeaknessMultiplier(target, move);
   const sameElementBonus = sameElementBonusForMove(attacker, move);
   const elementPassiveMultiplier = elementDamageMultiplierFromPassive(attacker, move);
+  const lowHpDamageMultiplier = lowHpDamageMultiplierFromPassive(attacker, move);
   const damagePassiveMultiplier = damageMultiplierFromPassive(target, move, { actor: attacker });
   const variance = 0.9 + Math.random() * 0.15;
   let damage = (move.power * 1.45 + attackStat * 0.48) * ratio;
@@ -285,6 +290,7 @@ function dealDamage(attacker, target, move, targetFieldEffects = []) {
   damage *= elementMultiplier *
     sameElementBonus *
     elementPassiveMultiplier *
+    lowHpDamageMultiplier *
     damagePassiveMultiplier *
     variance;
   damage = applyIncomingBattleEffects(target, damage, move, targetFieldEffects, { actor: attacker });
@@ -1220,6 +1226,24 @@ function applyClearBuffEffect(effect, actor, target) {
     : [];
 }
 
+function applyClearStatusEffect(effect, actor, target) {
+  if (!Array.isArray(target?.statuses)) return [];
+
+  const remainingStatuses = target.statuses.filter(
+    (status) => !PASSIVE_STATUS_IMMUNITY_ALL_EFFECT_IDS.has(status.id),
+  );
+  if (remainingStatuses.length === target.statuses.length) return [];
+
+  target.statuses = remainingStatuses;
+  return effectStartLogEvents(
+    effect,
+    actor,
+    target,
+    {},
+    `${target.name}の状態異常が回復した！`,
+  );
+}
+
 function applyGenericStatusEffect(effect, actor, target, context = {}) {
   const current = target.statuses.find((status) => status.id === effect.effect_id);
   const sourceMetadata = statusSourceMetadata(actor, context);
@@ -1281,6 +1305,10 @@ function applyEffect(effectId, actor, target, effects, statLabels = {}, context 
 
   if (effect.effect_group === "clear_buff") {
     return applyClearBuffEffect(effect, actor, target);
+  }
+
+  if (effect.effect_group === "clear_status") {
+    return applyClearStatusEffect(effect, actor, target);
   }
 
   if (effect.effect_group === "resistance") {

@@ -45,3 +45,4 @@ regen_value_down2,回復力down,debuff,regen_value,70,3,TRUE,regen_value,{target
 ,,,,,,,,
 clear_debuff,状態復帰,clear_debuff,none,0,0,TRUE,all,{target}の弱体効果が解除された！
 clear_buff,強化解除,clear_buff,none,0,0,TRUE,all,{target}の強化効果が解除された！
+clear_status,状態異常回復,clear_status,none,0,0,TRUE,all,{target}の状態異常が回復した！

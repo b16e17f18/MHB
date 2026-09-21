@@ -256,6 +256,7 @@ const STAT_MOD_KEYS = ["phy_atk", "phy_def", "sp_atk", "sp_def", "speed", "regen
 const STAT_STAGE_MOD_KEYS = ["phy_atk", "phy_def", "sp_atk", "sp_def", "speed"];
 const STAT_STAGE_MOD_KEY_SET = new Set(STAT_STAGE_MOD_KEYS);
 const TURN_END_STAT_UP_MAX = 40;
+const TURN_END_STAT_DOWN_MIN = -40;
 
 const GENERATED_SKILLS = {
   basic_strike: {
@@ -7794,6 +7795,22 @@ function applyTurnEndStatUpPassive(fighter) {
   return true;
 }
 
+function applyTurnEndStatDownPassive(fighter) {
+  if (!fighter || fighter.fainted || !fighter.statMods) return false;
+
+  const statDown = turnEndStatDownFromPassive(fighter);
+  if (!statDown || statDown.value <= 0) return false;
+  if (!Object.prototype.hasOwnProperty.call(fighter.statMods, statDown.stat)) return false;
+
+  const before = number(fighter.statMods[statDown.stat]);
+  const after = Math.max(TURN_END_STAT_DOWN_MIN, before - statDown.value);
+  if (after === before) return false;
+
+  fighter.statMods[statDown.stat] = after;
+  applyBattleCoreEvents(passiveActivationLogEvents(fighter, statDown.passiveEffect));
+  return true;
+}
+
 async function endRound() {
   const energyChargeThisRound = new Map();
 
@@ -7828,6 +7845,10 @@ async function endRound() {
     if (state.gameOver) return;
 
     if (applyTurnEndStatUpPassive(fighter)) {
+      await pause(300);
+    }
+
+    if (applyTurnEndStatDownPassive(fighter)) {
       await pause(300);
     }
 

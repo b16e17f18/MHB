@@ -12,8 +12,10 @@ const PASSIVE_TARGET_PHYSICAL_DAMAGE = "physical_damage";
 const PASSIVE_TARGET_SPECIAL_DAMAGE = "special_damage";
 const PASSIVE_TYPE_EFFECT_CHANCE_UP = "effect_chance_up";
 const PASSIVE_TYPE_ELEMENT_DAMAGE_UP = "element_damage_up";
+const PASSIVE_TYPE_LOW_HP_DAMAGE_UP = "low_hp_damage_up";
 const PASSIVE_TYPE_DAMAGE_CUT = "damage_cut";
 const PASSIVE_TYPE_TURN_END_STAT_UP = "turn_end_stat_up";
+const PASSIVE_TYPE_TURN_END_STAT_DOWN = "turn_end_stat_down";
 const PASSIVE_TYPE_DAMAGE_DRAIN = "damage_drain";
 const PASSIVE_TYPE_SURVIVE_ONCE = "survive_once";
 const PASSIVE_TYPE_TWO_TURN_SKIP_ONCE = "two_turn_skip_once";
@@ -167,6 +169,18 @@ function elementDamageMultiplierFromPassive(actor, move) {
   return passiveEffect ? 1 + passiveEffectValue(passiveEffect) / 100 : 1;
 }
 
+function lowHpDamageMultiplierFromPassive(actor, move) {
+  if (!actor || number(actor.maxHp) <= 0 || number(actor.hp) * 100 > number(actor.maxHp) * 33) {
+    return 1;
+  }
+
+  const passiveEffect = findPassiveEffect(actor, (effect) => (
+    passiveEffectType(effect) === PASSIVE_TYPE_LOW_HP_DAMAGE_UP &&
+    passiveElementDamageTargetMatches(effect, move)
+  ));
+  return passiveEffect ? 1 + passiveEffectValue(passiveEffect) / 100 : 1;
+}
+
 function passivePierceEffect(actor) {
   return findPassiveEffect(actor, (effect) => (
     passiveEffectType(effect) === PASSIVE_TYPE_PASSIVE_PIERCE &&
@@ -285,6 +299,19 @@ function findHealBlockForMove({ actor, opponent, move, effectLookup }) {
 function turnEndStatUpFromPassive(fighter) {
   const passiveEffect = findPassiveEffect(fighter, (effect) => (
     passiveEffectType(effect) === PASSIVE_TYPE_TURN_END_STAT_UP
+  ));
+  return passiveEffect
+    ? {
+        passiveEffect,
+        stat: passiveEffectTargetId(passiveEffect),
+        value: passiveEffectValue(passiveEffect),
+      }
+    : null;
+}
+
+function turnEndStatDownFromPassive(fighter) {
+  const passiveEffect = findPassiveEffect(fighter, (effect) => (
+    passiveEffectType(effect) === PASSIVE_TYPE_TURN_END_STAT_DOWN
   ));
   return passiveEffect
     ? {
