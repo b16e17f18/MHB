@@ -1,14 +1,14 @@
 ﻿passive_id,name,passive_type1,target_id1,value1,passive_type2,target_id2,value2,passive_type3,target_id3,value3,text,trigger_text1,trigger_text2,trigger_text3
-passive_001,群れの主,effect_chance_up,all,125,none,none,0,none,none,0,追加効果の発生率が1.25倍。,none,none,none
+passive_001,青い群れの主,effect_chance_up,all,125,debuff_immunity,speed_down,0,none,none,0,追加効果の発生率が1.25倍。敏捷が下がらない。,none,ドスランポスの敏捷は下がらない！,none
 passive_002,大猪の主,debuff_immunity,phy_atk_down,0,none,none,0,none,none,0,物理攻撃が下がらない。,ドスファンゴの物理攻撃は下がらない！,none,none
-passive_003,狂走エキス,status_immunity,poison,0,debuff_immunity,speed_down,0,none,none,0,毒状態にならない。敏捷が下がらない。,ゲリョスは毒にならない！,ゲリョスの敏捷は下がらない！,none
+passive_003,狂走エキス,status_immunity,poison,0,debuff_immunity,speed_down,0,none,none,0,毒状態にならない。敏捷が下がらない。,ゲリョスは毒状態にならない！,ゲリョスの敏捷は下がらない！,none
 passive_004,窮鳥竜を噛む,debuff_immunity,debuff,0,low_hp_damage_up,fire,50,none,none,0,能力が下がらない。HP33%以下で火属性技の威力が1.5倍。,イャンクックの能力は下がらない！,none,none
 passive_005,尻尾のキノコ,start_energy,en,2,damage_cut,special_damage,25,none,none,0,EN2で戦闘開始する。特殊ダメージを25%cutする。,none,none,none
 passive_006,一角竜の頭骨,debuff_immunity,phy_def_down,0,none,none,0,none,none,0,物理防御が下がらない。,ダイミョウザザミの物理防御は下がらない！,none,none
 passive_007,砂竜の鰭,status_immunity,sleep,0,none,none,0,none,none,0,睡眠状態にならない。,ドスガレオスは睡眠状態にならない！,none,none
 passive_008,陸の女王,effect_chance_up,all,150,none,none,0,none,none,0,追加効果の発生率が1.5倍。,none,none,none
 passive_009,雪山の主,battle_effect_immunity,stun,0,none,none,0,none,none,0,怯まない。,ドドブランゴは怯まない！,none,none
-passive_010,群れの主,effect_chance_up,all,125,none,none,0,none,none,0,追加効果の発生率が1.25倍。,none,none,none
+passive_010,碧の群れの主,effect_chance_up,all,125,status_immunity,paralysis,0,none,none,0,追加効果の発生率が1.25倍。麻痺状態にならない。,none,ドスゲネポスは麻痺状態にならない！,none
 passive_011,水の王者,status_immunity,sleep,0,effect_chance_up,all,125,none,none,0,睡眠状態にならない。追加効果の発生率が1.25倍。,ガノトトスは睡眠状態にならない！,none,none
 passive_012,鎧竜の頭骨,debuff_immunity,phy_def_down,0,debuff_immunity,sp_atk_down,0,none,none,0,物理防御と特殊攻撃が下がらない。,ショウグンギザミの物理防御は下がらない！,ショウグンギザミの特殊攻撃は下がらない！,none
 passive_013,吸血牙,damage_drain,physical_damage,25,none,none,0,none,none,0,物理ダメージを与えた時、ダメージの25%を回復する。,none,none,none
@@ -31,8 +31,8 @@ passive_029,樹海の主,turn_end_stat_down,phy_def,15,turn_end_stat_up,speed,10
 passive_030,幻獣の蒼角,status_immunity,paralysis,0,debuff_immunity,sp_atk_down,0,none,none,0,麻痺状態にならない。特殊攻撃が下がらない。,キリンは麻痺状態にならない！,キリンの特殊攻撃は下がらない！,none
 passive_031,蒼炎,en_down_immunity,en_down,0,element_damage_up,dragon,15,status_immunity,burn,0,EN減衰を無効にする。龍属性技の威力が上がる。火やられ状態にならない。,ナナテスカトリはEN減衰効果を受けない！,none,ナナテスカトリは火やられ状態にならない！
 passive_032,風翔,en_down_immunity,en_down,0,element_damage_up,dragon,15,none,none,0,EN減衰を無効にする。龍属性技の威力が上がる。,クシャルダオラはEN減衰効果を受けない！,none,none
-passive_033,毒霧,status_immunity,poison,0,debuff_immunity,phy_atk_down,0,none,none,0,毒状態にならない。物理攻撃が下がらない。,オオナズチは毒にならない！,オオナズチの物理攻撃は下がらない！,none
-passive_034,龍苔,debuff_immunity,debuff,0,status_immunity,all,0,none,none,0,能力が下がらない。状態異常にならない。,ヤマツカミの能力は下がらない！,ヤマツカミは状態異常にならない！,none
+passive_033,毒霧,status_immunity,poison,0,debuff_immunity,phy_atk_down,0,none,none,0,毒状態にならない。物理攻撃が下がらない。,オオナズチは毒状態にならない！,オオナズチの物理攻撃は下がらない！,none
+passive_034,龍苔,debuff_immunity,debuff,0,effect_chance_up,all,200,none,none,0,追加効果の発生率が2倍。能力が下がらない。,ヤマツカミの能力は下がらない！,none,none
 passive_035,炎帝,battle_effect_immunity,stun,0,low_hp_damage_up,dragon,50,status_immunity,burn,0,怯まない。火やられ状態にならない。HP33%以下で龍属性技の威力が1.5倍。,テオテスカトルは怯まない！,none,テオテスカトルは火やられ状態にならない！
 passive_036,禁忌の力,battle_effect_immunity,stun,0,en_down_immunity,en_down,0,low_hp_damage_up,fire,50,怯まない。EN減衰を無効にする。HP33%以下で火属性技の威力が1.5倍。,ミラボレアスは怯まない！,ミラボレアスはEN減衰効果を受けない！,none
 passive_037,黒曜石,passive_pierce,all,0,status_immunity,burn,0,none,none,0,攻撃時、相手の特性を無視する。火やられ状態にならない。,none,ブラキディオスは火やられ状態にならない！,none
@@ -47,7 +47,7 @@ passive_045,化け鮫,damage_cut,physical_damage,25,element_damage_up,water,15,n
 passive_046,ネコのド根性！,survive_once,none,1,none,none,0,none,none,0,HPが最大の時、1度だけHPが1残る。,メラルーは根性で立ち上がった！,none,none
 passive_047,白き神,debuff_immunity,debuff,0,damage_cut,special_damage,25,none,none,0,能力が下がらない。特殊ダメージを25%cutする。,ウカムルバスの能力は下がらない！,none,none
 passive_048,天変地異,start_energy,en,3,status_immunity,all,0,none,none,0,EN3で戦闘開始する。状態異常にならない。,none,アルバトリオンは状態異常にならない！,none
-passive_049,群れの主,effect_chance_up,all,125,none,none,0,none,none,0,追加効果の発生率が1.25倍。,none,none,none
+passive_049,赤い群れの主,effect_chance_up,all,125,status_immunity,poison,0,none,none,0,追加効果の発生率が1.25倍。毒状態にならない。,none,ドスイーオスは毒状態にならない！,none
 passive_050,熊手,start_energy,en,2,debuff_immunity,sp_def_down,0,none,none,0,EN2で戦闘開始する。特殊防御が下がらない。,none,アオアシラの特殊防御は下がらない！,none
 passive_051,奇面の王,element_damage_up,fire,15,none,none,0,none,none,0,火属性技の威力が上がる。,none,none,none
 passive_052,白い毛皮,debuff_immunity,sp_def_down,0,debuff_immunity,speed_down,0,none,none,0,特殊防御と敏捷が下がらない。,ウルクススの特殊防御は下がらない！,ウルクススの敏捷は下がらない！,none
