@@ -4101,7 +4101,7 @@ function normalizeCharacter(row) {
     sp_def: number(row.sp_def),
     speed: number(row.speed),
     regen_value: number(row.regen_value ?? row.regen ?? row.recovery),
-    energy_charge: Math.max(1, number(row.cost_charge ?? row.energy_charge, 1)),
+    energy_charge: Math.max(0, number(row.cost_charge ?? row.energy_charge, 1)),
     slot: number(row.slot, 1),
     ai_type: safeText(row.ai_type, "balanced"),
     ai_setup_skill: safeText(row.ai_setup_skill),
@@ -8627,6 +8627,7 @@ function effectChipClass(effectId) {
   if (effectId === "future_blast") return "effect-future-blast";
   if (effectId === "future_blast2") return "effect-future-blast2";
   if (effectId === "future_blast3") return "effect-future-blast3";
+  if (effectId === "future_blast4") return "effect-future-blast4";
   if (effectId === "future_blast_plus") return "effect-future-blast-plus";
   if (effectId === "future_blast_plus2") return "effect-future-blast-plus2";
   if (effectId === "future_blast_plus3") return "effect-future-blast-plus3";

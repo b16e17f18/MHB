@@ -1695,7 +1695,6 @@ button {
 
 .effect-underground {
   background: #c49a6c;
-  color: #111111;
 }
 
 .effect-underwater {
@@ -1709,26 +1708,39 @@ button {
 
 .effect-future-blast2 {
   background: #48c7ff;
-  color: #111111;
 }
 
 .effect-future-blast3 {
   background: #b58ad6;
-  color: #111111;
+}
+
+.effect-future-blast4 {
+  background: #6b3f26;
 }
 
 .effect-future-blast-plus {
   background: #ff9d28;
-  color: #111111;
 }
 
 .effect-future-blast-plus2 {
   background: #f6d743;
-  color: #111111;
 }
 
 .effect-future-blast-plus4 {
   background: #6b3f26;
+}
+
+.effect-underground,
+.effect-underwater,
+.effect-future-blast,
+.effect-future-blast2,
+.effect-future-blast3,
+.effect-future-blast4,
+.effect-future-blast-plus,
+.effect-future-blast-plus2,
+.effect-future-blast-plus3,
+.effect-future-blast-plus4 {
+  color: #ffffff;
 }
 
 .effect-phy-protect {
