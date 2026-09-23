@@ -41,7 +41,7 @@ future_blast9,,,,,,,,,,
 future_blast_plus,粘菌,delayed_attack,fixed_power,50,2,TRUE,none,none,0,相手の場に粘菌が付着した！
 future_blast_plus2,雷光虫,delayed_attack,fixed_power,60,1,TRUE,none,none,0,相手の場に雷光虫が放たれた！
 future_blast_plus3,粉塵,delayed_attack,fixed_power,40,1,TRUE,none,none,0,周囲に粉塵が舞う！
-future_blast_plus4,,,,,,,,,,
+future_blast_plus4,岩爆弾,delayed_attack,fixed_power,40,1,TRUE,none,none,0,相手の場に岩爆弾が転がる！
 future_blast_plus5,,,,,,,,,,
 future_blast_plus6,,,,,,,,,,
 future_blast_plus7,,,,,,,,,,

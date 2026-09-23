@@ -8622,6 +8622,15 @@ function effectChipClass(effectId) {
   if (effectId === "paralysis") return "effect-paralysis";
   if (effectId === "poison") return "effect-poison";
   if (effectId === "burn") return "effect-burn";
+  if (effectId === "underground") return "effect-underground";
+  if (effectId === "underwater") return "effect-underwater";
+  if (effectId === "future_blast") return "effect-future-blast";
+  if (effectId === "future_blast2") return "effect-future-blast2";
+  if (effectId === "future_blast3") return "effect-future-blast3";
+  if (effectId === "future_blast_plus") return "effect-future-blast-plus";
+  if (effectId === "future_blast_plus2") return "effect-future-blast-plus2";
+  if (effectId === "future_blast_plus3") return "effect-future-blast-plus3";
+  if (effectId === "future_blast_plus4") return "effect-future-blast-plus4";
   if (effectId === "phy_protect" || effectId === "phy_protect2") return "effect-phy-protect";
   if (effectId === "sp_protect" || effectId === "sp_protect2") return "effect-sp-protect";
   const attributeGuardClass = attributeGuardEffectChipClass(effectId);
