@@ -947,9 +947,14 @@ function applyBattleEffects(
     }
 
     if (battleEffect.battle_effect_group === "delayed_attack") {
+      const delayedTargetSide = actorSide === "player"
+        ? "enemy"
+        : actorSide === "enemy"
+          ? "player"
+          : targetSide;
       const delayedBattleEffectResult = applyDelayedAttackBattleEffect(
         fieldEffects,
-        targetSide,
+        delayedTargetSide,
         battleEffect,
         move,
         actor,
