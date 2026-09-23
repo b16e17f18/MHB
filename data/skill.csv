@@ -34,7 +34,7 @@ skill_032,巨龍咆哮,attack,150,none,none,special,normal,clear_debuff,self,100
 skill_033,月影,attack,80,none,none,physical,guard_break,none,enemy,0,none,enemy,0,none,enemy,0,ghost_phase,100,none,0,enemy,0,2,1ターン目に姿を消し、2ターン目に攻撃する。軽減効果を半減する。,magic_sonicwave01,250,1,,,,,
 skill_034,レッドアイズ,status,0,none,none,none,normal,phy_atk_up,enemy,100,phy_atk_up,enemy,100,energy_charge_down,enemy,100,protect2,100,none,0,self,0,4,物理攻撃が20%upする。ダメージを75%cutするが、3ターンの間、EN回復が1downする。,attack_beat01,750,1,,,,,
 skill_035,雷撃,attack,50,thunder,none,special,water_wave,sp_atk_down,enemy,50,none,enemy,0,none,enemy,0,none,0,none,0,enemy,0,1,50%の確率で相手の特殊攻撃を15%downさせる。相手が水中にいても技が命中する。,magic_lightning01_akira,100,3,,,,,
-skill_036,方向転換,status,0,none,none,none,normal,energy_charge_up,self,100,none,enemy,0,none,enemy,0,future_blast_plus4,100,none,0,self,0,1,岩爆弾をばら撒き、次のターンに爆発する。3ターンの間、自分のEN回復が1upする。,magic_stone01,500,2,,,,,
+skill_036,方向転換,status,0,none,none,none,normal,energy_charge_up,self,100,none,enemy,0,none,enemy,0,future_blast_plus4,100,none,0,enemy,0,0,岩爆弾をばら撒き、次のターンに爆発する。3ターンの間、自分のEN回復が1upする。,magic_stone01,500,2,,,,,
 skill_037,大車輪・巡,attack,100,fire,none,physical,normal,phy_atk_up,self,100,sp_def_up,self,100,none,enemy,0,none,0,none,0,enemy,0,3,攻撃後、自分の物理攻撃と特殊防御が10%upする。,attack_hit01,250,3,,,,,
 skill_038,雷拳,attack,120,thunder,none,physical,normal,sp_def_down,self,100,phy_def_down,self,100,none,enemy,0,none,0,none,0,enemy,0,2,攻撃後、自分の物理防御と特殊防御が15%下がる。,magic_thunder01_custom,750,1,,,,,
 skill_039,氷結牙,attack,100,ice,none,physical,normal,phy_def_down,enemy,75,fire_weak_up,enemy,100,none,enemy,0,none,0,none,0,enemy,0,3,75%の確率で相手の物理防御を15%downさせる。ENが高い程威力が上がる。最大140。相手の火耐性を25%downさせる。,attack_spear01,500,1,en_value,140,,,
