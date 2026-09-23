@@ -4841,8 +4841,10 @@ function characterSortNumber(character) {
   return match ? Number(match[1]) : Number.MAX_SAFE_INTEGER;
 }
 
-function resistanceCell(character, element) {
-  const percent = Math.round((character.weaknesses[element] ?? 1) * 100);
+function resistanceCell(character, element, fighter = null) {
+  const percent = fighter
+    ? effectiveWeakPercent(fighter, element)
+    : Math.round((character.weaknesses[element] ?? 1) * 100);
   const className =
     percent > 100 ? "is-weak" : percent < 100 ? "is-resistant" : "is-neutral";
   const label = percent > 100 ? "弱点" : percent < 100 ? "耐性" : "標準";
@@ -4941,18 +4943,20 @@ function energyOrbs(value) {
   return Array.from({ length: count }, () => `<span class="energy-orb" aria-hidden="true"></span>`).join("");
 }
 
-function weaknessEntries(character) {
+function weaknessEntries(character, fighter = null) {
   if (!character) return [];
   return ELEMENT_TYPES
     .map((element) => ({
       element,
-      percent: Math.round((character.weaknesses[element] ?? 1) * 100),
+      percent: fighter
+        ? effectiveWeakPercent(fighter, element)
+        : Math.round((character.weaknesses[element] ?? 1) * 100),
     }))
     .filter((entry) => entry.percent > 100);
 }
 
-function renderWeaknessBadges(character) {
-  const entries = weaknessEntries(character);
+function renderWeaknessBadges(character, fighter = null) {
+  const entries = weaknessEntries(character, fighter);
   if (!entries.length) {
     return `<span class="effect-chip effect-none">なし</span>`;
   }
@@ -6147,7 +6151,7 @@ function renderHud(fighter, team, activeIndex, side) {
     <div class="battle-info-stack">
       <div class="battle-info-line">
         <span>弱点</span>
-        <span class="battle-info-chips">${renderWeaknessBadges(fighter?.base)}</span>
+        <span class="battle-info-chips">${renderWeaknessBadges(fighter?.base, fighter)}</span>
       </div>
       <div class="battle-info-line">
         <span>状態</span>
@@ -6354,7 +6358,7 @@ function renderEnemyInfoPanel(enemy, inspectSide = "enemy") {
       ${renderDexPassiveSection(enemy)}
       <div class="detail-section-title">属性耐性</div>
       <div class="resistance-grid battle-inspect-resistance-grid">
-        ${ELEMENT_TYPES.map((element) => resistanceCell(enemy.base, element)).join("")}
+        ${ELEMENT_TYPES.map((element) => resistanceCell(enemy.base, element, enemy)).join("")}
       </div>
     </div>
   `;
