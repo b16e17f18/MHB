@@ -1587,3 +1587,4 @@ function temporaryWeakModValue(target, element) {
   if (!target || !ELEMENT_TYPES.includes(element)) return 0;
   return ensureFighterWeakMods(target)[element].value;
 }
+
