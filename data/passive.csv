@@ -25,7 +25,7 @@ passive_023,蓄電殻,debuff_immunity,sp_atk_down,0,none,none,0,none,none,0,特�
 passive_024,氷牙竜の棘,debuff_immunity,phy_atk_down,0,debuff_immunity,sp_atk_down,0,none,none,0,物理攻撃と特殊攻撃が下がらない。,ベリオロスの物理攻撃は下がらない！,ベリオロスの特殊攻撃は下がらない！,none
 passive_025,闘気硬化,turn_end_stat_up,phy_def,10,none,none,0,none,none,0,ターン終了時、物理防御が10%upする。,ラージャンは闘気により物理防御が10%upした！,none,none
 passive_026,捕食者の牙,damage_drain,physical_damage,25,element_damage_up,none,15,none,none,0,物理ダメージを与えた時、ダメージの25%を回復する。無属性技の威力が上がる。,none,none,none
-passive_027,深紅の角,two_turn_skip_once,all,1,start_energy,en,2,low_hp_damage_up,none,50,EN2で戦闘を開始する。溜め技が1度だけ溜めがなしになる。HP33%以下で無属性技の威力が1.5倍。,none,none,none
+passive_027,深紅の角,two_turn_skip_once,all,1,none,none,0,low_hp_damage_up,none,50,溜め技が1度だけ溜めがなしになる。HP33%以下で無属性技の威力が1.5倍。,none,none,none
 passive_028,起源にして頂点,debuff_immunity,debuff,0,battle_effect_immunity,stun,0,low_hp_damage_up,all,0,怯まない。能力が下がらない。,アカムトルムの能力は下がらない！,アカムトルムは怯まない！,none
 passive_029,樹海の主,turn_end_stat_down,phy_def,15,turn_end_stat_up,speed,10,low_hp_damage_up,none,50,ターン終了時、物理防御が15%down、敏捷が10upする。HP33%以下で無属性技の威力が1.5倍。,エスピナスは怒り狂い、物理防御が15%down、敏捷が10%upした！,none,none
 passive_030,幻獣の蒼角,status_immunity,paralysis,0,debuff_immunity,sp_atk_down,0,none,none,0,麻痺状態にならない。特殊攻撃が下がらない。,キリンは麻痺状態にならない！,キリンの特殊攻撃は下がらない！,none
@@ -34,7 +34,7 @@ passive_032,風翔,en_down_immunity,en_down,0,element_damage_up,dragon,15,none,n
 passive_033,毒霧,status_immunity,poison,0,debuff_immunity,phy_atk_down,0,none,none,0,毒状態にならない。物理攻撃が下がらない。,オオナズチは毒状態にならない！,オオナズチの物理攻撃は下がらない！,none
 passive_034,龍苔,debuff_immunity,debuff,0,effect_chance_up,all,200,element_damage_up,none,15,無属性技の威力が上がる。追加効果の発生率が2倍。能力が下がらない。,ヤマツカミの能力は下がらない！,none,none
 passive_035,炎帝,battle_effect_immunity,stun,0,low_hp_damage_up,dragon,50,status_immunity,burn,0,怯まない。火やられ状態にならない。HP33%以下で龍属性技の威力が1.5倍。,テオテスカトルは怯まない！,none,テオテスカトルは火やられ状態にならない！
-passive_036,禁忌の力,battle_effect_immunity,stun,0,en_down_immunity,en_down,0,low_hp_damage_up,fire,50,怯まない。EN減衰を無効にする。HP33%以下で火属性技の威力が1.5倍。,ミラボレアスは怯まない！,ミラボレアスはEN減衰効果を受けない！,none
+passive_036,禁忌,battle_effect_immunity,stun,0,en_down_immunity,en_down,0,low_hp_damage_up,fire,50,怯まない。EN減衰を無効にする。HP33%以下で火属性技の威力が1.5倍。,ミラボレアスは怯まない！,ミラボレアスはEN減衰効果を受けない！,none
 passive_037,黒曜石,passive_pierce,all,0,status_immunity,burn,0,none,none,0,攻撃時、相手の特性を無視する。火やられ状態にならない。,none,ブラキディオスは火やられ状態にならない！,none
 passive_038,蜘蛛の糸,debuff_immunity,speed_down,0,none,none,0,none,none,0,敏捷が下がらない。,ネルスキュラの敏捷は下がらない！,none,none
 passive_039,滑液,clear_buff_immunity,clear_buff,0,element_damage_up,none,15,none,none,0,能力upが解除されない。無属性技の威力が上がる。,タマミツネの能力upは解除されない！,none,none
