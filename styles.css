@@ -337,7 +337,7 @@ button:disabled {
 }
 
 .element-thunder {
-  background: #ffff00;
+  background: #ffc000;
   color: #755c00;
 }
 
@@ -1272,7 +1272,7 @@ button {
 }
 
 .element-thunder {
-  background: #ffff00;
+  background: #ffc000;
   color: #ffffff;
 }
 
@@ -2332,7 +2332,7 @@ button {
 }
 
 .move-element-thunder {
-  background: #ffff00;
+  background: #ffc000;
 }
 
 .move-element-ice {
@@ -2829,7 +2829,7 @@ button {
 }
 
 .battle-view .move-button.move-element-thunder {
-  background: #ffff00;
+  background: #ffc000;
 }
 
 .battle-view .move-button.move-element-ice {
@@ -2849,7 +2849,7 @@ button {
 }
 
 .move-primary-thunder {
-  --move-element-primary: #ffff00;
+  --move-element-primary: #ffc000;
 }
 
 .move-primary-ice {
@@ -2869,7 +2869,7 @@ button {
 }
 
 .move-secondary-thunder {
-  --move-element-secondary: #ffff00;
+  --move-element-secondary: #ffc000;
 }
 
 .move-secondary-ice {
