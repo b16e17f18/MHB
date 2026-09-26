@@ -337,12 +337,12 @@ button:disabled {
 }
 
 .element-thunder {
-  background: #fff2a8;
+  background: #ffff00;
   color: #755c00;
 }
 
 .element-ice {
-  background: #dcfbff;
+  background: #00ffff;
   color: #217382;
 }
 
@@ -1272,12 +1272,12 @@ button {
 }
 
 .element-thunder {
-  background: #f6b700;
+  background: #ffff00;
   color: #ffffff;
 }
 
 .element-ice {
-  background: #00acc1;
+  background: #00ffff;
   color: #ffffff;
 }
 
@@ -2332,11 +2332,11 @@ button {
 }
 
 .move-element-thunder {
-  background: #c99500;
+  background: #ffff00;
 }
 
 .move-element-ice {
-  background: #009bad;
+  background: #00ffff;
 }
 
 .move-element-dragon {
@@ -2829,11 +2829,11 @@ button {
 }
 
 .battle-view .move-button.move-element-thunder {
-  background: #c99500;
+  background: #ffff00;
 }
 
 .battle-view .move-button.move-element-ice {
-  background: #009bad;
+  background: #00ffff;
 }
 
 .battle-view .move-button.move-element-dragon {
@@ -2849,11 +2849,11 @@ button {
 }
 
 .move-primary-thunder {
-  --move-element-primary: #c99500;
+  --move-element-primary: #ffff00;
 }
 
 .move-primary-ice {
-  --move-element-primary: #009bad;
+  --move-element-primary: #00ffff;
 }
 
 .move-primary-dragon {
@@ -2869,11 +2869,11 @@ button {
 }
 
 .move-secondary-thunder {
-  --move-element-secondary: #c99500;
+  --move-element-secondary: #ffff00;
 }
 
 .move-secondary-ice {
-  --move-element-secondary: #009bad;
+  --move-element-secondary: #00ffff;
 }
 
 .move-secondary-dragon {
