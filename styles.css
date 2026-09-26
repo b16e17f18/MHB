@@ -2840,6 +2840,55 @@ button {
   background: #7044b8;
 }
 
+.move-primary-fire {
+  --move-element-primary: #d7342f;
+}
+
+.move-primary-water {
+  --move-element-primary: #1679c8;
+}
+
+.move-primary-thunder {
+  --move-element-primary: #c99500;
+}
+
+.move-primary-ice {
+  --move-element-primary: #009bad;
+}
+
+.move-primary-dragon {
+  --move-element-primary: #7044b8;
+}
+
+.move-secondary-fire {
+  --move-element-secondary: #d7342f;
+}
+
+.move-secondary-water {
+  --move-element-secondary: #1679c8;
+}
+
+.move-secondary-thunder {
+  --move-element-secondary: #c99500;
+}
+
+.move-secondary-ice {
+  --move-element-secondary: #009bad;
+}
+
+.move-secondary-dragon {
+  --move-element-secondary: #7044b8;
+}
+
+.battle-view .move-button.is-dual-element,
+.battle-view .move-element.is-dual-element {
+  background: linear-gradient(
+    to bottom right,
+    var(--move-element-primary) 0 49.5%,
+    var(--move-element-secondary) 50.5% 100%
+  );
+}
+
 .battle-view .move-name,
 .battle-view .move-cost,
 .battle-view .move-element,

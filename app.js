@@ -4651,15 +4651,25 @@ function detailStatBarPercent(statKey, value, options = {}) {
 }
 
 function moveElementText(move) {
+  const elements = moveDisplayElements(move);
+  return elements.length
+    ? elements.map((element) => elementName(element)).join(" / ")
+    : elementName("none");
+}
+
+function moveDisplayElements(move) {
   const elements = typeof moveElements === "function"
     ? moveElements(move)
     : [move?.element, move?.element2]
       .map((element) => safeText(element, "none"))
       .filter((element) => element && element !== "none" && ELEMENT_TYPES.includes(element));
-  const uniqueElements = [...new Set(elements)];
-  return uniqueElements.length
-    ? uniqueElements.map((element) => elementName(element)).join(" / ")
-    : elementName("none");
+  return [...new Set(elements)];
+}
+
+function moveDualElementClasses(move) {
+  const elements = moveDisplayElements(move);
+  if (elements.length !== 2) return "";
+  return ` is-dual-element move-primary-${elementClass(elements[0])} move-secondary-${elementClass(elements[1])}`;
 }
 
 function renderSkillDetail(move) {
@@ -6525,11 +6535,12 @@ function renderMoveGrid(fighter) {
         ? ` title="${escapeHtml(healBlockReason)}" aria-label="${escapeHtml(`${move.name} ${healBlockReason}`)}"`
         : "";
       const elementText = moveElementText(move);
+      const dualElementClasses = moveDualElementClasses(move);
       return `
-        <button class="move-button move-element-${elementClassName}" type="button" data-move-id="${move.skill_id}" ${disabled ? "disabled" : ""}${disabledTitle}>
+        <button class="move-button move-element-${elementClassName}${dualElementClasses}" type="button" data-move-id="${move.skill_id}" ${disabled ? "disabled" : ""}${disabledTitle}>
           <span class="move-name">${escapeHtml(move.name)}</span>
           <span class="move-cost">${energyBadge(move.cost)}</span>
-          <span class="move-element">${escapeHtml(elementText)}</span>
+          <span class="move-element${dualElementClasses}">${escapeHtml(elementText)}</span>
           <span class="move-kind">${escapeHtml(kindText)}</span>
           <span class="move-power power-chip">威力 ${escapeHtml(powerText)}</span>
           ${moveText ? `<span class="move-text">${escapeHtml(moveText)}</span>` : ""}
