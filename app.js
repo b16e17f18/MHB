@@ -4676,6 +4676,7 @@ function renderSkillDetail(move) {
   const powerText = move.category === "attack" ? move.power : "-";
   const kindText = skillKindLabel(move);
   const elementText = moveElementText(move);
+  const dualElementClasses = moveDualElementClasses(move);
   return `
     <article class="detail-skill-card">
       <div class="detail-skill-top">
@@ -4684,7 +4685,7 @@ function renderSkillDetail(move) {
           <span class="detail-skill-chip detail-skill-power">威力 ${escapeHtml(powerText)}</span>
           <span class="detail-skill-cost">${energyBadge(move.cost)}</span>
           <span class="detail-skill-chip detail-skill-kind detail-skill-kind-${escapeHtml(skillKindClass(move))}">${escapeHtml(kindText)}</span>
-          <span class="detail-skill-chip detail-skill-element element-${escapeHtml(elementClass(move.element))}">${escapeHtml(elementText)}</span>
+          <span class="detail-skill-chip detail-skill-element element-${escapeHtml(elementClass(move.element))}${dualElementClasses}">${escapeHtml(elementText)}</span>
         </div>
       </div>
       ${move.text ? `<div class="detail-skill-text">${escapeHtml(move.text)}</div>` : ""}

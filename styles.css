@@ -2881,7 +2881,8 @@ button {
 }
 
 .battle-view .move-button.is-dual-element,
-.battle-view .move-element.is-dual-element {
+.battle-view .move-element.is-dual-element,
+.detail-skill-element.is-dual-element {
   background: linear-gradient(
     to bottom right,
     var(--move-element-primary) 0 49.5%,
