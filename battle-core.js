@@ -247,11 +247,11 @@ function estimateMoveDamage(
   const physical = move.attack_type !== "special";
   const attackStat = effectiveStat(attacker, physical ? "phy_atk" : "sp_atk");
   const defenseStat = effectiveStat(target, physical ? "phy_def" : "sp_def");
-  const ratio = attackStat / Math.max(45, defenseStat + 60);
+  const ratio = attackStat / Math.max(45, defenseStat + 40);
   const elementMultiplier = moveWeaknessMultiplier(target, move);
   const sameElementBonus = sameElementBonusForMove(attacker, move);
   const lowHpDamageMultiplier = lowHpDamageMultiplierFromPassive(attacker, damageMove);
-  let damage = (damageMove.power * 1.45 + attackStat * 0.48) * ratio;
+  let damage = 0.95 * (damageMove.power * 1.10 + attackStat * 0.60) * ratio;
 
   damage *= elementMultiplier *
     sameElementBonus *
@@ -277,14 +277,14 @@ function dealDamage(attacker, target, move, targetFieldEffects = []) {
   const physical = move.attack_type !== "special";
   const attackStat = effectiveStat(attacker, physical ? "phy_atk" : "sp_atk");
   const defenseStat = effectiveStat(target, physical ? "phy_def" : "sp_def");
-  const ratio = attackStat / Math.max(45, defenseStat + 60);
+  const ratio = attackStat / Math.max(45, defenseStat + 40);
   const elementMultiplier = moveWeaknessMultiplier(target, move);
   const sameElementBonus = sameElementBonusForMove(attacker, move);
   const elementPassiveMultiplier = elementDamageMultiplierFromPassive(attacker, move);
   const lowHpDamageMultiplier = lowHpDamageMultiplierFromPassive(attacker, move);
   const damagePassiveMultiplier = damageMultiplierFromPassive(target, move, { actor: attacker });
   const variance = 0.9 + Math.random() * 0.15;
-  let damage = (move.power * 1.45 + attackStat * 0.48) * ratio;
+  let damage = 0.95 * (move.power * 1.10 + attackStat * 0.60) * ratio;
   let effectText = effectivenessText(elementMultiplier);
 
   damage *= elementMultiplier *
@@ -1587,4 +1587,3 @@ function temporaryWeakModValue(target, element) {
   if (!target || !ELEMENT_TYPES.includes(element)) return 0;
   return ensureFighterWeakMods(target)[element].value;
 }
-
