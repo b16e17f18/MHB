@@ -2840,6 +2840,10 @@ button {
   background: #7044b8;
 }
 
+.move-primary-none {
+  --move-element-primary: #5f656b;
+}
+
 .move-primary-fire {
   --move-element-primary: #d7342f;
 }

@@ -4167,7 +4167,14 @@ function normalizeSkill(row) {
     repeat_count: Math.max(0, Math.floor(number(row.repeat_count, 1))),
     power_rule: safeText(row.power_rule),
     power_cap: optionalNumber(row.power_cap),
+    sub_color: normalizeSkillSubColor(row.sub_color),
   };
+}
+
+function normalizeSkillSubColor(value) {
+  const color = safeText(value);
+  if (!color || color.toLowerCase() === "none") return "";
+  return /^#[0-9a-f]{6}$/i.test(color) ? color : "";
 }
 
 function normalizePowerRule(row) {
@@ -4672,11 +4679,22 @@ function moveDualElementClasses(move) {
   return ` is-dual-element move-primary-${elementClass(elements[0])} move-secondary-${elementClass(elements[1])}`;
 }
 
+function moveColorPresentation(move) {
+  const subColor = normalizeSkillSubColor(move?.sub_color);
+  if (subColor) {
+    return {
+      classes: ` is-dual-element move-primary-${elementClass(move?.element)}`,
+      style: ` style="--move-element-secondary: ${subColor}"`,
+    };
+  }
+  return { classes: moveDualElementClasses(move), style: "" };
+}
+
 function renderSkillDetail(move) {
   const powerText = move.category === "attack" ? move.power : "-";
   const kindText = skillKindLabel(move);
   const elementText = moveElementText(move);
-  const dualElementClasses = moveDualElementClasses(move);
+  const colorPresentation = moveColorPresentation(move);
   return `
     <article class="detail-skill-card">
       <div class="detail-skill-top">
@@ -4685,7 +4703,7 @@ function renderSkillDetail(move) {
           <span class="detail-skill-chip detail-skill-power">威力 ${escapeHtml(powerText)}</span>
           <span class="detail-skill-cost">${energyBadge(move.cost)}</span>
           <span class="detail-skill-chip detail-skill-kind detail-skill-kind-${escapeHtml(skillKindClass(move))}">${escapeHtml(kindText)}</span>
-          <span class="detail-skill-chip detail-skill-element element-${escapeHtml(elementClass(move.element))}${dualElementClasses}">${escapeHtml(elementText)}</span>
+          <span class="detail-skill-chip detail-skill-element element-${escapeHtml(elementClass(move.element))}${colorPresentation.classes}"${colorPresentation.style}>${escapeHtml(elementText)}</span>
         </div>
       </div>
       ${move.text ? `<div class="detail-skill-text">${escapeHtml(move.text)}</div>` : ""}
@@ -6536,12 +6554,12 @@ function renderMoveGrid(fighter) {
         ? ` title="${escapeHtml(healBlockReason)}" aria-label="${escapeHtml(`${move.name} ${healBlockReason}`)}"`
         : "";
       const elementText = moveElementText(move);
-      const dualElementClasses = moveDualElementClasses(move);
+      const colorPresentation = moveColorPresentation(move);
       return `
-        <button class="move-button move-element-${elementClassName}${dualElementClasses}" type="button" data-move-id="${move.skill_id}" ${disabled ? "disabled" : ""}${disabledTitle}>
+        <button class="move-button move-element-${elementClassName}${colorPresentation.classes}" type="button" data-move-id="${move.skill_id}" ${disabled ? "disabled" : ""}${disabledTitle}${colorPresentation.style}>
           <span class="move-name">${escapeHtml(move.name)}</span>
           <span class="move-cost">${energyBadge(move.cost)}</span>
-          <span class="move-element${dualElementClasses}">${escapeHtml(elementText)}</span>
+          <span class="move-element${colorPresentation.classes}"${colorPresentation.style}>${escapeHtml(elementText)}</span>
           <span class="move-kind">${escapeHtml(kindText)}</span>
           <span class="move-power power-chip">威力 ${escapeHtml(powerText)}</span>
           ${moveText ? `<span class="move-text">${escapeHtml(moveText)}</span>` : ""}
