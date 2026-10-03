@@ -6411,6 +6411,7 @@ function renderBattleInspectStats(fighter) {
       statKey: "regen_value",
       value: effectiveRegenValue(fighter),
       baseValue: number(fighter.base?.regen_value),
+      graphMax: 140,
       modifierSuffix: "",
     },
   ];
