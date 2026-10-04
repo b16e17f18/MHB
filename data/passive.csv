@@ -63,3 +63,6 @@ passive_061,加速再生,debuff_immunity,speed_down,0,switch_heal,hp,25,none,non
 passive_062,大嵐,field_effect_immunity,all,0,status_immunity,all,0,low_hp_damage_up,thunder,50,相手が発生させるフィールド効果の影響を受けない。状態異常にならない。HPが33%以下で雷属性技の威力が1.5倍。,none,アマツマガツチは状態異常にならない！,none
 passive_063,岩竜の涙,status_immunity,burn,0,start_energy,en,7,effect_chance_up,all,150,EN7で戦闘開始する。火やられ状態にならない。追加効果の発生率が1.5倍。,バサルモスは火やられ状態にならない！,none,none
 passive_064,侵攻,turn_end_stat_up,phy_atk,10,none,none,0,none,none,0,ターン終了時、物理攻撃が10%upする。,ラオシャンロンの激しく怒り、物理攻撃が10%upした！,none,none
+
+passive_XXX,深く堅い毛皮,damage_cut,physical_damage,50,none,none,0,none,none,0,物理ダメージを50%cutする。,none,none,none
+passive_YYY,厚い脂肪,damage_cut,special_damage,50,none,none,0,none,none,0,特殊ダメージを50%cutする。,none,none,none

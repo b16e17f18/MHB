@@ -107,6 +107,10 @@ class DialogueManager {
     if (this.elements.text) {
       this.elements.text.textContent = dialogue.text;
     }
+    this.elements.characterShowcase?.classList.toggle(
+      "is-hidden",
+      dialogue.dialogue_id !== "guide_tutorial_party",
+    );
     if (this.elements.windowFrame) {
       this.elements.windowFrame.src = DIALOGUE_WINDOW_IMAGE;
     }
@@ -158,6 +162,7 @@ class DialogueManager {
       this.elements.portrait.removeAttribute("src");
       this.elements.portrait.alt = "";
     }
+    this.elements.characterShowcase?.classList.add("is-hidden");
 
     const resolve = this.resolveClose;
     this.resolveClose = null;

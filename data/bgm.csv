@@ -3,6 +3,7 @@ island_morning,island_morning,assets/bgm/island_1.mp3
 island_afternoon,island_afternoon,assets/bgm/island_2.mp3
 island_night,island_night,assets/bgm/island_3.mp3
 arena,arena,assets/bgm/arena.mp3
+endroll,endroll,assets/bgm/endroll.mp3
 ,,
 bgm_f_1,battle_f_1,assets/bgm/battle_f_1.mp3
 bgm_f_2,battle_f_2,assets/bgm/battle_f_2.mp3

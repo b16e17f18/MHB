@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>MHB battle_ss_2直前テストセーブ</title>
+    <script>
+      if (location.protocol === "file:") {
+        location.replace("http://127.0.0.1:8765/test-saves/install-battle-ss2-save.html");
+      }
+    </script>
+    <style>
+      body { max-width: 680px; margin: 48px auto; padding: 0 20px; font-family: sans-serif; line-height: 1.7; }
+      button { margin-right: 12px; padding: 10px 18px; font: inherit; }
+      #status { margin-top: 24px; font-weight: 700; }
+    </style>
+  </head>
+  <body>
+    <h1>battle_ss_2直前テストセーブ</h1>
+    <p>空いているセーブ枠だけを使用します。既存のセーブは上書きしません。</p>
+    <button id="install" type="button">空き枠へ追加</button>
+    <button id="remove" type="button">このテストセーブを削除</button>
+    <p id="status" role="status"></p>
+    <p><a href="../">MHBを開く</a></p>
+    <script>
+      const SAVE_KEYS = ["mhb_save_1", "mhb_save_2", "mhb_save_3"];
+      const TEST_SAVED_AT = "2026-10-04T00:00:00.000Z";
+      const status = document.querySelector("#status");
+
+      document.querySelector("#install").addEventListener("click", async () => {
+        const emptyKey = SAVE_KEYS.find((key) => !localStorage.getItem(key));
+        if (!emptyKey) {
+          status.textContent = "空きセーブ枠がありません。既存セーブは変更していません。";
+          return;
+        }
+        try {
+          const response = await fetch("./battle_ss_2_ready.json", { cache: "no-store" });
+          if (!response.ok) throw new Error(`HTTP ${response.status}`);
+          const saveData = await response.json();
+          localStorage.setItem(emptyKey, JSON.stringify(saveData));
+          status.textContent = `${emptyKey.replace("mhb_save_", "セーブ")}へ追加しました。`;
+        } catch (error) {
+          status.textContent = `追加に失敗しました: ${error}`;
+        }
+      });
+
+      document.querySelector("#remove").addEventListener("click", () => {
+        const removed = [];
+        for (const key of SAVE_KEYS) {
+          try {
+            const saveData = JSON.parse(localStorage.getItem(key) || "null");
+            if (saveData?.saved_at !== TEST_SAVED_AT) continue;
+            localStorage.removeItem(key);
+            removed.push(key.replace("mhb_save_", "セーブ"));
+          } catch {
+            // Existing malformed saves are unrelated and remain untouched.
+          }
+        }
+        status.textContent = removed.length
+          ? `${removed.join("、")}からテストセーブを削除しました。`
+          : "このテストセーブは見つかりませんでした。";
+      });
+    </script>
+  </body>
+</html>

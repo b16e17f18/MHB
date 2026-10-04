@@ -1,4 +1,4 @@
-﻿character_id,name,hp,phy_atk,phy_def,sp_atk,sp_def,speed,regen_value,cost_charge,slot,weak_fire,weak_water,weak_thunder,weak_ice,weak_dragon,element,skill_1,skill_2,skill_3,skill_4,image,transparent_color,tolerance,render_offset_x,render_offset_y,battle_anchor_x,battle_anchor_y,species_id,display_order,ai_type,ai_setup_skill,ai_main_skill,passive_id
+﻿character_id,name,hp,phy_atk,phy_def,sp_atk,sp_def,speed,regen_value,cost_charge,slot,weak_fire,weak_water,weak_thunder,weak_ice,weak_dragon,element,skill_1,skill_2,skill_3,skill_4,image,transparent_color,tolerance,render_offset_x,render_offset_y,battle_anchor_x,battle_anchor_y,species_id,display_order,ai_type,ai_setup_skill,ai_main_skill,passive_id,content_scope
 character_001,ドスランポス,420,220,185,70,220,405,105,1,1,100,100,100,100,50,none,skill_001,skill_002,skill_003,skill_004,character_001.png,#ffffff,8,,,70,19,bird_wyvern,1,disruptor,skill_004,skill_003,passive_001
 character_002,ドスファンゴ,450,240,200,35,240,80,35,1,1,100,100,125,50,50,none,skill_001,skill_026,skill_006,skill_094,character_002.png,#ffffff,8,,,50,36,fanged_beast,11,aggressive,,skill_006,passive_002
 character_003,ゲリョス,470,230,280,220,190,250,70,2,1,150,100,25,100,50,none,skill_009,skill_007,skill_008,skill_011,character_003.png,#ffffff,8,,,82,53,bird_wyvern,2,disruptor,skill_011,,passive_003
@@ -62,4 +62,7 @@ character_060,シェンガオレン,925,395,445,315,315,15,35,1,4,125,50,125,25,
 character_061,ネルギガンテ,655,375,300,275,275,335,105,1,3,75,75,150,75,100,none,skill_121,skill_010,skill_122,skill_123,character_061.png,#ffffff,8,,,30,50,elder_dragon,507,aggressive,,skill_123,passive_061
 character_062,アマツマガツチ,820,280,330,380,330,380,70,1,4,150,25,125,75,125,water,skill_058,skill_015,skill_124,skill_125,character_062.png,#ffffff,8,,,50,35,elder_dragon,508,patient,skill_058,skill_125,passive_062
 character_063,バサルモス,480,210,430,260,200,30,70,0,1,25,150,50,50,100,fire,skill_001,skill_027,skill_028,skill_012,character_063.png,#ffffff,8,,,70,26,flying_wyvern,303,disruptor,,skill_028,passive_063
-character_064,ラオシャンロン,1999,320,270,320,320,10,70,2,5,100,75,100,75,125,dragon,skill_118,skill_120,skill_109,skill_032,character_064.png,#ffffff,8,,,50,78,elder_dragon,997,patient,,,passive_064
+character_064,ラオシャンロン,1999,320,270,320,320,9,70,2,5,100,75,100,75,125,dragon,skill_118,skill_120,skill_109,skill_032,character_064.png,#ffffff,8,,,50,78,elder_dragon,997,patient,,,passive_064
+
+character_XXX,ポポ,350,150,300,70,250,10,70,1,1,125,75,75,25,25,none,skill_001,skill_026,none,none,character_XXX.png,#ffffff,8,,,20,50,none,1000,patient,,,passive_XXX,tutorial
+character_YYY,アプトノス,350,150,250,70,300,10,70,1,1,50,75,75,50,25,none,skill_001,skill_026,none,none,character_YYY.png,#ffffff,8,,,33,50,none,1000,patient,,,passive_YYY,tutorial

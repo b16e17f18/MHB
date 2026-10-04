@@ -39,7 +39,7 @@ function playBgm(bgmId, options = {}) {
   if (bgmRuntime.audio) stopBgm();
   else clearBgmVolumeTimer();
 
-  const audio = createBgmAudio(bgm.bgm_path, id);
+  const audio = createBgmAudio(bgm.bgm_path, id, options);
   if (!audio) return false;
   if (audibleDelayMs > 0) {
     audio.volume = 0;
@@ -122,7 +122,7 @@ function clearBgmVolumeTimer() {
   bgmRuntime.volumeTimer = null;
 }
 
-function createBgmAudio(path, bgmId) {
+function createBgmAudio(path, bgmId, options = {}) {
   if (typeof Audio !== "function") {
     console.warn("[BGM] Audio API is unavailable", { bgmId });
     return null;
@@ -130,8 +130,17 @@ function createBgmAudio(path, bgmId) {
 
   try {
     const audio = new Audio(path);
-    audio.loop = true;
+    audio.loop = options.loop !== false;
     audio.volume = BGM_VOLUME;
+    if (!audio.loop && typeof options.onEnded === "function") {
+      audio.addEventListener("ended", () => {
+        if (bgmRuntime.audio !== audio || bgmRuntime.currentBgmId !== bgmId) return;
+        bgmRuntime.audio = null;
+        bgmRuntime.currentBgmId = "";
+        bgmRuntime.pendingBgmId = "";
+        options.onEnded();
+      }, { once: true });
+    }
     return audio;
   } catch (error) {
     console.warn("[BGM] Audio creation failed", { bgmId, error });

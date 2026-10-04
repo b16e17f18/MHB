@@ -1,4 +1,5 @@
 enemy_party_id,character_id_1,character_id_2,character_id_3
+story_tutorial_1,character_YYY,character_XXX,none
 battle_f_1,character_002,character_003,none
 battle_f_2,character_006,character_005,character_007
 battle_e_1,character_053,character_009,none

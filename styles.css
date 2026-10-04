@@ -2040,6 +2040,26 @@ button {
   object-position: center bottom;
 }
 
+.dialogue-character-showcase {
+  position: absolute;
+  left: 27%;
+  bottom: 31%;
+  display: flex;
+  width: 55%;
+  height: 34%;
+  align-items: end;
+  justify-content: center;
+  gap: 8%;
+  pointer-events: none;
+}
+
+.dialogue-character-showcase img {
+  width: 42%;
+  height: 100%;
+  object-fit: contain;
+  object-position: center bottom;
+}
+
 .dialogue-text {
   position: absolute;
   left: 22.4%;
@@ -2486,6 +2506,57 @@ button {
   background: #ffffff;
   box-shadow: none;
   overflow: hidden;
+}
+
+.battle-tutorial-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 150;
+  pointer-events: none;
+}
+
+.battle-tutorial-dimmer {
+  position: fixed;
+  background: rgba(0, 0, 0, 0.62);
+  pointer-events: none;
+}
+
+.battle-tutorial-focus {
+  position: fixed;
+  border: 4px solid #ffd84a;
+  box-shadow: 0 0 0 2px #111, 0 0 18px rgba(255, 216, 74, 0.8);
+  animation: battle-tutorial-pulse 1s ease-in-out infinite alternate;
+  pointer-events: none;
+}
+
+.battle-tutorial-prompt {
+  position: fixed;
+  left: 50%;
+  bottom: 18px;
+  width: min(560px, calc(100vw - 32px));
+  transform: translateX(-50%);
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 3px solid #111;
+  background: #fff8d8;
+  color: #111;
+  pointer-events: auto;
+}
+
+.battle-tutorial-prompt strong {
+  color: #9c2f20;
+}
+
+.battle-tutorial-overlay.is-operation .battle-tutorial-focus {
+  background: transparent;
+}
+
+@keyframes battle-tutorial-pulse {
+  from { filter: brightness(0.9); }
+  to { filter: brightness(1.25); }
 }
 
 .battle-view .glossary-panel {
@@ -3363,6 +3434,44 @@ button {
   top: 63.8%;
   width: 60.8%;
   height: 20.1%;
+}
+
+.travel2-final-battle-button {
+  left: 8%;
+  top: 9%;
+  width: 17%;
+  height: 13%;
+}
+
+.ending-view {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+  background: #050505;
+  color: #fff;
+  text-align: center;
+}
+
+.ending-copy {
+  animation: ending-fade 2s ease both;
+}
+
+.ending-copy h1 {
+  margin: 0 0 24px;
+  font-size: clamp(32px, 6vw, 72px);
+  letter-spacing: 0;
+}
+
+.ending-copy p {
+  margin: 0 0 36px;
+  font-size: clamp(20px, 3vw, 32px);
+}
+
+@keyframes ending-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 .lab-entrance-button {

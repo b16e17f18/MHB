@@ -1,0 +1,82 @@
+{
+  "money": 500000,
+  "time_of_day": "morning",
+  "owned_books": [
+    "book_legend103"
+  ],
+  "owned_monsters": [
+    {
+      "owned_id": "owned_001",
+      "character_id": "character_048",
+      "equipment": {
+        "accessory": ""
+      },
+      "storage": "party"
+    },
+    {
+      "owned_id": "owned_002",
+      "character_id": "character_056",
+      "equipment": {
+        "accessory": ""
+      },
+      "storage": "lab"
+    },
+    {
+      "owned_id": "owned_003",
+      "character_id": "character_035",
+      "equipment": {
+        "accessory": ""
+      },
+      "storage": "lab"
+    }
+  ],
+  "party_owned_ids": [
+    "owned_001"
+  ],
+  "owned_equipment": {},
+  "shop_stock": {},
+  "purchased_shop_entries": [],
+  "seen_dialogue_ids": [
+    "guide_after_ss_1",
+    "chief_after_ss_1"
+  ],
+  "cleared_battles": [
+    "battle_f_1",
+    "battle_f_2",
+    "battle_e_1",
+    "battle_e_2",
+    "battle_d_1",
+    "battle_d_2",
+    "battle_c_1",
+    "battle_c_2",
+    "battle_b_1",
+    "battle_b_2",
+    "battle_a_1",
+    "battle_a_2",
+    "battle_s_1",
+    "battle_s_2",
+    "battle_ss_1"
+  ],
+  "cleared_rank_battle_ids": [
+    "battle_f_1",
+    "battle_f_2",
+    "battle_e_1",
+    "battle_e_2",
+    "battle_d_1",
+    "battle_d_2",
+    "battle_c_1",
+    "battle_c_2",
+    "battle_b_1",
+    "battle_b_2",
+    "battle_a_1",
+    "battle_a_2",
+    "battle_s_1",
+    "battle_s_2",
+    "battle_ss_1"
+  ],
+  "next_owned_monster_number": 4,
+  "initial_money_version": 1,
+  "initial_party_version": 1,
+  "story_tutorial_completed": true,
+  "saved_at": "2026-10-04T00:00:00.000Z"
+}

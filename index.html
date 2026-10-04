@@ -36,6 +36,7 @@
             <button id="travel2ChiefButton" class="story-location-button travel2-chief-button" type="button" aria-label="村長宅へ移動" data-location-label="村長宅"></button>
             <button id="travel2BackTunnelButton" class="story-location-button travel2-back-tunnel-button" type="button" aria-label="移動画面へ移動" data-location-label="トンネル"></button>
             <button id="travel2LabButton" class="story-location-button travel2-lab-button" type="button" aria-label="LABへ移動" data-location-label="研究所"></button>
+            <button id="travel2FinalBattleButton" class="story-location-button travel2-final-battle-button is-hidden" type="button" aria-label="向かいの島へ移動" data-location-label="向かいの島へ"></button>
           </div>
 
           <div id="storyMainStage" class="story-main-stage">
@@ -279,6 +280,18 @@
             <img src="./assets/用語.png" alt="用語" />
           </div>
         </div>
+        <div id="battleTutorialOverlay" class="battle-tutorial-overlay is-hidden" aria-live="polite">
+          <div class="battle-tutorial-dimmer battle-tutorial-dimmer-top"></div>
+          <div class="battle-tutorial-dimmer battle-tutorial-dimmer-right"></div>
+          <div class="battle-tutorial-dimmer battle-tutorial-dimmer-bottom"></div>
+          <div class="battle-tutorial-dimmer battle-tutorial-dimmer-left"></div>
+          <div id="battleTutorialFocus" class="battle-tutorial-focus"></div>
+          <div id="battleTutorialPrompt" class="battle-tutorial-prompt">
+            <strong>案内人</strong>
+            <span id="battleTutorialPromptText"></span>
+            <button id="battleTutorialNextButton" class="small-button is-hidden" type="button">次へ</button>
+          </div>
+        </div>
       </section>
 
       <div id="dexOverlay" class="detail-overlay is-hidden" aria-label="図鑑">
@@ -291,17 +304,29 @@
           <div class="dialogue-portrait-frame">
             <img id="dialogueNpcImage" class="dialogue-npc-image" alt="" />
           </div>
+          <div id="dialogueCharacterShowcase" class="dialogue-character-showcase is-hidden" aria-label="ドスランポスとイャンクック">
+            <img src="./assets/character_image_transparent/character_001.png" alt="ドスランポス" />
+            <img src="./assets/character_image_transparent/character_004.png" alt="イャンクック" />
+          </div>
           <div id="dialogueText" class="dialogue-text"></div>
         </section>
       </div>
+
+      <section id="endingView" class="ending-view is-hidden" aria-label="エンドロール">
+        <div class="ending-copy">
+          <h1>MONSTER HUNTER BATTLE</h1>
+          <p>Thank you for playing.</p>
+          <button id="endingReturnButton" class="small-button" type="button">タイトルへ</button>
+        </div>
+      </section>
     </main>
 
-    <script src="./data-inline.js?v=20260817-stun-wish"></script>
+    <script src="./data-inline.js?v=20261004-final-story"></script>
     <script src="./passive.js?v=20260912-passive-refactor"></script>
     <script src="./battle-core.js?v=20260825-fieldguard-side"></script>
     <script src="./battle-ai.js?v=20260906-battle-ai"></script>
-    <script src="./bgm.js?v=20260906-bgm-manager"></script>
+    <script src="./bgm.js?v=20261004-final-story"></script>
     <script src="./dialogue-manager.js?v=20260906-dialogue-manager"></script>
-    <script src="./app.js?v=20260914-passive-display"></script>
+    <script src="./app.js?v=20261004-final-story"></script>
   </body>
 </html>

@@ -140,6 +140,21 @@ const SHOP_ITEM_FILTER_MONSTER = "monster";
 const SHOP_ITEM_FILTER_EQUIPMENT = "equipment";
 const INITIAL_PLAYER_CHARACTER_IDS = ["character_001", "character_004"];
 const INITIAL_PARTY_VERSION = 1;
+const STORY_TUTORIAL_ID = "story_tutorial_1";
+const STORY_TUTORIAL_ENEMY_PARTY_ID = "story_tutorial_1";
+const STORY_TUTORIAL_PLAYER_CHARACTER_IDS = ["character_001", "character_004"];
+const STORY_TUTORIAL_STEPS = [
+  { id: "en", dialogueId: "guide_tutorial_en", target: "#playerHud .energy-line", mode: "info", button: "わかった" },
+  { id: "move", dialogueId: "guide_tutorial_move", target: "#moveGrid", mode: "move" },
+  { id: "inspect", dialogueId: "guide_tutorial_inspect", target: "#enemySprite", mode: "inspect" },
+  { id: "stats", dialogueId: "guide_tutorial_stats", target: "#enemyInfoPanel .battle-inspect-stats", mode: "info", button: "次へ" },
+  { id: "resistance", dialogueId: "guide_tutorial_resistance", target: "#enemyInfoPanel .battle-inspect-resistance-grid", mode: "info", button: "次へ" },
+  { id: "debuff", dialogueId: "guide_tutorial_debuff", target: "#enemyInfoPanel", mode: "info", button: "次へ" },
+  { id: "defeat_first_enemy", dialogueId: "guide_tutorial_defeat_first", target: "#moveGrid", mode: "defeat_first_enemy" },
+  { id: "attack_second_enemy", mode: "attack_second_enemy" },
+  { id: "switch_tab", dialogueId: "guide_tutorial_switch_tab", target: "#switchTab", mode: "switch_tab" },
+  { id: "switch", dialogueId: "guide_tutorial_switch", target: "#switchGrid", mode: "switch" },
+];
 const EQUIPMENT_TYPE_ACCESSORY = "accessory";
 const EQUIPMENT_ITEM_TYPES = new Set(["equip", "equipment"]);
 const SPECIES_LABELS = {
@@ -395,11 +410,18 @@ const state = {
     pendingRankBattleId: null,
     currentRankBattleId: null,
     currentArenaBattleId: null,
+    currentTutorialBattleId: null,
     lastDefeatedEnemyId: null,
     selectedArenaEntranceId: null,
     selectedArenaBattleId: null,
     clearedRankBattleIds: new Set(),
     disabledRankBattleIds: new Set(),
+    tutorial: {
+      active: false,
+      stepIndex: -1,
+      presenting: false,
+      secondEnemyHitPending: false,
+    },
   },
 };
 
@@ -445,6 +467,7 @@ function createSaveData() {
     nextOwnedMonsterNumber: 1,
     initialMoneyVersion: 1,
     initialPartyVersion: INITIAL_PARTY_VERSION,
+    storyTutorialCompleted: false,
   };
 }
 
@@ -482,6 +505,7 @@ document.addEventListener("DOMContentLoaded", () => {
     travel2BackTunnelButton: document.querySelector("#travel2BackTunnelButton"),
     travel2ChiefButton: document.querySelector("#travel2ChiefButton"),
     travel2LabButton: document.querySelector("#travel2LabButton"),
+    travel2FinalBattleButton: document.querySelector("#travel2FinalBattleButton"),
     travelMainButton: document.querySelector("#travelMainButton"),
     storyBackButton: document.querySelector("#storyBackButton"),
     storyMainStage: document.querySelector("#storyMainStage"),
@@ -535,6 +559,8 @@ document.addEventListener("DOMContentLoaded", () => {
     guideMenuPanel: document.querySelector("#guideMenuPanel"),
     chiefHouseScreen: document.querySelector("#chiefHouseScreen"),
     chiefHouseBackButton: document.querySelector("#chiefHouseBackButton"),
+    endingView: document.querySelector("#endingView"),
+    endingReturnButton: document.querySelector("#endingReturnButton"),
     businessShopPanel: document.querySelector("#businessShopPanel"),
     businessShopBackButton: document.querySelector("#businessShopBackButton"),
     businessShopTitle: document.querySelector("#businessShopTitle"),
@@ -588,6 +614,11 @@ document.addEventListener("DOMContentLoaded", () => {
     switchGrid: document.querySelector("#switchGrid"),
     enemyInfoPanel: document.querySelector("#enemyInfoPanel"),
     exchangePanel: document.querySelector("#exchangePanel"),
+    battleTutorialOverlay: document.querySelector("#battleTutorialOverlay"),
+    battleTutorialFocus: document.querySelector("#battleTutorialFocus"),
+    battleTutorialPrompt: document.querySelector("#battleTutorialPrompt"),
+    battleTutorialPromptText: document.querySelector("#battleTutorialPromptText"),
+    battleTutorialNextButton: document.querySelector("#battleTutorialNextButton"),
     detailOverlay: document.querySelector("#detailOverlay"),
     detailPanel: document.querySelector("#detailPanel"),
     dexOverlay: document.querySelector("#dexOverlay"),
@@ -595,6 +626,7 @@ document.addEventListener("DOMContentLoaded", () => {
     dialogueOverlay: document.querySelector("#dialogueOverlay"),
     dialogueWindowFrame: document.querySelector("#dialogueWindowFrame"),
     dialogueNpcImage: document.querySelector("#dialogueNpcImage"),
+    dialogueCharacterShowcase: document.querySelector("#dialogueCharacterShowcase"),
     dialogueText: document.querySelector("#dialogueText"),
   });
 
@@ -602,6 +634,7 @@ document.addEventListener("DOMContentLoaded", () => {
     overlay: els.dialogueOverlay,
     windowFrame: els.dialogueWindowFrame,
     portrait: els.dialogueNpcImage,
+    characterShowcase: els.dialogueCharacterShowcase,
     text: els.dialogueText,
   });
   bindEvents();
@@ -623,6 +656,7 @@ function bindEvents() {
   els.travel2BackTunnelButton?.addEventListener("click", showStoryTravel);
   els.travel2ChiefButton?.addEventListener("click", showChiefHouse);
   els.travel2LabButton?.addEventListener("click", showLab);
+  els.travel2FinalBattleButton?.addEventListener("click", showFinalBossBattleConfirm);
   els.travelMainButton?.addEventListener("click", showStoryMain);
   els.storyBackButton.addEventListener("click", showStoryTravel);
   els.storyMyPartyButton?.addEventListener("click", showMyParty);
@@ -652,6 +686,7 @@ function bindEvents() {
   els.guideBookButton?.addEventListener("click", toggleGuideMenu);
   els.guideMenuPanel?.addEventListener("click", handleGuideMenuClick);
   els.chiefHouseBackButton?.addEventListener("click", hideChiefHouse);
+  els.endingReturnButton?.addEventListener("click", finishEnding);
   document.addEventListener("keydown", handleLabDetailKeydown);
   els.myHouseScreenBackButton?.addEventListener("click", hideMyHouse);
   els.myHouseSaveLoadButton?.addEventListener("click", () => showMyHouseSection("save"));
@@ -710,6 +745,9 @@ function bindEvents() {
   els.moveGrid.addEventListener("click", handleMoveGridClick);
   els.switchGrid.addEventListener("click", handleSwitchGridClick);
   els.enemyInfoPanel.addEventListener("click", handleBattleInspectClick);
+  els.battleTutorialNextButton?.addEventListener("click", advanceStoryTutorialInfoStep);
+  window.addEventListener("resize", positionStoryTutorialHighlight);
+  window.addEventListener("scroll", positionStoryTutorialHighlight, true);
 
   els.fightTab.addEventListener("click", () => {
     if (state.busy || state.gameOver || state.pendingSwitchSide) return;
@@ -727,6 +765,7 @@ function bindEvents() {
     }
     state.commandMode = state.commandMode === "switch" ? "fight" : "switch";
     renderBattle();
+    if (state.commandMode === "switch") completeStoryTutorialOperation("switch_tab");
   });
 
   els.dexButton.addEventListener("click", () => {
@@ -779,6 +818,7 @@ function showTitleView() {
   els.battleView.classList.add("is-hidden");
   els.setupView.classList.add("is-hidden");
   els.storyView.classList.add("is-hidden");
+  els.endingView?.classList.add("is-hidden");
   setStoryStage("travel");
   els.titleView.classList.remove("is-hidden");
   clearTitleMessage();
@@ -824,6 +864,10 @@ function clearTitleMessage() {
 }
 
 async function startStoryMode() {
+  if (gameDataPromise) await gameDataPromise;
+  if (!state.saveData.storyTutorialCompleted && hasLegacyStorySave()) {
+    state.saveData.storyTutorialCompleted = true;
+  }
   state.story.active = false;
   state.shop.open = false;
   hideBusinessShop({ restoreTravel: false });
@@ -836,7 +880,24 @@ async function startStoryMode() {
   els.setupView.classList.add("is-hidden");
   els.battleView.classList.add("is-hidden");
   els.storyView.classList.remove("is-hidden");
+  if (!state.saveData.storyTutorialCompleted) {
+    await startStoryTutorialIntroduction();
+    return;
+  }
   showStoryTravel({ focus: true });
+}
+
+function hasLegacyStorySave() {
+  return MANUAL_SAVE_STORAGE_KEYS.some((key) => {
+    const raw = readStorageValue(key);
+    if (!raw) return false;
+    try {
+      const data = JSON.parse(raw);
+      return data && data.story_tutorial_completed == null && data.storyTutorialCompleted == null;
+    } catch {
+      return false;
+    }
+  });
 }
 
 function setStoryStage(stage) {
@@ -968,7 +1029,25 @@ function showStoryTravel2({ focus = true } = {}) {
   updateStoryTravelBackgrounds();
   playBgm(storyIslandBgmId());
   setStoryStage("travel2");
-  if (focus) els.travel2BackTunnelButton?.focus({ preventScroll: true });
+  updateFinalBossBattleEntry();
+  if (focus) {
+    (finalBossBattleAvailable() ? els.travel2FinalBattleButton : els.travel2BackTunnelButton)
+      ?.focus({ preventScroll: true });
+  }
+}
+
+function finalBossBattleAvailable() {
+  return isStoryRankBattleUnlocked(FINAL_BOSS_BATTLE_ID) &&
+    !isStoryRankBattleCleared(FINAL_BOSS_BATTLE_ID);
+}
+
+function updateFinalBossBattleEntry() {
+  els.travel2FinalBattleButton?.classList.toggle("is-hidden", !finalBossBattleAvailable());
+}
+
+function showFinalBossBattleConfirm() {
+  if (!finalBossBattleAvailable()) return;
+  void showRankBattleConfirm(FINAL_BOSS_BATTLE_ID);
 }
 
 function showLab({ focus = true } = {}) {
@@ -1076,7 +1155,7 @@ async function showChiefHouse({ focus = true } = {}) {
   showStoryFrame();
   setStoryStage("chiefHouse");
   if (focus) els.chiefHouseBackButton?.focus({ preventScroll: true });
-  void showDialogue("chief", "chief_welcome");
+  void showNpcDialogue("chief");
 }
 
 async function hideChiefHouse() {
@@ -2260,6 +2339,9 @@ async function showRankBattleVictoryDialogues(rankBattleId) {
     conditionValue: id,
   });
   if (sawChiefDialogue) updateStoryRankBattleButtons();
+  if (id === FINAL_BOSS_UNLOCK_REQUIRED_BATTLE_ID && sawChiefDialogue) {
+    showStoryTravel2({ focus: true });
+  }
 }
 
 async function showMyHouse() {
@@ -3854,12 +3936,13 @@ async function loadGameData() {
       loadOptionalCsvText("npcs", DATA_PATHS.npcs),
     ]);
 
-    state.characters = rowsFromCsv(characterText)
+    const allCharacters = rowsFromCsv(characterText)
       .map(normalizeCharacter)
       .filter((character) => character.character_id && character.name);
     state.characterMap = new Map(
-      state.characters.map((character) => [character.character_id, character]),
+      allCharacters.map((character) => [character.character_id, character]),
     );
+    state.characters = allCharacters.filter((character) => character.content_scope !== "tutorial");
 
     state.passives.clear();
     for (const passive of rowsFromCsv(passiveText).map(normalizePassive)) {
@@ -3868,7 +3951,7 @@ async function loadGameData() {
       }
     }
 
-    for (const character of state.characters) {
+    for (const character of allCharacters) {
       character.passive = passiveForCharacter(character);
       character.passiveEffects = character.passive?.effects ?? [];
     }
@@ -4106,6 +4189,7 @@ function normalizeCharacter(row) {
     ai_type: safeText(row.ai_type, "balanced"),
     ai_setup_skill: safeText(row.ai_setup_skill),
     ai_main_skill: safeText(row.ai_main_skill),
+    content_scope: safeText(row.content_scope, "normal").toLowerCase(),
     passive_id: safeText(row.passive_id),
     element,
     weaknesses: {
@@ -5199,6 +5283,7 @@ function createSavePayload() {
     next_owned_monster_number: state.saveData.nextOwnedMonsterNumber,
     initial_money_version: state.saveData.initialMoneyVersion,
     initial_party_version: state.saveData.initialPartyVersion,
+    story_tutorial_completed: Boolean(state.saveData.storyTutorialCompleted),
   };
 }
 
@@ -5275,6 +5360,10 @@ function normalizeSavePayload(rawData) {
   nextSaveData.money = Math.max(0, Math.floor(number(rawData.money, INITIAL_MONEY)));
   nextSaveData.initialMoneyVersion = Math.floor(number(rawData.initial_money_version ?? rawData.initialMoneyVersion, 1));
   nextSaveData.initialPartyVersion = Math.floor(number(rawData.initial_party_version ?? rawData.initialPartyVersion, INITIAL_PARTY_VERSION));
+  nextSaveData.storyTutorialCompleted =
+    rawData.story_tutorial_completed == null && rawData.storyTutorialCompleted == null
+      ? true
+      : Boolean(rawData.story_tutorial_completed ?? rawData.storyTutorialCompleted);
 
   const ownedBooks = saveArrayField(rawData.owned_books ?? rawData.ownedBooks, "owned_books");
   if (!ownedBooks.ok) return ownedBooks;
@@ -5828,6 +5917,175 @@ function rankBattleEnemyCharacterIds(rankBattleId) {
     : STORY_RANK_BATTLE_FALLBACKS[rankBattleId]?.enemyCharacterIds ?? [];
 }
 
+function enemyPartyCharacterIds(enemyPartyId) {
+  return state.enemyParties.get(safeText(enemyPartyId))?.characterIds ?? [];
+}
+
+async function startStoryTutorialIntroduction() {
+  initializeSaveDataParty({ persist: false });
+  showStoryTravel({ focus: false });
+  const completed = await showDialogue("guide", "guide_welcome1");
+  if (!completed || state.saveData.storyTutorialCompleted) return;
+  startStoryTutorialBattle();
+}
+
+function startStoryTutorialBattle() {
+  const enemyCharacterIds = enemyPartyCharacterIds(STORY_TUTORIAL_ENEMY_PARTY_ID);
+  if (!enemyCharacterIds.length) {
+    console.warn("[Tutorial] enemy party not found", STORY_TUTORIAL_ENEMY_PARTY_ID);
+    showStoryTravel({ focus: true });
+    return;
+  }
+  startBattle({
+    tutorialBattleId: STORY_TUTORIAL_ID,
+    enemyCharacterIds,
+    playerCharacterIds: STORY_TUTORIAL_PLAYER_CHARACTER_IDS,
+  });
+  void beginStoryTutorialGuidance();
+}
+
+function tutorialBattleFighterSources(characterIds) {
+  const remainingOwnedMonsters = [...state.saveData.ownedMonsters];
+  return characterIds
+    .map((characterId) => {
+      const character = state.characterMap.get(characterId);
+      if (!character) return null;
+      const ownedIndex = remainingOwnedMonsters.findIndex((entry) => entry.characterId === characterId);
+      const ownedMonster = ownedIndex >= 0 ? remainingOwnedMonsters.splice(ownedIndex, 1)[0] : null;
+      return { character, ownedMonster };
+    })
+    .filter(Boolean);
+}
+
+function isStoryTutorialBattle() {
+  return state.story.currentTutorialBattleId === STORY_TUTORIAL_ID;
+}
+
+async function beginStoryTutorialGuidance() {
+  if (!isStoryTutorialBattle()) return;
+  state.story.tutorial.active = true;
+  state.story.tutorial.stepIndex = 0;
+  state.story.tutorial.secondEnemyHitPending = false;
+  await presentStoryTutorialStep();
+}
+
+function currentStoryTutorialStep() {
+  return state.story.tutorial.active
+    ? STORY_TUTORIAL_STEPS[state.story.tutorial.stepIndex] ?? null
+    : null;
+}
+
+async function presentStoryTutorialStep() {
+  const step = currentStoryTutorialStep();
+  clearStoryTutorialOverlay();
+  if (!step || !isStoryTutorialBattle() || state.gameOver) return;
+  if (step.mode === "attack_second_enemy") return;
+  state.story.tutorial.presenting = true;
+  await showDialogue("guide", step.dialogueId);
+  state.story.tutorial.presenting = false;
+  if (step === currentStoryTutorialStep() && isStoryTutorialBattle() && !state.gameOver) {
+    if (step.mode !== "defeat_first_enemy") {
+      applyStoryTutorialOverlay();
+    }
+  }
+}
+
+function applyStoryTutorialOverlay() {
+  const step = currentStoryTutorialStep();
+  if (!step || !els.battleTutorialOverlay) return;
+  if (step.mode === "defeat_first_enemy" || step.mode === "attack_second_enemy") {
+    clearStoryTutorialOverlay();
+    return;
+  }
+  const dialogue = dialogueManager.getDialogue(step.dialogueId);
+  els.battleTutorialPromptText.textContent = dialogue?.text || "案内に沿って操作してください。";
+  els.battleTutorialNextButton.textContent = step.button || "次へ";
+  els.battleTutorialNextButton.classList.toggle("is-hidden", step.mode !== "info");
+  els.battleTutorialOverlay.classList.toggle("is-operation", step.mode !== "info");
+  els.battleTutorialOverlay.classList.remove("is-hidden");
+  positionStoryTutorialHighlight();
+  window.requestAnimationFrame(positionStoryTutorialHighlight);
+}
+
+function positionStoryTutorialHighlight() {
+  const step = currentStoryTutorialStep();
+  if (!step || els.battleTutorialOverlay?.classList.contains("is-hidden")) return;
+  const target = document.querySelector(step.target);
+  if (!target || target.classList.contains("is-hidden")) return;
+  const rect = target.getBoundingClientRect();
+  const gap = 6;
+  const left = Math.max(0, rect.left - gap);
+  const top = Math.max(0, rect.top - gap);
+  const right = Math.min(window.innerWidth, rect.right + gap);
+  const bottom = Math.min(window.innerHeight, rect.bottom + gap);
+  Object.assign(els.battleTutorialFocus.style, {
+    left: `${left}px`, top: `${top}px`, width: `${Math.max(0, right - left)}px`, height: `${Math.max(0, bottom - top)}px`,
+  });
+  const promptAboveTarget = rect.top > window.innerHeight / 2;
+  Object.assign(els.battleTutorialPrompt.style, {
+    top: promptAboveTarget ? "18px" : "auto",
+    bottom: promptAboveTarget ? "auto" : "18px",
+  });
+  const [topDimmer, rightDimmer, bottomDimmer, leftDimmer] = els.battleTutorialOverlay.querySelectorAll(".battle-tutorial-dimmer");
+  Object.assign(topDimmer.style, { left: "0", top: "0", width: "100vw", height: `${top}px` });
+  Object.assign(rightDimmer.style, { left: `${right}px`, top: `${top}px`, width: `${Math.max(0, window.innerWidth - right)}px`, height: `${Math.max(0, bottom - top)}px` });
+  Object.assign(bottomDimmer.style, { left: "0", top: `${bottom}px`, width: "100vw", height: `${Math.max(0, window.innerHeight - bottom)}px` });
+  Object.assign(leftDimmer.style, { left: "0", top: `${top}px`, width: `${left}px`, height: `${Math.max(0, bottom - top)}px` });
+}
+
+function clearStoryTutorialOverlay() {
+  els.battleTutorialOverlay?.classList.add("is-hidden");
+}
+
+function advanceStoryTutorialInfoStep() {
+  if (currentStoryTutorialStep()?.mode !== "info") return;
+  void advanceStoryTutorialStep();
+}
+
+function completeStoryTutorialOperation(mode) {
+  if (currentStoryTutorialStep()?.mode !== mode) return;
+  void advanceStoryTutorialStep();
+}
+
+async function advanceStoryTutorialStep() {
+  clearStoryTutorialOverlay();
+  state.story.tutorial.stepIndex += 1;
+  skipUnavailableStoryTutorialSteps();
+  if (state.story.tutorial.stepIndex >= STORY_TUTORIAL_STEPS.length) {
+    state.story.tutorial.active = false;
+    await showDialogue("guide", "guide_tutorial_free");
+    return;
+  }
+  if (currentStoryTutorialStep()?.mode === "defeat_first_enemy") {
+    state.commandMode = "fight";
+    renderBattle();
+  }
+  await presentStoryTutorialStep();
+}
+
+function skipUnavailableStoryTutorialSteps() {
+  while (state.story.tutorial.active) {
+    const step = currentStoryTutorialStep();
+    if (!step) return;
+    const activePlayerUnavailable =
+      step.mode === "attack_second_enemy" &&
+      (activePlayer()?.id !== "character_001" || activePlayer()?.fainted);
+    const switchUnavailable =
+      (step.mode === "switch_tab" || step.mode === "switch") &&
+      aliveBenchIndex("player") < 0;
+    if (!activePlayerUnavailable && !switchUnavailable) return;
+    state.story.tutorial.stepIndex += 1;
+  }
+}
+
+function resetStoryTutorialRuntime() {
+  clearStoryTutorialOverlay();
+  state.story.tutorial.active = false;
+  state.story.tutorial.stepIndex = -1;
+  state.story.tutorial.presenting = false;
+  state.story.tutorial.secondEnemyHitPending = false;
+}
+
 function isStoryRankBattleCleared(rankBattleId) {
   return state.story.clearedRankBattleIds.has(rankBattleId);
 }
@@ -5972,7 +6230,8 @@ function startBattle(options = {}) {
   const requestedArenaBattleId =
     safeText(options.arenaBattleId) ||
     (ARENA_BATTLE_ENTRANCE_BY_ID[requestedStoryBattleId] ? requestedStoryBattleId : "");
-  const usesOwnedParty = Boolean(requestedStoryBattleId || requestedArenaBattleId);
+  const requestedTutorialBattleId = safeText(options.tutorialBattleId);
+  const usesOwnedParty = Boolean(requestedStoryBattleId || requestedArenaBattleId || requestedTutorialBattleId);
   if (usesOwnedParty) {
     initializeSaveDataParty({ persist: false });
     if (ownedPartySlotTotal() <= 0 || ownedPartySlotTotal() > TEAM_SLOT_LIMIT) return;
@@ -5987,7 +6246,11 @@ function startBattle(options = {}) {
   const enemyPool = state.characters.filter(
     (character) => !state.selectedIds.includes(character.character_id),
   );
-  const playerFighterSources = usesOwnedParty ? partyBattleFighterSources() : selectedBattleFighterSources();
+  const playerFighterSources = requestedTutorialBattleId
+    ? tutorialBattleFighterSources(options.playerCharacterIds ?? STORY_TUTORIAL_PLAYER_CHARACTER_IDS)
+    : usesOwnedParty
+      ? partyBattleFighterSources()
+      : selectedBattleFighterSources();
   const enemyCharacters = Array.isArray(options.enemyCharacterIds)
     ? options.enemyCharacterIds
         .map((id) => state.characterMap.get(id))
@@ -6019,6 +6282,7 @@ function startBattle(options = {}) {
   state.battleInspectSide = "enemy";
   state.story.currentRankBattleId = currentBattleId;
   state.story.currentArenaBattleId = currentArenaBattleId;
+  state.story.currentTutorialBattleId = requestedTutorialBattleId || null;
   state.story.lastDefeatedEnemyId = null;
   if (currentArenaBattleId || currentBattleId) {
     playRankBattleBgm(currentArenaBattleId || currentBattleId);
@@ -6119,7 +6383,8 @@ function renderBattle() {
     state.battleWinner === "player" &&
     !state.story.currentArenaBattleId;
   const arenaResultVisible = state.gameOver && Boolean(state.story.currentArenaBattleId);
-  const resultPanelVisible = exchangeVisible || arenaResultVisible;
+  const tutorialResultVisible = state.gameOver && isStoryTutorialBattle();
+  const resultPanelVisible = exchangeVisible || arenaResultVisible || tutorialResultVisible;
   const playerPendingMove = Boolean(pendingSkillFor(player));
   const inspectSide = state.battleInspectSide === "player" ? "player" : "enemy";
   const inspectFighter = inspectSide === "player" ? player : enemy;
@@ -6157,6 +6422,9 @@ function renderBattle() {
   renderSwitchGrid();
   renderEnemyInfoPanel(inspectFighter, inspectSide);
   renderExchangePanel();
+  if (state.story.tutorial.active && !state.story.tutorial.presenting) {
+    applyStoryTutorialOverlay();
+  }
 }
 
 function renderHud(fighter, team, activeIndex, side) {
@@ -6334,6 +6602,7 @@ function showFighterStatus(side) {
   state.battleInspectSide = side === "player" ? "player" : "enemy";
   state.commandMode = "enemyInfo";
   renderBattle();
+  if (side === "enemy") completeStoryTutorialOperation("inspect");
 }
 
 function renderEnemyInfoPanel(enemy, inspectSide = "enemy") {
@@ -6636,6 +6905,10 @@ function handleSwitchGridClick(event) {
 }
 
 function renderExchangePanel() {
+  if (state.gameOver && isStoryTutorialBattle()) {
+    renderStoryTutorialResultPanel();
+    return;
+  }
   if (state.gameOver && state.story.currentArenaBattleId) {
     renderArenaBattleResultPanel();
     return;
@@ -6643,6 +6916,11 @@ function renderExchangePanel() {
 
   if (!(state.gameOver && state.battleWinner === "player") || state.story.currentArenaBattleId) {
     els.exchangePanel.innerHTML = "";
+    return;
+  }
+
+  if (state.story.currentRankBattleId === FINAL_BOSS_BATTLE_ID) {
+    renderFinalBossVictoryPanel();
     return;
   }
 
@@ -6727,6 +7005,83 @@ function renderExchangePanel() {
       }
     });
   }
+}
+
+function renderFinalBossVictoryPanel() {
+  els.exchangePanel.innerHTML = `
+    <div class="exchange-title">勝利</div>
+    <div class="command-note">謎の古龍を討伐した！</div>
+    <div class="exchange-actions">
+      <button class="primary-button exchange-action" type="button" data-final-boss-result-action="complete">島へ戻る</button>
+    </div>
+  `;
+  els.exchangePanel.querySelector("[data-final-boss-result-action='complete']")?.addEventListener("click", () => {
+    void finalizeFinalBossVictory();
+  });
+}
+
+async function finalizeFinalBossVictory() {
+  if (isStoryRankBattleCleared(FINAL_BOSS_BATTLE_ID)) return;
+  if (!applyRankBattleVictory(FINAL_BOSS_BATTLE_ID)) return;
+
+  state.story.currentRankBattleId = null;
+  state.story.currentArenaBattleId = null;
+  state.story.pendingRankBattleId = null;
+  state.story.lastDefeatedEnemyId = null;
+  resetRankBattleRuntimeState();
+  markUnsavedChanges();
+  saveGameData();
+  hideRankBattleConfirm();
+
+  showStoryFrame();
+  setStoryStage("chiefHouse");
+  await showDialogue("chief", "chief_after_ss_2", {
+    onComplete: markDialogueSeenOnComplete,
+  });
+  showEnding();
+}
+
+function showEnding() {
+  state.story.active = false;
+  els.titleView.classList.add("is-hidden");
+  els.setupView.classList.add("is-hidden");
+  els.battleView.classList.add("is-hidden");
+  els.storyView.classList.add("is-hidden");
+  els.endingView?.classList.remove("is-hidden");
+  playBgm("endroll", { loop: false, onEnded: finishEnding });
+  els.endingReturnButton?.focus({ preventScroll: true });
+}
+
+function finishEnding() {
+  stopBgm();
+  showTitleView();
+}
+
+function renderStoryTutorialResultPanel() {
+  const won = state.battleWinner === "player";
+  els.exchangePanel.innerHTML = `
+    <div class="exchange-title">${won ? "チュートリアルクリア" : "チュートリアル敗北"}</div>
+    <div class="command-note">${won ? "基本操作はこれで完了です。" : "ペナルティはありません。同じ相手にもう一度挑戦できます。"}</div>
+    <div class="exchange-actions">
+      <button class="primary-button exchange-action" type="button" data-tutorial-result-action="${won ? "complete" : "retry"}">${won ? "島へ進む" : "再挑戦"}</button>
+    </div>
+  `;
+  els.exchangePanel.querySelector("[data-tutorial-result-action]")?.addEventListener("click", (event) => {
+    if (event.currentTarget.dataset.tutorialResultAction === "complete") {
+      completeStoryTutorial();
+    } else {
+      startStoryTutorialBattle();
+    }
+  });
+}
+
+function completeStoryTutorial() {
+  state.saveData.storyTutorialCompleted = true;
+  markUnsavedChanges();
+  resetStoryTutorialRuntime();
+  state.story.currentTutorialBattleId = null;
+  resetRankBattleRuntimeState();
+  showStoryTravel({ focus: true });
 }
 
 function renderArenaBattleResultPanel() {
@@ -7014,7 +7369,7 @@ function healBlockMoveDisabledReason(actor, opponent, move) {
     : "使用できない";
 }
 
-function playerChooseMove(moveId) {
+async function playerChooseMove(moveId) {
   if (state.busy || state.gameOver || state.pendingSwitchSide) return;
   const fighter = activePlayer();
   const pendingMoveId = pendingSkillId(fighter);
@@ -7024,7 +7379,14 @@ function playerChooseMove(moveId) {
   const move = moveForFighter(fighter, selectedMoveId);
   if (!move || (!pendingMoveId && fighter.energy < move.cost)) return;
   if (!pendingMoveId && healBlockForMove(fighter, activeEnemy(), move)) return;
-  resolveTurn({ side: "player", type: "move", moveId: selectedMoveId });
+  await resolveTurn({ side: "player", type: "move", moveId: selectedMoveId });
+  completeStoryTutorialOperation("move");
+  if (
+    currentStoryTutorialStep()?.mode === "defeat_first_enemy" &&
+    state.enemyTeam[0]?.fainted
+  ) {
+    completeStoryTutorialOperation("defeat_first_enemy");
+  }
 }
 
 function playerChooseSaveEnergy() {
@@ -7035,7 +7397,7 @@ function playerChooseSaveEnergy() {
   resolveTurn({ side: "player", type: "save_energy" });
 }
 
-function playerChooseSwitch(index) {
+async function playerChooseSwitch(index) {
   const postAttackSwitch = state.pendingPostAttackSwitch?.side === "player";
   if ((state.busy && !postAttackSwitch) || state.gameOver) return;
   const target = state.playerTeam[index];
@@ -7053,7 +7415,8 @@ function playerChooseSwitch(index) {
     renderBattle();
     return;
   }
-  resolveTurn({ side: "player", type: "switch", index });
+  await resolveTurn({ side: "player", type: "switch", index });
+  completeStoryTutorialOperation("switch");
 }
 
 function hasSwitchLock(fighter) {
@@ -7079,6 +7442,14 @@ function completeForcedSwitch(index) {
   state.commandMode = "fight";
   pushLog(`${target.name}、出番だ！`);
   renderBattle();
+  skipUnavailableStoryTutorialSteps();
+  if (
+    state.story.tutorial.active &&
+    state.story.tutorial.stepIndex >= STORY_TUTORIAL_STEPS.length
+  ) {
+    state.story.tutorial.active = false;
+    void showDialogue("guide", "guide_tutorial_free");
+  }
 }
 
 function completePostAttackPlayerSwitch(index) {
@@ -7339,6 +7710,16 @@ async function resolveTurn(playerAction) {
     applyBattleTurnLimit();
   }
 
+  if (
+    !state.gameOver &&
+    !state.pendingSwitchSide &&
+    state.story.tutorial.secondEnemyHitPending &&
+    currentStoryTutorialStep()?.mode === "attack_second_enemy"
+  ) {
+    state.story.tutorial.secondEnemyHitPending = false;
+    await advanceStoryTutorialStep();
+  }
+
   if (!state.gameOver) {
     state.turn += 1;
   }
@@ -7538,6 +7919,15 @@ async function executeAction(action) {
 
   if (move.category === "attack" && !delayedAttackSetupOnly) {
     const result = dealDamage(actor, target, move, fieldEffectsForActiveFighter(target));
+    if (
+      result.damage > 0 &&
+      action.side === "player" &&
+      currentStoryTutorialStep()?.mode === "attack_second_enemy" &&
+      actor.id === "character_001" &&
+      target.id === "character_XXX"
+    ) {
+      state.story.tutorial.secondEnemyHitPending = true;
+    }
     if (result.damage > 0) {
       flashSprite(targetSide);
       pushLog(`${target.name}に ${result.damage} ダメージ！${result.effectText}`);
@@ -7643,19 +8033,22 @@ async function executeAction(action) {
 function chooseEnemyAction() {
   const enemy = activeEnemy();
   const target = activePlayer();
-  const enemySwitchCandidates = state.enemyTeam
-    .map((fighter, index) => ({ fighter, index }))
-    .filter(({ fighter, index }) => index !== state.enemyActiveIndex && fighter && !fighter.fainted)
-    .map(({ fighter, index }) => ({
-      index,
-      fighter,
-      moves: movesForCharacter(fighter.base),
-    }));
+  const tutorialBattle = isStoryTutorialBattle();
+  const enemySwitchCandidates = tutorialBattle
+    ? []
+    : state.enemyTeam
+        .map((fighter, index) => ({ fighter, index }))
+        .filter(({ fighter, index }) => index !== state.enemyActiveIndex && fighter && !fighter.fainted)
+        .map(({ fighter, index }) => ({
+          index,
+          fighter,
+          moves: movesForCharacter(fighter.base),
+        }));
   return chooseEnemyBattleAction({
     enemy,
     target,
     battleId: state.story.currentArenaBattleId || state.story.currentRankBattleId,
-    enemyBenchIndex: aliveBenchIndex("enemy"),
+    enemyBenchIndex: tutorialBattle ? -1 : aliveBenchIndex("enemy"),
     enemySwitchCandidates,
     allMoves: movesForCharacter(enemy.base),
     playerMoves: target ? movesForCharacter(target.base) : [],
@@ -8082,17 +8475,19 @@ function formatBattleHpRatio(ratio) {
 
 function finishBattle(winner) {
   if (state.gameOver) return;
-  advanceTimeOfDay();
+  const tutorialBattle = isStoryTutorialBattle();
+  if (!tutorialBattle) advanceTimeOfDay();
   state.gameOver = true;
   state.pendingSwitchSide = null;
   state.pendingPostAttackSwitch = null;
   state.battleWinner = winner;
   state.battleAnimation = null;
-  const canShowVictoryResult = winner === "player" && !state.story.currentArenaBattleId;
+  const canShowVictoryResult = tutorialBattle || (winner === "player" && !state.story.currentArenaBattleId);
   state.commandMode = canShowVictoryResult ? "exchange" : "fight";
   state.exchange = createExchangeState();
   pushLog(winner === "player" ? "勝負に勝った！" : "目の前が真っ暗になった...");
-  if (winner !== "player") {
+  resetStoryTutorialRuntime();
+  if (winner !== "player" && !tutorialBattle) {
     scheduleGameOverReturnToTitle();
   }
 }
