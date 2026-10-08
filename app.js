@@ -880,9 +880,6 @@ function clearTitleMessage() {
 
 async function startStoryMode() {
   if (gameDataPromise) await gameDataPromise;
-  if (!state.saveData.storyTutorialCompleted && hasLegacyStorySave()) {
-    state.saveData.storyTutorialCompleted = true;
-  }
   state.story.active = false;
   state.shop.open = false;
   hideBusinessShop({ restoreTravel: false });
@@ -900,19 +897,6 @@ async function startStoryMode() {
     return;
   }
   showStoryTravel({ focus: true });
-}
-
-function hasLegacyStorySave() {
-  return MANUAL_SAVE_STORAGE_KEYS.some((key) => {
-    const raw = readStorageValue(key);
-    if (!raw) return false;
-    try {
-      const data = JSON.parse(raw);
-      return data && data.story_tutorial_completed == null && data.storyTutorialCompleted == null;
-    } catch {
-      return false;
-    }
-  });
 }
 
 function setStoryStage(stage) {
