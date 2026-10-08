@@ -1994,6 +1994,27 @@ button {
   background: #dccbff;
 }
 
+.story-tutorial-choice,
+.arena-quest-choice {
+  width: min(420px, calc(100vw - 32px));
+}
+
+.story-tutorial-choice::backdrop,
+.arena-quest-choice::backdrop {
+  background: rgba(0, 0, 0, 0.52);
+}
+
+.story-tutorial-choice h2,
+.arena-quest-choice h2 {
+  margin: 0 0 20px;
+  font-size: 22px;
+}
+
+.story-tutorial-choice .exchange-actions,
+.arena-quest-choice .exchange-actions {
+  grid-template-columns: 1fr;
+}
+
 .dialogue-overlay {
   position: fixed;
   z-index: 200;

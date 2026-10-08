@@ -82,6 +82,7 @@ const ARENA_STAGE_AREAS = [
 const ARENA_BATTLE_MAP = {
   G1: "arena_g_1",
   X1: "arena_x_1",
+  X2: "arena_x_2",
   G2: "arena_g_2",
   G3: "arena_g_3",
   G4: "arena_g_4",
@@ -95,6 +96,9 @@ const ARENA_BATTLE_ENTRANCE_BY_ID = Object.fromEntries(
   Object.entries(ARENA_BATTLE_MAP).map(([entranceId, rankBattleId]) => [rankBattleId, entranceId]),
 );
 const ARENA_UNAVAILABLE_MESSAGE = "\u307e\u3060\u5bfe\u6226\u3067\u304d\u306a\u3044\u3088\u3046\u3060";
+const ARENA_QUEST_REQUIRED_BATTLE_ID = "arena_x_1";
+const ARENA_QUEST_BATTLE_ID = "arena_x_2";
+const ARENA_QUEST_INTRO_DIALOGUE_ID = "battlemaster_after_x_1";
 const TIME_OF_DAY_SEQUENCE = ["morning", "afternoon", "night"];
 const DEFAULT_TIME_OF_DAY = "morning";
 const TIME_OF_DAY_SET = new Set(TIME_OF_DAY_SEQUENCE);
@@ -414,6 +418,7 @@ const state = {
     lastDefeatedEnemyId: null,
     selectedArenaEntranceId: null,
     selectedArenaBattleId: null,
+    arenaQuestActive: false,
     clearedRankBattleIds: new Set(),
     disabledRankBattleIds: new Set(),
     tutorial: {
@@ -537,6 +542,9 @@ document.addEventListener("DOMContentLoaded", () => {
     arenaConfirmContent: document.querySelector("#arenaConfirmContent"),
     arenaChallengeButton: document.querySelector("#arenaChallengeButton"),
     arenaConfirmCloseButton: document.querySelector("#arenaConfirmCloseButton"),
+    arenaQuestChoice: document.querySelector("#arenaQuestChoice"),
+    arenaQuestYesButton: document.querySelector("#arenaQuestYesButton"),
+    arenaQuestNoButton: document.querySelector("#arenaQuestNoButton"),
     labScreen: document.querySelector("#labScreen"),
     labBackButton: document.querySelector("#labBackButton"),
     labEntranceButton: document.querySelector("#labEntranceButton"),
@@ -619,6 +627,9 @@ document.addEventListener("DOMContentLoaded", () => {
     battleTutorialPrompt: document.querySelector("#battleTutorialPrompt"),
     battleTutorialPromptText: document.querySelector("#battleTutorialPromptText"),
     battleTutorialNextButton: document.querySelector("#battleTutorialNextButton"),
+    storyTutorialChoice: document.querySelector("#storyTutorialChoice"),
+    storyTutorialStartButton: document.querySelector("#storyTutorialStartButton"),
+    storyTutorialSkipButton: document.querySelector("#storyTutorialSkipButton"),
     detailOverlay: document.querySelector("#detailOverlay"),
     detailPanel: document.querySelector("#detailPanel"),
     dexOverlay: document.querySelector("#dexOverlay"),
@@ -806,6 +817,10 @@ function showStoryLocationTapLabel(button) {
 
 function showTitleView() {
   clearGameOverReturnTimer();
+  if (state.story.arenaQuestActive) {
+    dialogueManager.close({ silent: true });
+    els.arenaQuestChoice?.close();
+  }
   state.story.active = false;
   state.shop.open = false;
   hideBusinessShop({ restoreTravel: false });
@@ -1938,6 +1953,7 @@ async function showArena() {
   if (gameDataPromise) {
     await gameDataPromise;
   }
+  if (state.story.arenaQuestActive) return;
 
   state.story.active = false;
   state.shop.open = false;
@@ -1953,7 +1969,70 @@ async function showArena() {
   hideArenaBattleConfirm({ clearSelection: true, focus: false });
   if (els.arenaMessage) els.arenaMessage.textContent = "";
   els.arenaBackButton?.focus({ preventScroll: true });
-  void showDialogue("battlemaster", "battlemaster_welcome");
+  if (arenaQuestAvailable()) {
+    await showArenaQuest();
+  } else {
+    void showDialogue("battlemaster", "battlemaster_welcome");
+  }
+}
+
+function arenaQuestAvailable() {
+  return isStoryRankBattleCleared(ARENA_QUEST_REQUIRED_BATTLE_ID) &&
+    !isStoryRankBattleCleared(ARENA_QUEST_BATTLE_ID);
+}
+
+async function showArenaQuest() {
+  if (state.story.arenaQuestActive || !arenaQuestAvailable()) return;
+  state.story.arenaQuestActive = true;
+  try {
+    const introductionSeen = state.saveData.seenDialogueIds.has(ARENA_QUEST_INTRO_DIALOGUE_ID);
+    const completed = await showDialogue(
+      "battlemaster",
+      introductionSeen ? "battlemaster_x_2_prompt" : ARENA_QUEST_INTRO_DIALOGUE_ID,
+      { onComplete: markDialogueSeenOnComplete },
+    );
+    if (!completed || !arenaQuestAvailable() || els.arenaScreen.classList.contains("is-hidden")) return;
+
+    const accepted = await chooseArenaQuest();
+    if (els.arenaScreen.classList.contains("is-hidden")) return;
+    const replyCompleted = await showDialogue(
+      "battlemaster",
+      accepted ? "battlemaster_x_2_accept" : "battlemaster_x_2_decline",
+    );
+    if (!accepted || !replyCompleted || !arenaQuestAvailable()) return;
+
+    state.story.selectedArenaEntranceId = ARENA_BATTLE_ENTRANCE_BY_ID[ARENA_QUEST_BATTLE_ID];
+    state.story.selectedArenaBattleId = ARENA_QUEST_BATTLE_ID;
+    await handleArenaChallengeClick();
+  } finally {
+    state.story.arenaQuestActive = false;
+  }
+}
+
+function chooseArenaQuest() {
+  return new Promise((resolve) => {
+    const finish = (accepted) => {
+      els.arenaQuestYesButton.removeEventListener("click", accept);
+      els.arenaQuestNoButton.removeEventListener("click", decline);
+      els.arenaQuestChoice.removeEventListener("cancel", cancel);
+      els.arenaQuestChoice.removeEventListener("close", close);
+      els.arenaQuestChoice.close();
+      resolve(accepted);
+    };
+    const accept = () => finish(true);
+    const decline = () => finish(false);
+    const close = () => finish(false);
+    const cancel = (event) => {
+      event.preventDefault();
+      finish(false);
+    };
+    els.arenaQuestYesButton.addEventListener("click", accept);
+    els.arenaQuestNoButton.addEventListener("click", decline);
+    els.arenaQuestChoice.addEventListener("cancel", cancel);
+    els.arenaQuestChoice.addEventListener("close", close);
+    els.arenaQuestChoice.showModal();
+    els.arenaQuestYesButton.focus({ preventScroll: true });
+  });
 }
 
 async function hideArena() {
@@ -5922,11 +6001,44 @@ function enemyPartyCharacterIds(enemyPartyId) {
 }
 
 async function startStoryTutorialIntroduction() {
+  if (els.storyTutorialChoice.open) return;
   initializeSaveDataParty({ persist: false });
   showStoryTravel({ focus: false });
+  const playTutorial = await chooseStoryTutorial();
+  if (playTutorial === null) {
+    showTitleView();
+    return;
+  }
+  if (!playTutorial) {
+    await completeStoryTutorial({ showEndDialogue: false });
+    return;
+  }
   const completed = await showDialogue("guide", "guide_welcome1");
   if (!completed || state.saveData.storyTutorialCompleted) return;
   startStoryTutorialBattle();
+}
+
+function chooseStoryTutorial() {
+  return new Promise((resolve) => {
+    const finish = (playTutorial) => {
+      els.storyTutorialStartButton.removeEventListener("click", start);
+      els.storyTutorialSkipButton.removeEventListener("click", skip);
+      els.storyTutorialChoice.removeEventListener("cancel", cancel);
+      els.storyTutorialChoice.close();
+      resolve(playTutorial);
+    };
+    const start = () => finish(true);
+    const skip = () => finish(false);
+    const cancel = (event) => {
+      event.preventDefault();
+      finish(null);
+    };
+    els.storyTutorialStartButton.addEventListener("click", start);
+    els.storyTutorialSkipButton.addEventListener("click", skip);
+    els.storyTutorialChoice.addEventListener("cancel", cancel);
+    els.storyTutorialChoice.showModal();
+    els.storyTutorialStartButton.focus({ preventScroll: true });
+  });
 }
 
 function startStoryTutorialBattle() {
@@ -7068,20 +7180,24 @@ function renderStoryTutorialResultPanel() {
   `;
   els.exchangePanel.querySelector("[data-tutorial-result-action]")?.addEventListener("click", (event) => {
     if (event.currentTarget.dataset.tutorialResultAction === "complete") {
-      completeStoryTutorial();
+      void completeStoryTutorial();
     } else {
       startStoryTutorialBattle();
     }
   });
 }
 
-function completeStoryTutorial() {
+async function completeStoryTutorial({ showEndDialogue = true } = {}) {
+  if (state.saveData.storyTutorialCompleted) return;
   state.saveData.storyTutorialCompleted = true;
   markUnsavedChanges();
   resetStoryTutorialRuntime();
   state.story.currentTutorialBattleId = null;
   resetRankBattleRuntimeState();
   showStoryTravel({ focus: true });
+  if (showEndDialogue) {
+    await showDialogue("guide", "guide_tutorial_end1");
+  }
 }
 
 function renderArenaBattleResultPanel() {

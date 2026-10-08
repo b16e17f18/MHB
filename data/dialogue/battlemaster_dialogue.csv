@@ -2,3 +2,10 @@
 
 battlemaster_welcome,battlemaster,喧嘩売りたいなら買ってやる。,,,,,
 battlemaster_goodbye,battlemaster,・・・。,,,,,
+
+battlemaster_after_x_1,battlemaster,お前、やるな。,battlemaster_after_x_1_2,battle_cleared,arena_x_1,10,TRUE
+battlemaster_after_x_1_2,battlemaster,俺の知り合いんとこの城がラオシャンロンって古龍に狙われてんだ。,battlemaster_after_x_1_3,,,,
+battlemaster_after_x_1_3,battlemaster,そいつを始末してこいよ。,,,,,
+battlemaster_x_2_prompt,battlemaster,行くのか？,,,,,
+battlemaster_x_2_accept,battlemaster,よし、行ってこい。,,,,,
+battlemaster_x_2_decline,battlemaster,さっさと準備してこい。,,,,,

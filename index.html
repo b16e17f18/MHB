@@ -298,6 +298,22 @@
         <section id="dexPanel" class="detail-panel dex-panel"></section>
       </div>
 
+      <dialog id="storyTutorialChoice" class="detail-panel story-tutorial-choice" aria-labelledby="storyTutorialChoiceTitle">
+        <h2 id="storyTutorialChoiceTitle">チュートリアルを始めますか？</h2>
+        <div class="exchange-actions">
+          <button id="storyTutorialStartButton" class="primary-button" type="button">チュートリアルを始める</button>
+          <button id="storyTutorialSkipButton" class="small-button" type="button">スキップして始める</button>
+        </div>
+      </dialog>
+
+      <dialog id="arenaQuestChoice" class="detail-panel arena-quest-choice" aria-labelledby="arenaQuestChoiceTitle">
+        <h2 id="arenaQuestChoiceTitle">ラオシャンロン討伐</h2>
+        <div class="exchange-actions">
+          <button id="arenaQuestYesButton" class="primary-button" type="button">はい</button>
+          <button id="arenaQuestNoButton" class="small-button" type="button">いいえ</button>
+        </div>
+      </dialog>
+
       <div id="dialogueOverlay" class="dialogue-overlay is-hidden" role="dialog" aria-modal="true" tabindex="-1">
         <section class="dialogue-window" aria-live="polite">
           <img id="dialogueWindowFrame" class="dialogue-window-frame" src="./assets/dialogue_window.png" alt="" />
@@ -321,12 +337,12 @@
       </section>
     </main>
 
-    <script src="./data-inline.js?v=20261004-final-story"></script>
+    <script src="./data-inline.js?v=20261008-arena-quest"></script>
     <script src="./passive.js?v=20260912-passive-refactor"></script>
     <script src="./battle-core.js?v=20260825-fieldguard-side"></script>
     <script src="./battle-ai.js?v=20260906-battle-ai"></script>
     <script src="./bgm.js?v=20261004-final-story"></script>
     <script src="./dialogue-manager.js?v=20260906-dialogue-manager"></script>
-    <script src="./app.js?v=20261004-final-story"></script>
+    <script src="./app.js?v=20261008-arena-quest"></script>
   </body>
 </html>

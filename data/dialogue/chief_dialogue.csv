@@ -8,3 +8,4 @@ chief_after_ss_1_2,chief,ほな行くで。,,,,,
 chief_after_ss_2,chief,やったな。これで島の未来は救われた。,chief_after_ss_2_2,battle_cleared,battle_ss_2,20,TRUE
 chief_after_ss_2_2,chief,ほんま助かったわ。,chief_after_ss_2_3,,,,
 chief_after_ss_2_3,chief,また頼むで。,,,,,
+chief_after_ss_2_repeat,chief,ほんま助かったで。また頼むわ。,,battle_cleared,battle_ss_2,30,FALSE

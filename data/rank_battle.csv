@@ -26,4 +26,5 @@ arena_g_8,G,,arena_g_8,0,none,none,none,none
 arena_g_9,G,,arena_g_9,0,none,none,none,none
 arena_m_1,master,？？？,arena_m_1,200000,arena_m_2,none,none,none
 arena_m_2,master,？？？,arena_m_2,200000,none,none,none,none
-arena_x_1,X,？？？,arena_x_1,400000,none,none,none,none
+arena_x_1,X,？？？,arena_x_1,400000,arena_x_2,none,none,none
+arena_x_2,X,ラオシャンロン討伐,arena_x_2,500000,none,none,none,none
