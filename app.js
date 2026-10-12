@@ -1803,6 +1803,7 @@ async function openBusinessShop(itemFilter) {
 }
 
 function hideBusinessShop({ restoreTravel = true } = {}) {
+  if (state.shop.confirmEntryId && state.dex.restrictToPurchased) closePreBattleDex();
   state.shop.open = false;
   state.shop.itemFilter = "";
   state.shop.confirmEntryId = null;
@@ -3364,6 +3365,8 @@ function availableShopItems(shopId) {
     .filter((item) => shopItemMatchesFilter(item, itemFilter))
     .filter((item) => shopContentExists(item))
     .filter((item) => shopUnlockMet(item.unlock_condition))
+    .filter((item) => currentShopStock(item) > 0)
+    .filter((item) => item.item_type !== "book" || !state.saveData.ownedBooks.has(item.content_id))
     .sort((a, b) => a.display_order - b.display_order);
 }
 
@@ -3497,6 +3500,11 @@ function beginShopPurchaseConfirm(item) {
   state.shop.exchangeEntryId = null;
   state.shop.offerOwnedIds = [];
   renderBusinessShop();
+  if (item.item_type === "monster") {
+    els.businessShopExchangePanel?.classList.add("is-hidden");
+    openDex(item.content_id, { restrictToPurchased: true });
+    els.dexPanel?.querySelector(".dex-close")?.focus({ preventScroll: true });
+  }
 }
 
 function confirmShopPurchase(item) {
@@ -4991,9 +4999,11 @@ function renderDexPanel() {
   `;
 
   els.dexPanel.querySelector(".dex-close").addEventListener("click", () => {
+    const returnToShop = state.dex.restrictToPurchased && state.shop.open && Boolean(state.shop.confirmEntryId);
     state.dex.open = false;
     state.dex.restrictToPurchased = false;
     renderDexPanel();
+    if (returnToShop) renderBusinessShop();
   });
 
   for (const button of els.dexPanel.querySelectorAll(".dex-list-button")) {
