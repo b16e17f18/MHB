@@ -54,6 +54,10 @@
     background: #d8bf83;
   }
 
+  .battle-view .battle-field:has(.sprite-large-mobile) {
+    grid-template-rows: auto minmax(230px, min(46svh, 380px)) auto;
+  }
+
   .battle-view .enemy-hud,
   .battle-view .player-hud {
     position: relative;
@@ -141,19 +145,19 @@
     place-items: end start;
   }
 
-  .battle-view .player-sprite:has(.sprite-character_036),
-  .battle-view .enemy-sprite:has(.sprite-character_036) {
+  .battle-view .player-sprite .sprite-image-wrap.sprite-large-mobile {
+    place-items: start end;
+  }
+
+  .battle-view .enemy-sprite .sprite-image-wrap.sprite-large-mobile {
+    place-items: start start;
+  }
+
+  .battle-view .player-sprite:has(.sprite-large-mobile),
+  .battle-view .enemy-sprite:has(.sprite-large-mobile) {
     right: auto;
     left: auto;
     transform: none;
-  }
-
-  .battle-view .sprite-image-wrap.sprite-character_036 .sprite-image {
-    transform: translateY(var(--sprite-render-offset-y, 0px));
-  }
-
-  .battle-view .sprite-image-wrap.sprite-character_036 .sprite-image.is-enemy {
-    transform: translateY(var(--sprite-render-offset-y, 0px)) scaleX(-1);
   }
 
   .battle-view .sprite-image-wrap {
@@ -182,6 +186,19 @@
     max-height: min(100%, 29svh, 230px);
     height: auto;
     object-fit: contain;
+  }
+
+  .battle-view .sprite-image-wrap.sprite-large-mobile .sprite-image {
+    width: 100%;
+    max-width: 100%;
+    height: 100%;
+    max-height: min(44svh, 360px);
+    object-fit: contain;
+    transform: none;
+  }
+
+  .battle-view .sprite-image-wrap.sprite-large-mobile .sprite-image.is-enemy {
+    transform: scaleX(-1);
   }
 
   .battle-view .battle-console {

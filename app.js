@@ -6659,6 +6659,9 @@ function renderSprite(fighter, side, activeIndex = 0) {
   const slotClass = `sprite-slot-${Math.max(1, Math.floor(number(fighter.base.slot, 1)))}`;
   const teamSlotClass = `sprite-team-slot-${Math.max(1, activeIndex + 1)}`;
   const characterClass = `sprite-${cssToken(fighter.id, "character")}`;
+  const isLargeMobileSprite = number(fighter.base.slot) >= 4
+    && !["character_035", "character_056"].includes(fighter.id);
+  const largeMobileClass = isLargeMobileSprite ? "sprite-large-mobile" : "";
   const renderOffsetX = number(fighter.base.renderOffsetX);
   const renderOffsetY = number(fighter.base.renderOffsetY);
   const imageStyleValues = [
@@ -6669,7 +6672,7 @@ function renderSprite(fighter, side, activeIndex = 0) {
     ? ` style="${imageStyleValues.join(" ")}"`
     : "";
   return `
-    <div class="sprite-image-wrap ${slotClass} ${teamSlotClass} ${characterClass}" data-fighter-side="${escapeHtml(side)}" role="button" tabindex="0" aria-label="${escapeHtml(fighter.name)}の状態">
+    <div class="sprite-image-wrap ${slotClass} ${teamSlotClass} ${characterClass} ${largeMobileClass}" data-fighter-side="${escapeHtml(side)}" role="button" tabindex="0" aria-label="${escapeHtml(fighter.name)}の状態">
       <img class="sprite-image ${side === "enemy" ? "is-enemy" : ""}" src="${escapeHtml(fighter.base.imageSrc)}" alt="${escapeHtml(fighter.name)}"${imageStyle} />
     </div>
     <div class="sprite-name">${escapeHtml(fighter.name)}</div>
