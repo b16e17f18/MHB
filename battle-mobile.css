@@ -148,6 +148,14 @@
     transform: none;
   }
 
+  .battle-view .sprite-image-wrap.sprite-character_036 .sprite-image {
+    transform: translateY(var(--sprite-render-offset-y, 0px));
+  }
+
+  .battle-view .sprite-image-wrap.sprite-character_036 .sprite-image.is-enemy {
+    transform: translateY(var(--sprite-render-offset-y, 0px)) scaleX(-1);
+  }
+
   .battle-view .sprite-image-wrap {
     display: grid;
     width: 100%;
