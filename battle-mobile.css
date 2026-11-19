@@ -47,7 +47,8 @@
   .battle-view .battle-field:has(.sprite-character_036) {
     display: grid;
     min-height: 0;
-    grid-template-columns: minmax(0, 1fr) clamp(48px, 14vw, 64px) minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    column-gap: 8px;
     grid-template-rows: auto minmax(190px, min(31svh, 270px)) auto;
     padding: 8px 10px;
     background: #d8bf83;
@@ -128,8 +129,16 @@
   }
 
   .battle-view .enemy-sprite {
-    grid-column: 3;
+    grid-column: 2;
     justify-self: center;
+  }
+
+  .battle-view .player-sprite .sprite-image-wrap {
+    place-items: end end;
+  }
+
+  .battle-view .enemy-sprite .sprite-image-wrap {
+    place-items: end start;
   }
 
   .battle-view .player-sprite:has(.sprite-character_036),
