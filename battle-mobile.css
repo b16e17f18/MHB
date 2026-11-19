@@ -4,6 +4,10 @@
   display: none;
 }
 
+.energy-chip-number {
+  display: none;
+}
+
 @media screen and (max-width: 600px) and (orientation: portrait) {
   .app-shell {
     width: 100%;
@@ -307,6 +311,14 @@
     grid-column: 1;
     grid-row: 2;
     font-size: 0.8rem;
+  }
+
+  .battle-view .move-cost .energy-orbs {
+    display: none;
+  }
+
+  .battle-view .move-cost .energy-chip-number {
+    display: inline;
   }
 
   .battle-view .move-kind {

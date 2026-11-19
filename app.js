@@ -5119,7 +5119,8 @@ function energyBadge(value) {
   return `
     <span class="energy-chip" aria-label="EN${count}">
       <span class="energy-chip-label">EN</span>
-      <span class="energy-chip-number" aria-hidden="true">${count}</span>${energyOrbs(count)}</span>
+      <span class="energy-chip-number" aria-hidden="true">${count}</span>
+      <span class="energy-orbs">${energyOrbs(count)}</span>
     </span>
   `;
 }
