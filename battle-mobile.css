@@ -55,7 +55,7 @@
   }
 
   .battle-view .battle-field:has(.sprite-large-mobile) {
-    grid-template-rows: auto minmax(230px, min(46svh, 380px)) auto;
+    grid-template-rows: auto minmax(250px, min(50svh, 400px)) auto;
   }
 
   .battle-view .enemy-hud,
@@ -146,11 +146,11 @@
   }
 
   .battle-view .player-sprite .sprite-image-wrap.sprite-large-mobile {
-    place-items: start end;
+    place-items: end end;
   }
 
   .battle-view .enemy-sprite .sprite-image-wrap.sprite-large-mobile {
-    place-items: start start;
+    place-items: end start;
   }
 
   .battle-view .player-sprite:has(.sprite-large-mobile),
@@ -192,8 +192,9 @@
     width: 100%;
     max-width: 100%;
     height: 100%;
-    max-height: min(44svh, 360px);
+    max-height: min(48svh, 380px);
     object-fit: contain;
+    object-position: bottom center;
     transform: none;
   }
 
