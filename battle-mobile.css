@@ -211,6 +211,15 @@
     transform: scaleX(-1);
   }
 
+  .battle-view .player-sprite .sprite-image-wrap.sprite-character_060 .sprite-image {
+    transform: translateX(34%);
+  }
+
+  .battle-view .enemy-sprite .sprite-image-wrap.sprite-character_034 .sprite-image.is-enemy,
+  .battle-view .enemy-sprite .sprite-image-wrap.sprite-character_060 .sprite-image.is-enemy {
+    transform: translateX(-34%) scaleX(-1);
+  }
+
   .battle-view .battle-console {
     min-height: 0;
     padding: 8px 10px calc(10px + env(safe-area-inset-bottom));
