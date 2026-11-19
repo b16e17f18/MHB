@@ -437,6 +437,7 @@ let gameOverReturnTimer = null;
 let gameDataPromise = null;
 let saveStatusTimer = null;
 let shopMessageTimer = null;
+let expandedMoveId = null;
 const animationSheetMetaCache = new Map();
 const transparentAnimationCache = new Map();
 
@@ -732,6 +733,7 @@ function bindEvents() {
     }
   });
   document.addEventListener("keydown", handleStoryKeydown);
+  document.addEventListener("keydown", handleMoveGridKeydown);
 
   els.setupPlayerModeButton?.addEventListener("click", () => setSetupSide("player"));
   els.setupEnemyModeButton?.addEventListener("click", () => setSetupSide("enemy"));
@@ -762,6 +764,7 @@ function bindEvents() {
 
   els.fightTab.addEventListener("click", () => {
     if (state.busy || state.gameOver || state.pendingSwitchSide) return;
+    expandedMoveId = null;
     state.commandMode = "fight";
     renderBattle();
   });
@@ -774,6 +777,7 @@ function bindEvents() {
       renderBattle();
       return;
     }
+    expandedMoveId = null;
     state.commandMode = state.commandMode === "switch" ? "fight" : "switch";
     renderBattle();
     if (state.commandMode === "switch") completeStoryTutorialOperation("switch_tab");
@@ -6907,46 +6911,34 @@ function clearBattleMessageTimer() {
 function renderMoveGrid(fighter) {
   if (!fighter) {
     els.moveGrid.innerHTML = "";
+    els.moveGrid.classList.remove("is-expanded");
+    expandedMoveId = null;
     return;
   }
-
-  const pendingMoveId = pendingSkillId(fighter);
-  const opponent = activeEnemy();
-  const saveEnergyDisabled =
-    state.busy ||
-    state.gameOver ||
-    Boolean(state.pendingSwitchSide) ||
-    Boolean(pendingMoveId);
-  const moveButtons = movesForCharacter(fighter.base)
-    .map((move) => {
-      const healBlockReason = healBlockMoveDisabledReason(fighter, opponent, move);
-      const disabled =
-        state.busy ||
-        state.gameOver ||
-        Boolean(state.pendingSwitchSide) ||
-        (pendingMoveId ? move.skill_id !== pendingMoveId : fighter.energy < move.cost) ||
-        Boolean(healBlockReason);
-      const powerText = move.category === "attack" ? move.power : "-";
-      const elementClassName = elementClass(move.element);
-      const kindText = move.category === "attack" ? attackTypeLabel(move.attack_type) : moveCategoryLabel(move.category);
-      const moveText = move.text;
-      const disabledTitle = healBlockReason
-        ? ` title="${escapeHtml(healBlockReason)}" aria-label="${escapeHtml(`${move.name} ${healBlockReason}`)}"`
-        : "";
-      const elementText = moveElementText(move);
-      const colorPresentation = moveColorPresentation(move);
-      return `
-        <button class="move-button move-element-${elementClassName}${colorPresentation.classes}" type="button" data-move-id="${move.skill_id}" ${disabled ? "disabled" : ""}${disabledTitle}${colorPresentation.style}>
-          <span class="move-name">${escapeHtml(move.name)}</span>
-          <span class="move-cost">${energyBadge(move.cost)}</span>
-          <span class="move-element${colorPresentation.classes}"${colorPresentation.style}>${escapeHtml(elementText)}</span>
-          <span class="move-kind">${escapeHtml(kindText)}</span>
-          <span class="move-power power-chip">威力 ${escapeHtml(powerText)}</span>
-          ${moveText ? `<span class="move-text">${escapeHtml(moveText)}</span>` : ""}
-        </button>
-      `;
-    })
-    .join("");
+  const moves = movesForCharacter(fighter.base);
+  if (expandedMoveId && !moves.some((move) => move.skill_id === expandedMoveId)) expandedMoveId = null;
+  if (expandedMoveId) {
+    const move = moves.find((entry) => entry.skill_id === expandedMoveId);
+    els.moveGrid.classList.add("is-expanded");
+    els.moveGrid.innerHTML = move ? renderMoveDetail(fighter, move) : "";
+    return;
+  }
+  els.moveGrid.classList.remove("is-expanded");
+  const inputLocked = state.busy || state.gameOver || Boolean(state.pendingSwitchSide) || state.commandMode !== "fight";
+  const saveEnergyDisabled = inputLocked || Boolean(pendingSkillId(fighter));
+  const moveButtons = moves.map((move) => {
+    const unavailable = moveUnavailableReason(fighter, move);
+    const colorPresentation = moveColorPresentation(move);
+    const kindText = move.category === "attack" ? attackTypeLabel(move.attack_type) : moveCategoryLabel(move.category);
+    return `
+      <button class="move-button move-element-${elementClass(move.element)}${colorPresentation.classes}${unavailable ? " is-unavailable" : ""}" type="button" data-move-id="${escapeHtml(move.skill_id)}" aria-label="${escapeHtml(move.name)}の詳細" ${inputLocked ? "disabled" : ""}${colorPresentation.style}>
+        <span class="move-name">${escapeHtml(move.name)}</span>
+        <span class="move-cost">${energyBadge(move.cost)}</span>
+        <span class="move-element${colorPresentation.classes}"${colorPresentation.style}>${escapeHtml(moveElementText(move))}</span>
+        <span class="move-kind">${escapeHtml(kindText)}</span>
+      </button>
+    `;
+  }).join("");
   const saveEnergyButton = BATTLE_SAVE_ENERGY_ENABLED ? `
     <button class="move-button move-save-energy-button" type="button" data-save-energy="true" ${saveEnergyDisabled ? "disabled" : ""}>
       <span class="move-name">静止</span>
@@ -6961,13 +6953,151 @@ function renderMoveGrid(fighter) {
 }
 
 function handleMoveGridClick(event) {
-  const button = event.target.closest(".move-button");
+  const target = event.target instanceof Element ? event.target : null;
+  const backButton = target?.closest("[data-move-back]");
+  if (backButton && els.moveGrid.contains(backButton)) {
+    if (!shouldIgnoreRepeatedMoveClick(event)) closeMoveDetail();
+    return;
+  }
+  const detailCard = target?.closest("[data-move-detail-id]");
+  if (detailCard && els.moveGrid.contains(detailCard)) {
+    if (shouldIgnoreRepeatedMoveClick(event) || detailCard.getAttribute("aria-disabled") === "true") return;
+    const selectedMoveId = detailCard.dataset.moveDetailId;
+    const fighter = activePlayer();
+    const move = fighter && movesForCharacter(fighter.base).find((entry) => entry.skill_id === selectedMoveId);
+    if (moveUnavailableReason(fighter, move)) return;
+    clearMoveDetailState();
+    playerChooseMove(selectedMoveId);
+    return;
+  }
+  const button = target?.closest(".move-button");
   if (!button || !els.moveGrid.contains(button) || button.disabled) return;
   if (button.dataset.saveEnergy) {
-    playerChooseSaveEnergy();
-  } else {
-    playerChooseMove(button.dataset.moveId);
+    if (!shouldIgnoreRepeatedMoveClick(event)) playerChooseSaveEnergy();
+    return;
   }
+  if (button.dataset.moveId && !shouldIgnoreRepeatedMoveClick(event)) openMoveDetail(button.dataset.moveId);
+}
+function moveUnavailableReason(fighter, move) {
+  if (!fighter || !move) return "技を確認できません。";
+  if (state.busy) return "行動処理中です。";
+  if (state.gameOver) return "戦闘は終了しています。";
+  if (state.pendingSwitchSide) return "交代先を選んでください。";
+  if (state.commandMode !== "fight") return "技を選択できる状態ではありません。";
+  if (fighter.fainted || fighter.hp <= 0) return "戦闘不能のため技を使えません。";
+
+  const pendingMoveId = pendingSkillId(fighter);
+  if (pendingMoveId && move.skill_id !== pendingMoveId) return "溜め技の解放待ちです。他の技は使えません。";
+  if (!pendingMoveId && fighter.energy < move.cost) {
+    return `ENが不足しています（現在 ${fighter.energy} / 必要 ${move.cost}）。`;
+  }
+  const healBlockReason = healBlockMoveDisabledReason(fighter, activeEnemy(), move);
+  if (healBlockReason) return healBlockReason;
+  return "";
+}
+
+function moveMatchupInfo(move, defender) {
+  if (!move || move.category !== "attack" || !defender) return null;
+  const previewTarget = {
+    ...defender,
+    weakMods: Object.fromEntries(ELEMENT_TYPES.map((element) => {
+      const current = defender.weakMods?.[element];
+      return [element, current && typeof current === "object" ? { ...current } : current];
+    })),
+  };
+  return { multiplier: moveWeaknessMultiplier(previewTarget, move) };
+}
+
+function renderMoveDetail(fighter, move) {
+  const issue = moveUnavailableReason(fighter, move);
+  const kindText = move.category === "attack" ? attackTypeLabel(move.attack_type) : moveCategoryLabel(move.category);
+  const matchup = moveMatchupInfo(move, activeEnemy());
+  const statusNote = fighter.statuses?.some((status) => status.id === "sleep")
+    ? `<span class="move-status-note">眠り状態：技を選んでも行動できず、ターンは進行します。</span>`
+    : fighter.statuses?.some((status) => status.id === "paralysis")
+      ? `<span class="move-status-note">麻痺状態：行動できない場合があります。</span>`
+      : "";
+  const matchupMarkup = matchup
+    ? `<span class="move-matchup">相手への属性相性倍率：×${escapeHtml(formatMoveMultiplier(matchup.multiplier))}倍</span>`
+    : "";
+
+  return `
+    <div class="move-detail-panel">
+      <button class="move-button move-detail-card move-element-${elementClass(move.element)}${moveColorPresentation(move).classes}" type="button" data-move-detail-id="${escapeHtml(move.skill_id)}" aria-label="${escapeHtml(move.name)}を使う" aria-disabled="${Boolean(issue)}"${moveColorPresentation(move).style}>
+        <span class="move-name">${escapeHtml(move.name)}</span>
+        <span class="move-cost">${energyBadge(move.cost)}</span>
+        <span class="move-element${moveColorPresentation(move).classes}"${moveColorPresentation(move).style}>${escapeHtml(moveElementText(move))}</span>
+        <span class="move-kind">${escapeHtml(kindText)}</span>
+        <span class="move-power power-chip">威力 ${escapeHtml(move.category === "attack" ? move.power : "—")}</span>
+        <span class="move-text">${escapeHtml(move.text || "説明はありません。")}</span>
+        ${issue ? `<span class="move-issue">${escapeHtml(issue)}</span>` : ""}
+        ${statusNote}
+        ${matchupMarkup}
+      </button>
+      <button class="small-button move-detail-back" type="button" data-move-back>戻る</button>
+    </div>
+  `;
+}
+
+function formatMoveMultiplier(value) {
+  return Number.isFinite(value) ? new Intl.NumberFormat("ja-JP", { maximumFractionDigits: 2 }).format(value) : "1";
+}
+
+function shouldIgnoreRepeatedMoveClick(event) {
+  return Number(event?.detail) > 1;
+}
+
+function moveCardClickIntent(event, detailOpen) {
+  if (shouldIgnoreRepeatedMoveClick(event)) return "ignore";
+  return detailOpen ? "execute" : "open";
+}
+
+function shouldIgnoreRepeatedMoveKeydown(event, isMoveControl) {
+  return Boolean(event?.repeat && isMoveControl);
+}
+
+function openMoveDetailState(moveId) {
+  if (!moveId) return false;
+  expandedMoveId = moveId;
+  return true;
+}
+
+function clearMoveDetailState() {
+  const previousMoveId = expandedMoveId;
+  expandedMoveId = null;
+  return previousMoveId;
+}
+
+function openMoveDetail(moveId) {
+  if (state.busy || state.gameOver || state.pendingSwitchSide || state.commandMode !== "fight") return;
+  const fighter = activePlayer();
+  if (!fighter || !movesForCharacter(fighter.base).some((move) => move.skill_id === moveId)) return;
+  if (!openMoveDetailState(moveId)) return;
+  renderMoveGrid(fighter);
+  els.moveGrid.querySelector("[data-move-detail-id]")?.focus({ preventScroll: true });
+}
+
+function closeMoveDetail({ restoreFocus = true } = {}) {
+  const previousMoveId = clearMoveDetailState();
+  if (!previousMoveId) return;
+  renderMoveGrid(activePlayer());
+  if (restoreFocus) {
+    [...els.moveGrid.querySelectorAll("[data-move-id]")]
+      .find((button) => button.dataset.moveId === previousMoveId)
+      ?.focus({ preventScroll: true });
+  }
+}
+
+function handleMoveGridKeydown(event) {
+  const moveControl = event.target?.closest?.("[data-move-id], [data-move-detail-id], [data-move-back]");
+  if (shouldIgnoreRepeatedMoveKeydown(event, Boolean(moveControl))) {
+    event.preventDefault();
+    event.stopPropagation();
+    return;
+  }
+  if (event.key !== "Escape" || !expandedMoveId || state.dex.open) return;
+  event.preventDefault();
+  closeMoveDetail();
 }
 
 function renderSwitchGrid() {

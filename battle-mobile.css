@@ -281,6 +281,27 @@
     gap: 7px;
   }
 
+  .battle-view .move-grid.is-expanded {
+    height: auto;
+  }
+
+  .battle-view .move-detail-panel {
+    min-height: 314px;
+    grid-template-rows: minmax(260px, 1fr) 44px;
+    gap: 7px;
+  }
+
+  .battle-view .move-detail-card {
+    min-height: 260px;
+    padding: 10px;
+    gap: 6px 7px;
+  }
+
+  .battle-view .move-detail-card .move-text {
+    font-size: 0.82rem;
+    line-height: 1.4;
+  }
+
   .battle-view .move-button {
     min-width: 0;
     min-height: 126px;
