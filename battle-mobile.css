@@ -145,12 +145,21 @@
     place-items: end start;
   }
 
+  .battle-view .sprite-image-wrap.sprite-large-mobile {
+    height: min(32svh, 250px);
+    max-height: none;
+  }
+
   .battle-view .player-sprite .sprite-image-wrap.sprite-large-mobile {
     place-items: end end;
+    transform: scale(1.5);
+    transform-origin: right bottom;
   }
 
   .battle-view .enemy-sprite .sprite-image-wrap.sprite-large-mobile {
     place-items: end start;
+    transform: scale(1.5);
+    transform-origin: left bottom;
   }
 
   .battle-view .player-sprite:has(.sprite-large-mobile),
@@ -191,23 +200,15 @@
   .battle-view .sprite-image-wrap.sprite-large-mobile .sprite-image {
     width: 100%;
     max-width: 100%;
-    height: min(32svh, 250px);
+    height: 100%;
     max-height: none;
     object-fit: contain;
     object-position: bottom center;
-    transform: scale(1.5);
-  }
-
-  .battle-view .player-sprite .sprite-image-wrap.sprite-large-mobile .sprite-image {
-    transform-origin: right bottom;
-  }
-
-  .battle-view .enemy-sprite .sprite-image-wrap.sprite-large-mobile .sprite-image {
-    transform-origin: left bottom;
+    transform: none;
   }
 
   .battle-view .sprite-image-wrap.sprite-large-mobile .sprite-image.is-enemy {
-    transform: scale(1.5) scaleX(-1);
+    transform: scaleX(-1);
   }
 
   .battle-view .battle-console {
