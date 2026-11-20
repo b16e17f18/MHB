@@ -6936,6 +6936,7 @@ function renderMoveGrid(fighter) {
         <span class="move-cost">${energyBadge(move.cost)}</span>
         <span class="move-element${colorPresentation.classes}"${colorPresentation.style}>${escapeHtml(moveElementText(move))}</span>
         <span class="move-kind">${escapeHtml(kindText)}</span>
+        <span class="move-power power-chip">威力 ${escapeHtml(move.category === "attack" ? move.power : "—")}</span>
       </button>
     `;
   }).join("");
