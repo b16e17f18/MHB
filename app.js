@@ -6930,12 +6930,15 @@ function renderMoveGrid(fighter) {
     const unavailable = moveUnavailableReason(fighter, move);
     const colorPresentation = moveColorPresentation(move);
     const kindText = move.category === "attack" ? attackTypeLabel(move.attack_type) : moveCategoryLabel(move.category);
+    const kindClass = move.category === "attack"
+      ? `move-kind-${move.attack_type === "physical" ? "physical" : move.attack_type === "special" ? "special" : "change"}`
+      : "move-kind-change";
     return `
       <button class="move-button move-element-${elementClass(move.element)}${colorPresentation.classes}${unavailable ? " is-unavailable" : ""}" type="button" data-move-id="${escapeHtml(move.skill_id)}" aria-label="${escapeHtml(move.name)}の詳細" ${inputLocked ? "disabled" : ""}${colorPresentation.style}>
         <span class="move-name">${escapeHtml(move.name)}</span>
         <span class="move-cost">${energyBadge(move.cost)}</span>
         <span class="move-element${colorPresentation.classes}"${colorPresentation.style}>${escapeHtml(moveElementText(move))}</span>
-        <span class="move-kind">${escapeHtml(kindText)}</span>
+        <span class="move-kind ${kindClass}">${escapeHtml(kindText)}</span>
         <span class="move-power power-chip">威力 ${escapeHtml(move.category === "attack" ? move.power : "—")}</span>
       </button>
     `;
@@ -7012,6 +7015,9 @@ function moveMatchupInfo(move, defender) {
 function renderMoveDetail(fighter, move) {
   const issue = moveUnavailableReason(fighter, move);
   const kindText = move.category === "attack" ? attackTypeLabel(move.attack_type) : moveCategoryLabel(move.category);
+  const kindClass = move.category === "attack"
+    ? `move-kind-${move.attack_type === "physical" ? "physical" : move.attack_type === "special" ? "special" : "change"}`
+    : "move-kind-change";
   const matchup = moveMatchupInfo(move, activeEnemy());
   const statusNote = fighter.statuses?.some((status) => status.id === "sleep")
     ? `<span class="move-status-note">眠り状態：技を選んでも行動できず、ターンは進行します。</span>`
@@ -7019,7 +7025,7 @@ function renderMoveDetail(fighter, move) {
       ? `<span class="move-status-note">麻痺状態：行動できない場合があります。</span>`
       : "";
   const matchupMarkup = matchup
-    ? `<span class="move-matchup">相手への属性相性倍率：×${escapeHtml(formatMoveMultiplier(matchup.multiplier))}倍</span>`
+    ? `<span class="move-matchup">×${escapeHtml(formatMoveMultiplier(matchup.multiplier))}</span>`
     : "";
 
   return `
@@ -7028,7 +7034,7 @@ function renderMoveDetail(fighter, move) {
         <span class="move-name">${escapeHtml(move.name)}</span>
         <span class="move-cost">${energyBadge(move.cost)}</span>
         <span class="move-element${moveColorPresentation(move).classes}"${moveColorPresentation(move).style}>${escapeHtml(moveElementText(move))}</span>
-        <span class="move-kind">${escapeHtml(kindText)}</span>
+        <span class="move-kind ${kindClass}">${escapeHtml(kindText)}</span>
         <span class="move-power power-chip">威力 ${escapeHtml(move.category === "attack" ? move.power : "—")}</span>
         <span class="move-text">${escapeHtml(move.text || "説明はありません。")}</span>
         ${issue ? `<span class="move-issue">${escapeHtml(issue)}</span>` : ""}
